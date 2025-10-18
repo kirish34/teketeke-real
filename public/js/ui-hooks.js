@@ -1,0 +1,1 @@
+window.ensureAuthOrRoot=window.ensureAuthOrRoot||function(){const t=localStorage.getItem('auth_token')||localStorage.getItem('tt_root_token');if(!t)localStorage.setItem('auth_token','demo-user-token');};

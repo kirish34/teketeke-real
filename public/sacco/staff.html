@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TekeTeke — SACCO Staff</title>
+  <style>
+    :root{ --brand:#1976d2; --bg:#f6f7fb; --panel:#fff; --border:#e5e7eb; --muted:#6b7280; }
+    *{box-sizing:border-box} body{font-family:system-ui,Segoe UI,Arial;background:var(--bg);margin:0;padding:20px}
+    h2{color:var(--brand);margin:0 0 12px}
+    .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    input,select,button{padding:10px;border:1px solid var(--border);border-radius:8px}
+    button{background:var(--brand);color:#fff;border:none;cursor:pointer}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px;border:1px solid var(--border);text-align:left}
+    th{background:var(--brand);color:#fff}
+    .right{margin-left:auto} .muted{color:var(--muted)} .mono{font-family:ui-monospace,Consolas,monospace}
+  </style>
+</head>
+<body>
+  <a href="/public/auth/role-select.html">← Back</a>
+  <h2>SACCO Staff — Cash Desk</h2>
+
+  <div class="card">
+    <div class="row">
+      <label>SACCO <select id="sacco"></select></label>
+      <label>Matatu <select id="matatu"></select></label>
+      <button id="reload">Reload</button>
+      <span class="right muted" id="stat"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Collect Cash</h3>
+    <div class="row">
+      <select id="kind">
+        <option value="DAILY_FEE">DAILY_FEE (SACCO_FEE)</option>
+        <option value="SAVINGS">SAVINGS</option>
+        <option value="LOAN_REPAY">LOAN_REPAY</option>
+      </select>
+      <input id="amount" type="number" placeholder="Amount (KES)" />
+      <input id="name" placeholder="Payer name" />
+      <input id="phone" placeholder="07XXXXXXXX" />
+      <button id="postCash">Post</button>
+    </div>
+    <pre id="out" class="mono" style="margin-top:10px"></pre>
+  </div>
+
+  <div class="card">
+    <div class="row"><strong>Recent Transactions</strong><button id="reloadTx" class="right">Reload</button></div>
+    <table>
+      <thead><tr><th>When</th><th>Matatu</th><th>MSISDN</th><th>Kind</th><th>Amount</th><th>Status</th><th>ID</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+<script>
+(async function(){
+  const $=id=>document.getElementById(id);
+  const j=async r=>{const t=await r.text();try{const j=t?JSON.parse(t):{};if(!r.ok)throw new Error(j.error||j.message||r.statusText);return j}catch{if(!r.ok)throw new Error(t||r.statusText);return {raw:t}}};
+  async function g(p){return j(await fetch(p))}
+  async function p(p,b){return j(await fetch(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}))}
+
+  let SACCO_ID=null, MATATU_ID=null;
+  async function loadSaccos(){
+    const res=await g('/u/my-saccos');
+    const sel=$('sacco'); sel.innerHTML='';
+    (res.items||[]).forEach(s=>{const o=document.createElement('option');o.value=s.sacco_id;o.textContent=s.name;sel.appendChild(o)});
+    if(res.items?.length){sel.value=res.items[0].sacco_id;SACCO_ID=sel.value}
+  }
+  async function loadMatatus(){
+    if(!SACCO_ID) return;
+    const res=await g(`/u/sacco/${SACCO_ID}/matatus`);
+    const sel=$('matatu'); sel.innerHTML='';
+    (res.items||[]).forEach(m=>{const o=document.createElement('option');o.value=m.id;o.textContent=m.number_plate;sel.appendChild(o)});
+    if(res.items?.length){sel.value=res.items[0].id;MATATU_ID=sel.value}
+    $('stat').textContent = `${res.items?.length||0} matatu(s)`;
+  }
+  async function loadTx(){
+    if(!SACCO_ID) return;
+    const res=await g(`/u/sacco/${SACCO_ID}/transactions?limit=50`);
+    const T=$('tbody'); T.innerHTML='';
+    (res.items||[]).forEach(tx=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${new Date(tx.created_at).toLocaleString()}</td><td class='mono'>${tx.matatu_id||''}</td><td class='mono'>${tx.passenger_msisdn||''}</td><td>${tx.kind||''}</td><td>${Number(tx.fare_amount_kes||0).toLocaleString('en-KE')}</td><td>${tx.status||''}</td><td class='mono'>${tx.id}</td>`;
+      T.appendChild(tr);
+    });
+  }
+
+  $('sacco').onchange=async()=>{SACCO_ID=$('sacco').value;await loadMatatus();await loadTx()};
+  $('matatu').onchange=()=>{MATATU_ID=$('matatu').value};
+  $('reload').onclick=async()=>{await loadSaccos();await loadMatatus();await loadTx()};
+  $('reloadTx').onclick=loadTx;
+  $('postCash').onclick=async()=>{
+    if(!SACCO_ID||!MATATU_ID) return alert('Pick SACCO and Matatu');
+    const body={sacco_id:SACCO_ID,matatu_id:MATATU_ID,kind:$('kind').value,amount:Number($('amount').value||0),payer_name:$('name').value.trim(),payer_phone:$('phone').value.trim()};
+    try{const r=await p('/api/staff/cash',body);$('out').textContent=JSON.stringify(r,null,2);await loadTx();alert('Recorded ✅')}catch(e){$('out').textContent=e.message;alert(e.message)}
+  };
+
+  await loadSaccos(); await loadMatatus(); await loadTx();
+})();
+</script>
+</body>
+</html>
