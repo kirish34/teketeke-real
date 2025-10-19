@@ -1,13 +1,20 @@
 const express = require('express');
+const { timingSafeEqual } = require('crypto');
 const { supabaseAdmin } = require('../supabase');
 const router = express.Router();
 
-function requireAdmin(req,res,next){
-  const tok=req.headers['x-admin-token'];
-  if(!tok || tok!== (process.env.ADMIN_TOKEN||'dev')) return res.status(401).json({error:'admin token required'});
-  next();
+function checkAdmin(req,res,next){
+  const expected = (process.env.ADMIN_TOKEN || '');
+  if (!expected) return res.status(500).json({ error: 'ADMIN_TOKEN not set' });
+  const got = String(req.headers['x-admin-token'] || '');
+  const a = Buffer.from(expected), b = Buffer.from(got);
+  if (a.length !== b.length) return res.status(401).json({ error: 'admin token required' });
+  try {
+    if (timingSafeEqual(a,b)) return next();
+  } catch (_) {}
+  return res.status(401).json({ error: 'admin token required' });
 }
-router.use(requireAdmin);
+router.use(checkAdmin);
 
 // Overview
 router.get('/system-overview', async (_req, res) => {

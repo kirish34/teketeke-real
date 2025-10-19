@@ -1,6 +1,8 @@
 const express = require('express');
 const fetch = require('node-fetch');
+const { supabaseAdmin } = require('../supabase');
 const router = express.Router();
+const WEBHOOK_SECRET = process.env.DARAJA_WEBHOOK_SECRET || null;
 
 function base64(str){ return Buffer.from(str).toString('base64'); }
 
@@ -59,9 +61,50 @@ router.post('/stk', async (req,res)=>{
   }
 });
 
-router.post('/stk/callback', (req,res)=>{
-  // For production, validate and persist result. For now just 200/OK.
-  res.json({ ok:true });
+router.post('/stk/callback', async (req,res)=>{
+  if (WEBHOOK_SECRET) {
+    const got = req.headers['x-webhook-secret'] || '';
+    if (got !== WEBHOOK_SECRET) return res.status(401).json({ ok:false, error:'bad signature' });
+  }
+  // Parse common Daraja STK callback shape
+  const body = req.body || {};
+  const cb = body?.Body?.stkCallback;
+  if (!cb) return res.json({ ok: true });
+
+  const resultCode = cb?.ResultCode;
+  const items = Array.isArray(cb?.CallbackMetadata?.Item) ? cb.CallbackMetadata.Item : [];
+  const getItem = (name) => items.find(i => i?.Name === name)?.Value;
+
+  const receipt = getItem('MpesaReceiptNumber') || null;
+  const amount  = Number(getItem('Amount') || 0);
+  const msisdn  = String(getItem('PhoneNumber') || '');
+
+  const tx = {
+    sacco_id: null,
+    matatu_id: null,
+    kind: 'SACCO_FEE',
+    fare_amount_kes: amount,
+    service_fee_kes: 0,
+    status: (resultCode === 0 ? 'SUCCESS' : 'FAILED'),
+    passenger_msisdn: msisdn || null,
+    notes: `STK callback code=${resultCode}`,
+    external_id: receipt || null,
+    checkout_request_id: cb?.CheckoutRequestID || null
+  };
+
+  if (supabaseAdmin) {
+    const { error } = await supabaseAdmin
+      .from('transactions')
+      .insert(tx)
+      .select('id')
+      .single();
+    // Ignore duplicates if unique index present
+    if (error && !String(error.message||'').toLowerCase().includes('duplicate')) {
+      return res.status(500).json({ ok:false, error: error.message });
+    }
+  }
+
+  return res.json({ ok:true });
 });
 
 module.exports = router;

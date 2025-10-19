@@ -1,2 +1,8 @@
-.vercel
+.vercel/
 .env
+node_modules/
+*.log
+npm-debug.log*
+logs/
+coverage/
+.DS_Store
