@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TekeTeke — Boda Boda Console</title>
+  <title>TekeTeke â€” Boda Boda Console</title>`n  <script src="/public/js/app-config.js"></script>`n  <script src="/public/js/api.js"></script>
   <style>
     :root{
       --sky:#0ea5e9; /* sky blue */
@@ -62,31 +62,28 @@
   <div class="wrap">
     <header>
       <h1>Boda Boda Console</h1>
-      <div class="row" style="gap:10px;align-items:center;justify-content:flex-end">
-        <div class="date" id="today"></div>
-        <a class="link" href="/logout.html">Logout</a>
-      </div>
+      <div class="row" style="gap:10px;align-items:center;justify-content:flex-end"><div class="date" id="today"></div><span id="auth_state" class="pill" style="max-width:40vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Checking sign-in…</span><button id="logoutBtn" class="link" style="border:1px solid var(--border);background:var(--sky);color:#fff;border-radius:10px;padding:8px 12px;cursor:pointer">Logout</button></div>
     </header>
 
     <section id="status">
       <h2>Status</h2>
       <div class="row">
         <div>
-          <div class="pill" id="authState">Checking token…</div>
-          <div class="hint" id="whoamiHint">—</div>
+          <div class="pill" id="authState">Checking tokenâ€¦</div>
+          <div class="hint" id="whoamiHint">â€”</div>
         </div>
       </div>
     </section>
 
     <section>
-      <h2>Today’s Totals</h2>
+      <h2>Todayâ€™s Totals</h2>
       <div class="kpis">
-        <div class="kpi"><div class="v" id="kpiTill">—</div><div class="l">Till (M‑Pesa) Today</div></div>
-        <div class="kpi"><div class="v" id="kpiCash">—</div><div class="l">Cash Today</div></div>
-        <div class="kpi"><div class="v" id="kpiExp">—</div><div class="l">Expenses Today</div></div>
-        <div class="kpi"><div class="v" id="kpiNet">—</div><div class="l">Net Today</div></div>
+        <div class="kpi"><div class="v" id="kpiTill">â€”</div><div class="l">Till (Mâ€‘Pesa) Today</div></div>
+        <div class="kpi"><div class="v" id="kpiCash">â€”</div><div class="l">Cash Today</div></div>
+        <div class="kpi"><div class="v" id="kpiExp">â€”</div><div class="l">Expenses Today</div></div>
+        <div class="kpi"><div class="v" id="kpiNet">â€”</div><div class="l">Net Today</div></div>
       </div>
-      <div class="hint" id="sumHint">Refreshing…</div>
+      <div class="hint" id="sumHint">Refreshingâ€¦</div>
     </section>
 
     <section>
@@ -98,7 +95,7 @@
           <label for="payerName">Payer Name</label>
           <input id="payerName" type="text" placeholder="optional" />
           <label for="payerPhone">Phone</label>
-          <input id="payerPhone" type="tel" inputmode="numeric" placeholder="07xx… (optional)" />
+          <input id="payerPhone" type="tel" inputmode="numeric" placeholder="07xxâ€¦ (optional)" />
           <label for="cashNotes">Notes</label>
           <textarea id="cashNotes" placeholder="optional"></textarea>
           <button id="btnCash">Collect Cash</button>
@@ -195,7 +192,7 @@
 
     // --- summary ---
     async function refreshSummary(){
-      $('sumHint').textContent = 'Refreshing…';
+      $('sumHint').textContent = 'Refreshingâ€¦';
       try{
         // Backend should aggregate by day for current rider; adapt path if needed
         const today = new Date().toISOString().slice(0,10);
@@ -221,7 +218,7 @@
         rows.forEach(x=>{
           const tr = document.createElement('tr');
           const t = x.created_at || x.time || x.ts;
-          tr.innerHTML = `<td>${t? new Date(t).toLocaleTimeString(): '—'}</td>`+
+          tr.innerHTML = `<td>${t? new Date(t).toLocaleTimeString(): 'â€”'}</td>`+
                           `<td>${x.payer_name||''}</td>`+
                           `<td>${x.phone||''}</td>`+
                           `<td>${fmt(x.amount||0)}</td>`+
@@ -239,8 +236,8 @@
         rows.forEach(x=>{
           const tr = document.createElement('tr');
           const t = x.created_at || x.time || x.ts;
-          tr.innerHTML = `<td>${t? new Date(t).toLocaleTimeString(): '—'}</td>`+
-                          `<td>${x.category||x.cat||'—'}</td>`+
+          tr.innerHTML = `<td>${t? new Date(t).toLocaleTimeString(): 'â€”'}</td>`+
+                          `<td>${x.category||x.cat||'â€”'}</td>`+
                           `<td>${fmt(x.amount||0)}</td>`+
                           `<td>${x.notes||''}</td>`;
           tb.appendChild(tr);
@@ -254,11 +251,11 @@
       const payer_name = ($('payerName').value||'').trim();
       const phone = ($('payerPhone').value||'').trim();
       const notes = ($('cashNotes').value||'').trim();
-      const out = $('cashMsg'); out.textContent = 'Saving…';
+      const out = $('cashMsg'); out.textContent = 'Savingâ€¦';
       try{
         if(!(amount > 0)) throw new Error('Enter amount');
         await authFetch('/api/boda/cash', { method:'POST', body: JSON.stringify({ amount, payer_name, phone, notes }) });
-        out.textContent = 'Saved ✓'; out.className = 'success';
+        out.textContent = 'Saved âœ“'; out.className = 'success';
         $('cashAmount').value = ''; $('payerName').value=''; $('payerPhone').value=''; $('cashNotes').value='';
         refreshSummary(); refreshCash();
       }catch(err){ out.textContent = `Error: ${err.message||err}`; out.className = 'error'; }
@@ -268,11 +265,11 @@
       const category = $('expCat').value;
       const amount = Number(($('expAmount').value||'').trim());
       const notes = ($('expNotes').value||'').trim();
-      const out = $('expMsg'); out.textContent = 'Saving…';
+      const out = $('expMsg'); out.textContent = 'Savingâ€¦';
       try{
         if(!(amount > 0)) throw new Error('Enter amount');
         await authFetch('/api/boda/expenses', { method:'POST', body: JSON.stringify({ category, amount, notes }) });
-        out.textContent = 'Saved ✓'; out.className = 'success';
+        out.textContent = 'Saved âœ“'; out.className = 'success';
         $('expAmount').value=''; $('expNotes').value='';
         refreshSummary(); refreshExpenses();
       }catch(err){ out.textContent = `Error: ${err.message||err}`; out.className = 'error'; }
@@ -289,3 +286,5 @@
   </script>
 </body>
 </html>
+
+<script>(async function(){try{if(window.TT&&window.TT.getSupabase){const supa=await window.TT.getSupabase();const {data:{session}}=await supa.auth.getSession();var el=document.getElementById('auth_state');if(el) el.textContent=session?.user?.email?(Signed in as ):'Not signed in';var b=document.getElementById('logoutBtn');b?.addEventListener('click',async()=>{try{await supa.auth.signOut()}catch(_){ }localStorage.removeItem('auth_token');localStorage.removeItem('tt_root_token');localStorage.removeItem('tt_admin_token');location.reload()},{passive:true});}}catch(_){}})();</script>
