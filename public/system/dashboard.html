@@ -1,11 +1,16 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>System Admin Dashboard â€” TekeTeke</title>
+  <meta charset="utf-8" />
+  <title>System Admin Dashboard — TekeTeke</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <script src="/public/js/app-config.js"></script>\n  <script src="/public/js/api.js"></script>
+
+  <!-- App bootstrap (unchanged paths) -->
+  <script src="/public/js/app-config.js"></script>
+  <script src="/public/js/api.js"></script>
   <script src="/public/js/nav.js"></script>
+  <script src="/public/js/ui-hooks.js"></script>
+
   <style>
     :root{
       --brand:#1976d2;
@@ -23,16 +28,15 @@
     *{box-sizing:border-box}
     body{font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text);margin:0;padding:20px}
     h2{color:var(--brand);margin:0 0 16px}
-    .topbar{display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
-    .token{display:flex;align-items:center;gap:8px;background:#eef6ff;padding:8px 10px;border-radius:8px;border:1px solid #cfe3ff}
-    .token input{min-width:260px;padding:8px;border:1px solid #cfe3ff;border-radius:6px;background:#fff}
+    h3{margin:0 0 10px}
+    h4{margin:16px 0 8px}
     .btn{background:var(--brand);color:#fff;border:none;border-radius:6px;padding:8px 12px;cursor:pointer}
     .btn:hover{background:var(--brand-700)}
     .btn.ghost{background:#fff;color:var(--brand);border:1px solid var(--brand)}
     .btn.ok{background:var(--ok)}
     .btn.warn{background:var(--warn)}
     .btn.bad{background:var(--bad)}
-    .tabs{display:flex;gap:8px;margin:12px 0 18px}
+    .tabs{display:flex;gap:8px;margin:12px 0 18px;flex-wrap:wrap}
     .tab{padding:10px 14px;background:var(--brand);color:#fff;border-radius:6px;cursor:pointer}
     .tab.active{background:var(--brand-700)}
     .panel{display:none;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;box-shadow:0 1px 6px rgba(0,0,0,.05)}
@@ -48,79 +52,53 @@
     th{background:var(--brand);color:#fff}
     .actions .btn{margin-right:6px;margin-bottom:6px}
     .muted{color:var(--muted)}
-    .kbd{font-family:monospace;background:#111;color:#fff;padding:2px 6px;border-radius:4px}
     .note{background:#fef3c7;border:1px solid #fde68a;color:#92400e;border-radius:8px;padding:8px 10px;margin-top:8px}
     .row{display:flex;gap:8px;align-items:center}
     .right{margin-left:auto}
     .mono{font-family:monospace}
     .pill{display:inline-block;background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;padding:2px 8px;border-radius:999px;font-size:12px}
     .table-wrap{max-height:360px;overflow:auto;border:1px solid var(--border);border-radius:10px}
-    /* small helpers for Admin Tools */
+    /* Admin Tools log area */
     #adminLog{background:#0b1020;color:#cfe3ff;padding:10px;border-radius:8px;max-height:220px;overflow:auto}
+    /* Toast */
+    #toast{position:fixed;bottom:14px;right:14px;background:#111827;color:#fff;padding:10px 12px;border-radius:8px;opacity:0;pointer-events:none;transition:.2s;box-shadow:0 4px 18px rgba(0,0,0,.2)}
+    #toast.show{opacity:1;pointer-events:auto}
   </style>
-<script src="/public/js/ui-hooks.js"></script>
 </head>
 <body>
 
-  <h2>System Admin Dashboard â€” TekeTeke</h2>
+  <h2>System Admin Dashboard — TekeTeke</h2>
   <button id="logoutBtn" class="btn" style="position:fixed;top:12px;right:12px;z-index:10;">Logout</button>
 
-  <!-- Admin token + base selector -->
-  <div class="topbar">
-    <div class="token">
-      <strong>Admin token</strong>
-      <input id="adm_token" placeholder="x-admin-token" />
-      <button class="btn" id="save_token">Save</button>
-      <span id="tok_state" class="muted"></span>
-    </div>
-    <div class="row">
-      <span class="muted">API:</span>
-      <select id="api_base">
-        <option value="">Same origin</option>
-        <option value="http://localhost:5001">http://localhost:5001</option>
-      </select>
-    </div>
-    <div class="right muted">Tip: token is stored in your browser only.</div>
+  <div class="tabs" role="tablist" aria-label="Sections">
+    <div class="tab active" data-panel="p_saccos" role="tab" aria-selected="true">SACCOs</div>
+    <div class="tab" data-panel="p_matatus" role="tab" aria-selected="false">Matatus</div>
+    <div class="tab" data-panel="p_bodas" role="tab" aria-selected="false">BodaBodas</div>
+    <div class="tab" data-panel="p_taxis" role="tab" aria-selected="false">Taxis</div>
+    <div class="tab" data-panel="p_pool" role="tab" aria-selected="false">USSD Pool</div>
+    <div class="tab" data-panel="p_tx" role="tab" aria-selected="false">Transactions</div>
+    <div class="tab" data-panel="p_tools" role="tab" aria-selected="false">Admin Tools</div>
   </div>
-
-  <div class="tabs">
-    <div class="tab active" data-panel="p_saccos">SACCOs</div>
-    <div class="tab" data-panel="p_matatus">Matatus</div>
-    <div class="tab" data-panel="p_pool">USSD Pool</div>
-    <div class="tab" data-panel="p_tx">Transactions</div>
-    <div class="tab" data-panel="p_tools">Admin Tools</div><!-- NEW -->
-  </div>
-
-  <!-- System Overview (lightweight) -->
-  <section class="panel active" id="p_overview" style="margin:10px 0;">
-    <div class="grid grid-3">
-      <div class="field"><label>Total SACCOs<div class="v" id="ov_saccos">-</div></label></div>
-      <div class="field"><label>Total Matatus<div class="v" id="ov_matatus">-</div></label></div>
-      <div class="field"><label>Cashiers<div class="v" id="ov_cashiers">-</div></label></div>
-      <div class="field"><label>Tx Today<div class="v" id="ov_tx">-</div></label></div>
-      <div class="field"><label>USSD Pool (avail/total)<div class="v" id="ov_pool">-</div></label></div>
-    </div>
-  </section>
 
   <!-- SACCOs -->
-  <section id="p_saccos" class="panel active">
+  <section id="p_saccos" class="panel active" aria-labelledby="tab_saccos">
     <h3>Register SACCO</h3>
     <div class="grid grid-2">
-      <div class="field"><label>Name<input id="sc_name" placeholder="e.g. CityRiders"></label></div>
-      <div class="field"><label>Contact name<input id="sc_contact_name" placeholder="e.g. Juma"></label></div>
-      <div class="field"><label>Contact phone<input id="sc_contact_phone" placeholder="2547..."></label></div>
-      <div class="field"><label>Contact email<input id="sc_contact_email" placeholder="name@example.com"></label></div>
-      <div class="field"><label>Default till<input id="sc_default_till" placeholder="optional"></label></div>
+      <div class="field"><label>Name<input id="sc_name" placeholder="e.g. CityRiders" autocomplete="off"></label></div>
+      <div class="field"><label>Contact name<input id="sc_contact_name" placeholder="e.g. Juma" autocomplete="off"></label></div>
+      <div class="field"><label>Contact phone<input id="sc_contact_phone" placeholder="2547..." autocomplete="off"></label></div>
+      <div class="field"><label>Contact email<input id="sc_contact_email" placeholder="name@example.com" autocomplete="off"></label></div>
+      <div class="field"><label>Default till<input id="sc_default_till" placeholder="optional" autocomplete="off"></label></div>
       <div class="field"><label>&nbsp;<button class="btn ok" id="sc_submit">Register SACCO</button></label></div>
     </div>
 
     <div class="row" style="margin-top:12px">
-      <input id="sc_q" placeholder="Search by nameâ€¦" style="padding:10px;border:1px solid var(--border);border-radius:8px;min-width:260px">
+      <input id="sc_q" placeholder="Search by name…" style="padding:10px;border:1px solid var(--border);border-radius:8px;min-width:260px" autocomplete="off">
       <button class="btn ghost" id="sc_reload">Reload</button>
       <span class="right muted" id="sc_count"></span>
     </div>
 
-    <div class="table-wrap">
+    <div class="table-wrap" role="region" aria-label="SACCO list">
       <table>
         <thead>
           <tr><th>Name</th><th>Contact</th><th>Phone</th><th>Email</th><th>Default Till</th><th>ID</th><th width="260">Actions</th></tr>
@@ -132,31 +110,31 @@
   </section>
 
   <!-- Matatus -->
-  <section id="p_matatus" class="panel">
+  <section id="p_matatus" class="panel" aria-labelledby="tab_matatus">
     <h3>Register Matatu</h3>
     <div class="grid grid-3">
-      <div class="field"><label>Plate<input id="mt_plate" placeholder="KDA123A"></label></div>
-      <div class="field"><label>Owner<input id="mt_owner" placeholder="Owner name"></label></div>
-      <div class="field"><label>Owner phone<input id="mt_phone" placeholder="2547..."></label></div>
-      <div class="field"><label>Vehicle type<input id="mt_type" placeholder="e.g. PSV 14-seater"></label></div>
-      <div class="field"><label>TLB number<input id="mt_tlb" placeholder="optional"></label></div>
-      <div class="field"><label>Till number<input id="mt_till" placeholder="e.g. 987654"></label></div>
-      <div class="field"><label>SACCO<select id="mt_sacco"><option value="">â€” choose SACCO â€”</option></select></label></div>
+      <div class="field"><label>Plate<input id="mt_plate" placeholder="KDA123A" autocomplete="off"></label></div>
+      <div class="field"><label>Owner<input id="mt_owner" placeholder="Owner name" autocomplete="off"></label></div>
+      <div class="field"><label>Owner phone<input id="mt_phone" placeholder="2547..." autocomplete="off"></label></div>
+      <div class="field"><label>Vehicle type<input id="mt_type" placeholder="e.g. PSV 14-seater" autocomplete="off"></label></div>
+      <div class="field"><label>TLB number<input id="mt_tlb" placeholder="optional" autocomplete="off"></label></div>
+      <div class="field"><label>Till number<input id="mt_till" placeholder="e.g. 987654" autocomplete="off"></label></div>
+      <div class="field"><label>SACCO<select id="mt_sacco"><option value="">— choose SACCO —</option></select></label></div>
       <div class="field"><label>&nbsp;<button class="btn ok" id="mt_submit">Register Matatu</button></label></div>
     </div>
 
     <div class="row" style="margin-top:12px">
       <label class="row">Filter by SACCO
         <select id="mt_filter_sacco" style="margin-left:8px;padding:8px;border:1px solid var(--border);border-radius:8px;min-width:260px">
-          <option value="">â€” all â€”</option>
+          <option value="">— all —</option>
         </select>
       </label>
-      <input id="mt_q_plate" placeholder="Search plateâ€¦" style="margin-left:10px;padding:10px;border:1px solid var(--border);border-radius:8px;min-width:200px">
+      <input id="mt_q_plate" placeholder="Search plate…" style="margin-left:10px;padding:10px;border:1px solid var(--border);border-radius:8px;min-width:200px" autocomplete="off">
       <button class="btn ghost" id="mt_reload">Reload</button>
       <span class="right muted" id="mt_count"></span>
     </div>
 
-    <div class="table-wrap">
+    <div class="table-wrap" role="region" aria-label="Matatu list">
       <table>
         <thead>
           <tr>
@@ -169,17 +147,91 @@
     </div>
   </section>
 
+  <!-- BodaBodas -->
+  <section id="p_bodas" class="panel" aria-labelledby="tab_bodas">
+    <h3>Register BodaBoda</h3>
+    <div class="grid grid-3">
+      <div class="field"><label>Plate<input id="bd_plate" placeholder="KMC123A" autocomplete="off"></label></div>
+      <div class="field"><label>Owner<input id="bd_owner" placeholder="Rider name" autocomplete="off"></label></div>
+      <div class="field"><label>Owner phone<input id="bd_phone" placeholder="2547..." autocomplete="off"></label></div>
+      <div class="field"><label>TLB number<input id="bd_tlb" placeholder="optional" autocomplete="off"></label></div>
+      <div class="field"><label>Till number<input id="bd_till" placeholder="e.g. 987654" autocomplete="off"></label></div>
+      <div class="field"><label>SACCO<select id="bd_sacco"><option value="">— choose SACCO —</option></select></label></div>
+      <div class="field"><label>&nbsp;<button class="btn ok" id="bd_submit">Register BodaBoda</button></label></div>
+    </div>
+
+    <div class="row" style="margin-top:12px">
+      <label class="row">Filter by SACCO
+        <select id="bd_filter_sacco" style="margin-left:8px;padding:8px;border:1px solid var(--border);border-radius:8px;min-width:260px">
+          <option value="">— all —</option>
+        </select>
+      </label>
+      <input id="bd_q_plate" placeholder="Search plate…" style="margin-left:10px;padding:10px;border:1px solid var(--border);border-radius:8px;min-width:200px" autocomplete="off">
+      <button class="btn ghost" id="bd_reload">Reload</button>
+      <span class="right muted" id="bd_count"></span>
+    </div>
+
+    <div class="table-wrap" role="region" aria-label="Boda list">
+      <table>
+        <thead>
+          <tr>
+            <th>Plate</th><th>Owner</th><th>Phone</th><th>Type</th><th>TLB</th>
+            <th>Till</th><th>SACCO</th><th>ID</th><th width="200">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="bd_list"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Taxis -->
+  <section id="p_taxis" class="panel" aria-labelledby="tab_taxis">
+    <h3>Register Taxi</h3>
+    <div class="grid grid-3">
+      <div class="field"><label>Plate<input id="txi_plate" placeholder="KDG123Y" autocomplete="off"></label></div>
+      <div class="field"><label>Owner<input id="txi_owner" placeholder="Owner name" autocomplete="off"></label></div>
+      <div class="field"><label>Owner phone<input id="txi_phone" placeholder="2547..." autocomplete="off"></label></div>
+      <div class="field"><label>TLB number<input id="txi_tlb" placeholder="optional" autocomplete="off"></label></div>
+      <div class="field"><label>Till number<input id="txi_till" placeholder="e.g. 987654" autocomplete="off"></label></div>
+      <div class="field"><label>SACCO<select id="txi_sacco"><option value="">— choose SACCO —</option></select></label></div>
+      <div class="field"><label>&nbsp;<button class="btn ok" id="txi_submit">Register Taxi</button></label></div>
+    </div>
+
+    <div class="row" style="margin-top:12px">
+      <label class="row">Filter by SACCO
+        <select id="txi_filter_sacco" style="margin-left:8px;padding:8px;border:1px solid var(--border);border-radius:8px;min-width:260px">
+          <option value="">— all —</option>
+        </select>
+      </label>
+      <input id="txi_q_plate" placeholder="Search plate…" style="margin-left:10px;padding:10px;border:1px solid var(--border);border-radius:8px;min-width:200px" autocomplete="off">
+      <button class="btn ghost" id="txi_reload">Reload</button>
+      <span class="right muted" id="txi_count"></span>
+    </div>
+
+    <div class="table-wrap" role="region" aria-label="Taxi list">
+      <table>
+        <thead>
+          <tr>
+            <th>Plate</th><th>Owner</th><th>Phone</th><th>Type</th><th>TLB</th>
+            <th>Till</th><th>SACCO</th><th>ID</th><th width="200">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="txi_list"></tbody>
+      </table>
+    </div>
+  </section>
+
   <!-- USSD Pool -->
-  <section id="p_pool" class="panel">
-    <h3>USSD Pool (0011 â†’ 0022 â†’ â€¦ â†’ 9999)</h3>
-    <div class="grid">
-      <div class="field"><label>Prefix<input id="up_prefix" value="*001*"></label><small>Usually keep *001*</small></div>
+  <section id="p_pool" class="panel" aria-labelledby="tab_pool">
+    <h3>USSD Pool (0011 → 0022 → … → 9999)</h3>
+    <div class="grid grid-3" id="up_controls">
       <div class="field"><label>Level
         <select id="up_level">
           <option value="MATATU" selected>MATATU</option>
           <option value="SACCO">SACCO</option>
         </select>
       </label></div>
+
       <div class="field" id="up_matatu_tools">
         <label>Find matatu by plate
           <div class="row">
@@ -190,15 +242,17 @@
         <small id="up_found_label" class="muted">No matatu selected</small>
         <input id="up_matatu_id" type="hidden" />
       </div>
+
       <div class="field" id="up_other_tools" style="display:none">
         <label>Target UUID<input id="up_target_id" placeholder="SACCO id" /></label>
       </div>
-    </div>
 
+      <div class="field"><label>Prefix<input id="up_prefix" value="*001*"></label><small>Usually keep *001*</small></div>
+    </div>
     <div class="row" style="margin:10px 0">
-      <button class="btn ok" id="up_assign_next">Assign NEXT â†’ Target</button>
+      <button class="btn ok" id="up_assign_next">Assign NEXT → Target</button>
       <span class="muted">or</span>
-      <input id="up_manual_code" placeholder="*001*1102#" style="padding:10px;border:1px solid var(--border);border-radius:8px;min-width:240px">
+      <input id="up_manual_code" placeholder="*001*1102#" style="padding:10px;border:1px solid var(--border);border-radius:8px;min-width:240px" autocomplete="off">
       <button class="btn" id="up_bind_manual">Bind This Code</button>
       <button class="btn ghost right" id="up_refresh">Refresh Lists</button>
       <span class="muted" id="up_counts"></span>
@@ -207,7 +261,7 @@
     <div class="grid">
       <div>
         <h4>Available</h4>
-        <input id="up_search" placeholder="Search code/baseâ€¦" style="padding:8px;border:1px solid var(--border);border-radius:8px;min-width:220px">
+        <input id="up_search" placeholder="Search code/base…" style="padding:8px;border:1px solid var(--border);border-radius:8px;min-width:220px" autocomplete="off">
         <div class="table-wrap">
           <table>
             <thead><tr><th>Base</th><th>Check</th><th>Code</th><th></th></tr></thead>
@@ -229,7 +283,7 @@
   </section>
 
   <!-- Transactions -->
-  <section id="p_tx" class="panel">
+  <section id="p_tx" class="panel" aria-labelledby="tab_tx">
     <div class="row">
       <h3 style="margin:0">Transactions today</h3>
       <button class="btn ghost right" id="tx_reload">Reload</button>
@@ -254,10 +308,10 @@
     </div>
   </section>
 
-  <!-- NEW: Admin Tools panel (quick tester) -->
-  <section id="p_tools" class="panel">
-    <h3>ðŸ› ï¸ Admin Tools â€“ SACCOs (Quick Test)</h3>
-    <p class="muted">Uses the same token above and <strong>API</strong> dropdown.</p>
+  <!-- Admin Tools panel (quick tester) -->
+  <section id="p_tools" class="panel" aria-labelledby="tab_tools">
+    <h3>🛠️ Admin Tools — SACCOs (Quick Test)</h3>
+    <p class="muted">Uses your current signed-in session.</p>
 
     <div class="row" style="margin:8px 0;">
       <button class="btn" id="tools_list">List SACCOs</button>
@@ -266,10 +320,10 @@
 
     <h4>Register</h4>
     <div class="grid grid-2">
-      <input id="tools_reg_name"         placeholder="name" />
-      <input id="tools_reg_cname"        placeholder="contact_name" />
-      <input id="tools_reg_phone"        placeholder="contact_phone" />
-      <input id="tools_reg_till"         placeholder="default_till" />
+      <input id="tools_reg_name"  placeholder="name" />
+      <input id="tools_reg_cname" placeholder="contact_name" />
+      <input id="tools_reg_phone" placeholder="contact_phone" />
+      <input id="tools_reg_till"  placeholder="default_till" />
     </div>
     <div style="margin:8px 0;">
       <button class="btn ok" id="tools_reg_btn">Register</button>
@@ -277,48 +331,87 @@
 
     <h4>Update</h4>
     <div class="grid grid-2">
-      <input id="tools_upd_id"           placeholder="id" />
-      <input id="tools_upd_cname"        placeholder="contact_name (optional)" />
-      <input id="tools_upd_phone"        placeholder="contact_phone (optional)" />
-      <input id="tools_upd_till"         placeholder="default_till (optional)" />
+      <input id="tools_upd_id"    placeholder="id" />
+      <input id="tools_upd_cname" placeholder="contact_name (optional)" />
+      <input id="tools_upd_phone" placeholder="contact_phone (optional)" />
+      <input id="tools_upd_till"  placeholder="default_till (optional)" />
     </div>
     <div style="margin:8px 0;">
       <button class="btn" id="tools_upd_btn">Update</button>
     </div>
 
-    <pre id="adminLog"></pre>
+    <pre id="adminLog" aria-live="polite"></pre>
   </section>
+
+  <div id="toast" role="status" aria-live="polite"></div>
 
 <script>
 (function(){
-  // ====== tiny client
+  // ====== helpers
   const $ = (id)=>document.getElementById(id);
-  const BASE = ()=> { const el = $('api_base'); return el ? (el.value || '') : ''; };
-  const adm = ()=> localStorage.getItem('tt_admin_token') || '';
-  const H = ()=> { const h = { 'Content-Type':'application/json' }; const t = adm(); if (t) h['x-admin-token'] = t; return h; };
-  async function parseJSONSafe(text){ if (!text) return {}; try { return JSON.parse(text); } catch { throw new Error('Invalid JSON response'); } }
-  async function handleResponse(r){ const t = await r.text(); if (!r.ok){ let msg = r.statusText || 'Request failed'; try{ const j = t? JSON.parse(t): null; if (j && (j.error || j.message)) msg = j.error || j.message; else if (t) msg = t; }catch{ if (t) msg = t; } throw new Error(msg); } return parseJSONSafe(t); }
-  async function jget(p){ const r=await fetch((BASE()||'')+p,{headers:H()}); return handleResponse(r); }
-  async function jpost(p,b){ const r=await fetch((BASE()||'')+p,{method:'POST',headers:H(),body:JSON.stringify(b||{})}); return handleResponse(r); }
-  async function jdel(p){ const r=await fetch((BASE()||'')+p,{method:'DELETE',headers:H()}); return handleResponse(r); }
+  const BASE = () => '';
+  let BEARER = '';
+  async function H(){
+    const h = { 'Content-Type':'application/json' };
+    try{
+      if (!BEARER && window.TT && typeof TT.getAuth === 'function') BEARER = TT.getAuth();
+      if (!BEARER && window.TT && typeof TT.getSupabase === 'function'){
+        const supa = await TT.getSupabase();
+        const {data:{session}} = await supa.auth.getSession();
+        if (session?.access_token) BEARER = session.access_token;
+      }
+    }catch(_){ }
+    if (BEARER) h['Authorization'] = 'Bearer ' + BEARER;
+    return h;
+  }
+  const esc = (v)=> String(v ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
 
-  // ====== tabs
-  document.querySelectorAll('.tab').forEach(t=>{
-    t.onclick=()=>{
-      document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
-      document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
-      t.classList.add('active');
-      { const p = $(t.dataset.panel); if (p) p.classList.add('active'); }
-    };
-  });
+  function toast(msg){
+    const t = $('toast'); if(!t) return;
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(window._toast_t);
+    window._toast_t = setTimeout(()=> t.classList.remove('show'), 2200);
+  }
 
-  // ====== token
-  $('adm_token').value = adm();
-  $('save_token').onclick = ()=>{
-    localStorage.setItem('tt_admin_token', $('adm_token').value.trim());
-    $('tok_state').textContent = 'saved âœ“';
-    setTimeout(()=> $('tok_state').textContent='', 1200);
-  };
+  async function parseJSONSafe(text){
+    if (!text) return {};
+    try { return JSON.parse(text); } catch { throw new Error('Invalid JSON response'); }
+  }
+  async function handleResponse(r){
+    const t = await r.text();
+    if (!r.ok){
+      let msg = r.statusText || 'Request failed';
+      try{
+        const j = t? JSON.parse(t) : null;
+        if (j && (j.error || j.message)) msg = j.error || j.message;
+        else if (t) msg = t;
+      }catch{ if (t) msg = t; }
+      throw new Error(msg);
+    }
+    return parseJSONSafe(t);
+  }
+  async function jget(p){ const r = await fetch(BASE()+p, { headers: await H() }); return handleResponse(r); }
+  async function jpost(p,b){ const r = await fetch(BASE()+p, { method:'POST', headers: await H(), body: JSON.stringify(b||{}) }); return handleResponse(r); }
+  async function jdel(p){ const r = await fetch(BASE()+p, { method:'DELETE', headers: await H() }); return handleResponse(r); }
+
+  // ====== tabs (delegated + aria)
+  (function setupTabs(){
+    const tabsWrap = document.querySelector('.tabs');
+    if(!tabsWrap) return;
+    tabsWrap.addEventListener('click', (e)=>{
+      const tab = e.target.closest('.tab');
+      if(!tab || !tabsWrap.contains(tab)) return;
+      const id = tab.getAttribute('data-panel');
+      document.querySelectorAll('.tab').forEach(t=>{
+        const sel = t===tab;
+        t.classList.toggle('active', sel);
+        t.setAttribute('aria-selected', sel ? 'true' : 'false');
+      });
+      document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+      const panel = document.getElementById(id);
+      if(panel){ panel.classList.add('active'); panel.scrollTop = 0; }
+    });
+  })();
 
   // ====== SACCOs (main tab)
   async function loadSaccos(){
@@ -328,26 +421,34 @@
     (data.items||[]).forEach(row=>{
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>${row.name||''}</td>
-        <td>${row.contact_name||''}</td>
-        <td>${row.contact_phone||''}</td>
-        <td>${row.contact_email||''}</td>
-        <td>${row.default_till||''}</td>
-        <td class="mono">${row.id}</td>
+        <td>${esc(row.name)}</td>
+        <td>${esc(row.contact_name)}</td>
+        <td>${esc(row.contact_phone)}</td>
+        <td>${esc(row.contact_email)}</td>
+        <td>${esc(row.default_till)}</td>
+        <td class="mono">${esc(row.id)}</td>
         <td class="actions">
-          <button class="btn" data-act="edit" data-id="${row.id}">Edit</button>
-          <button class="btn bad" data-act="del" data-id="${row.id}">Delete</button>
+          <button class="btn" data-act="edit" data-id="${esc(row.id)}">Edit</button>
+          <button class="btn bad" data-act="del" data-id="${esc(row.id)}">Delete</button>
         </td>`;
       list.appendChild(tr);
     });
     $('sc_count').textContent = `${(data.items||[]).length} item(s)`;
-    // fill selects for matatu forms
-    const sel = $('mt_sacco'); sel.innerHTML = '<option value="">â€” choose SACCO â€”</option>';
-    const sel2 = $('mt_filter_sacco'); sel2.innerHTML = '<option value="">â€” all â€”</option>';
-    (data.items||[]).forEach(s=>{
-      const o=document.createElement('option'); o.value=s.id; o.textContent=s.name; sel.appendChild(o);
-      const o2=document.createElement('option'); o2.value=s.id; o2.textContent=s.name; sel2.appendChild(o2);
-    });
+
+    // fill selects for all vehicle forms/filters
+    const fillSelect = (id, placeholder)=>{
+      const el=$(id); if(!el) return;
+      el.innerHTML = placeholder;
+      (data.items||[]).forEach(s=>{
+        const o=document.createElement('option'); o.value=s.id; o.textContent=s.name; el.appendChild(o);
+      });
+    };
+    fillSelect('mt_sacco','<option value="">— choose SACCO —</option>');
+    fillSelect('mt_filter_sacco','<option value="">— all —</option>');
+    fillSelect('bd_sacco','<option value="">— choose SACCO —</option>');
+    fillSelect('bd_filter_sacco','<option value="">— all —</option>');
+    fillSelect('txi_sacco','<option value="">— choose SACCO —</option>');
+    fillSelect('txi_filter_sacco','<option value="">— all —</option>');
   }
   $('sc_reload').onclick = loadSaccos;
   $('sc_q').oninput = ()=> { clearTimeout(window._sc_t); window._sc_t=setTimeout(loadSaccos, 250); };
@@ -364,7 +465,7 @@
     $('sc_name').value=''; $('sc_contact_name').value=''; $('sc_contact_phone').value='';
     $('sc_contact_email').value=''; $('sc_default_till').value='';
     await loadSaccos();
-    alert('âœ… SACCO Registered');
+    toast('✅ SACCO Registered');
   };
   $('sc_list').addEventListener('click', async (e)=>{
     const b = e.target.closest('button'); if(!b) return;
@@ -377,13 +478,13 @@
       const default_till = prompt('Default till?')||null;
       await jpost('/api/admin/update-sacco', { id, name, contact_name, contact_phone, contact_email, default_till });
       await loadSaccos();
-      alert('âœ… SACCO updated');
+      toast('✅ SACCO updated');
     }
     if (b.dataset.act==='del'){
       if (!confirm('Delete this SACCO?')) return;
       await jdel('/api/admin/delete-sacco/' + id);
       await loadSaccos();
-      alert('ðŸ—‘ï¸ Deleted');
+      toast('🗑️ Deleted');
     }
   });
 
@@ -398,19 +499,19 @@
     rows.forEach(row=>{
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>${row.number_plate||''}</td>
-        <td>${row.owner_name||''}</td>
-        <td>${row.owner_phone||''}</td>
-        <td>${row.vehicle_type||''}</td>
-        <td>${row.tlb_number||''}</td>
-        <td>${row.till_number||''}</td>
-        <td class="mono">${row.sacco_id||''}</td>
-        <td class="mono">${row.id}</td>
+        <td>${esc(row.number_plate)}</td>
+        <td>${esc(row.owner_name)}</td>
+        <td>${esc(row.owner_phone)}</td>
+        <td>${esc(row.vehicle_type)}</td>
+        <td>${esc(row.tlb_number)}</td>
+        <td>${esc(row.till_number)}</td>
+        <td class="mono">${esc(row.sacco_id)}</td>
+        <td class="mono">${esc(row.id)}</td>
         <td class="actions">
-          <button class="btn" data-act="edit" data-id="${row.id}">Edit</button>
-          <button class="btn bad" data-act="del" data-id="${row.id}">Delete</button>
-          <button class="btn ok" data-act="assign" data-id="${row.id}">Assign NEXT USSD</button>
-          <button class="btn" data-act="bind" data-id="${row.id}">Bind Manual</button>
+          <button class="btn" data-act="edit" data-id="${esc(row.id)}">Edit</button>
+          <button class="btn bad" data-act="del" data-id="${esc(row.id)}">Delete</button>
+          <button class="btn ok" data-act="assign" data-id="${esc(row.id)}">Assign NEXT USSD</button>
+          <button class="btn" data-act="bind" data-id="${esc(row.id)}">Bind Manual</button>
         </td>`;
       list.appendChild(tr);
     });
@@ -436,7 +537,9 @@
     $('mt_plate').value=''; $('mt_owner').value=''; $('mt_phone').value=''; $('mt_type').value='';
     $('mt_tlb').value=''; $('mt_till').value='';
     await loadMatatus();
-    alert('âœ… Matatu Registered');
+    await loadBodas();
+    await loadTaxis();
+    toast('✅ Matatu Registered');
   };
   $('mt_list').addEventListener('click', async (e)=>{
     const b = e.target.closest('button'); if(!b) return;
@@ -450,44 +553,185 @@
       const till_number = prompt('Till?')||null;
       await jpost('/api/admin/update-matatu', { id, number_plate:number_plate.toUpperCase(), owner_name, owner_phone, vehicle_type, tlb_number, till_number });
       await loadMatatus();
-      alert('âœ… Updated');
+      toast('✅ Updated');
     }
     if (b.dataset.act==='del'){
       if (!confirm('Delete this Matatu?')) return;
       await jdel('/api/admin/delete-matatu/'+id);
       await loadMatatus();
-      alert('ðŸ—‘ï¸ Deleted');
+      toast('🗑️ Deleted');
     }
     if (b.dataset.act==='assign'){
       const r = await jpost('/api/admin/ussd/pool/assign-next', { level:'MATATU', matatu_id:id, prefix:$('up_prefix').value||'*001*' });
-      if (!r.success) return alert('âŒ '+(r.error||'assign failed'));
-      alert('âœ… Assigned '+r.ussd_code);
+      if (!r.success) return alert('✖ ' + (r.error||'assign failed'));
+      toast('✅ Assigned ' + r.ussd_code);
       await loadPool();
     }
     if (b.dataset.act==='bind'){
       const code = prompt('Enter full USSD (e.g. *001*1102#):'); if(!code) return;
       const r = await jpost('/api/admin/ussd/bind-from-pool', { level:'MATATU', matatu_id:id, ussd_code: code });
-      if (!r.success) return alert('âŒ '+(r.error||'bind failed'));
-      alert('âœ… Bound '+r.ussd_code);
+      if (!r.success) return alert('✖ ' + (r.error||'bind failed'));
+      toast('✅ Bound ' + r.ussd_code);
       await loadPool();
+    }
+  });
+
+  // ====== BodaBodas
+  async function loadBodas(){
+    const sacco_id = document.getElementById('bd_filter_sacco')?.value || '';
+    const q = (document.getElementById('bd_q_plate')?.value || '').trim().toUpperCase();
+    const url = '/api/admin/matatus' + (sacco_id? ('?sacco_id='+encodeURIComponent(sacco_id)):'');
+    const data = await jget(url);
+    const rows = (data.items||[]).filter(x => (x.vehicle_type||'').toUpperCase().includes('BODA') && (!q || (x.number_plate||'').toUpperCase().includes(q)));
+    const list = document.getElementById('bd_list'); if(!list) return; list.innerHTML='';
+    rows.forEach(row=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML = `
+        <td>${esc(row.number_plate)}</td>
+        <td>${esc(row.owner_name)}</td>
+        <td>${esc(row.owner_phone)}</td>
+        <td>${esc(row.vehicle_type)}</td>
+        <td>${esc(row.tlb_number)}</td>
+        <td>${esc(row.till_number)}</td>
+        <td class="mono">${esc(row.sacco_id)}</td>
+        <td class="mono">${esc(row.id)}</td>
+        <td class="actions">
+          <button class="btn" data-act="edit" data-id="${esc(row.id)}">Edit</button>
+          <button class="btn bad" data-act="del" data-id="${esc(row.id)}">Delete</button>
+        </td>`;
+      list.appendChild(tr);
+    });
+    const c=document.getElementById('bd_count'); if(c) c.textContent=`${rows.length} item(s)`;
+  }
+  document.getElementById('bd_reload')?.addEventListener('click', loadBodas);
+  document.getElementById('bd_filter_sacco')?.addEventListener('change', loadBodas);
+  document.getElementById('bd_q_plate')?.addEventListener('input', ()=>{ clearTimeout(window._bd_t); window._bd_t=setTimeout(loadBodas,250); });
+  document.getElementById('bd_submit')?.addEventListener('click', async ()=>{
+    const sacco_id = document.getElementById('bd_sacco')?.value || '';
+    if (!sacco_id) return alert('Choose SACCO');
+    const payload = {
+      sacco_id,
+      number_plate: (document.getElementById('bd_plate')?.value || '').trim().toUpperCase(),
+      owner_name: (document.getElementById('bd_owner')?.value || '').trim() || null,
+      owner_phone: (document.getElementById('bd_phone')?.value || '').trim() || null,
+      vehicle_type: 'BODABODA',
+      tlb_number: (document.getElementById('bd_tlb')?.value || '').trim() || null,
+      till_number: (document.getElementById('bd_till')?.value || '').trim() || null
+    };
+    if (!payload.number_plate) return alert('Enter plate');
+    await jpost('/api/admin/register-matatu', payload);
+    ['bd_plate','bd_owner','bd_phone','bd_tlb','bd_till'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    await loadBodas();
+    toast('✅ BodaBoda Registered');
+  });
+  document.getElementById('bd_list')?.addEventListener('click', async (e)=>{
+    const b = e.target.closest('button'); if(!b) return;
+    const id = b.dataset.id;
+    if (b.dataset.act==='edit'){
+      const number_plate = prompt('Plate?'); if(!number_plate) return;
+      const owner_name = prompt('Owner?')||null;
+      const owner_phone = prompt('Owner phone?')||null;
+      const vehicle_type = 'BODABODA';
+      const tlb_number = prompt('TLB?')||null;
+      const till_number = prompt('Till?')||null;
+      await jpost('/api/admin/update-matatu', { id, number_plate:number_plate.toUpperCase(), owner_name, owner_phone, vehicle_type, tlb_number, till_number });
+      await loadBodas();
+      toast('✅ Updated');
+    }
+    if (b.dataset.act==='del'){
+      if (!confirm('Delete this BodaBoda?')) return;
+      await jdel('/api/admin/delete-matatu/'+id);
+      await loadBodas();
+      toast('🗑️ Deleted');
+    }
+  });
+
+  // ====== Taxis
+  async function loadTaxis(){
+    const sacco_id = document.getElementById('txi_filter_sacco')?.value || '';
+    const q = (document.getElementById('txi_q_plate')?.value || '').trim().toUpperCase();
+    const url = '/api/admin/matatus' + (sacco_id? ('?sacco_id='+encodeURIComponent(sacco_id)):'');
+    const data = await jget(url);
+    const rows = (data.items||[]).filter(x => (x.vehicle_type||'').toUpperCase().includes('TAXI') && (!q || (x.number_plate||'').toUpperCase().includes(q)));
+    const list = document.getElementById('txi_list'); if(!list) return; list.innerHTML='';
+    rows.forEach(row=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML = `
+        <td>${esc(row.number_plate)}</td>
+        <td>${esc(row.owner_name)}</td>
+        <td>${esc(row.owner_phone)}</td>
+        <td>${esc(row.vehicle_type)}</td>
+        <td>${esc(row.tlb_number)}</td>
+        <td>${esc(row.till_number)}</td>
+        <td class="mono">${esc(row.sacco_id)}</td>
+        <td class="mono">${esc(row.id)}</td>
+        <td class="actions">
+          <button class="btn" data-act="edit" data-id="${esc(row.id)}">Edit</button>
+          <button class="btn bad" data-act="del" data-id="${esc(row.id)}">Delete</button>
+        </td>`;
+      list.appendChild(tr);
+    });
+    const c=document.getElementById('txi_count'); if(c) c.textContent=`${rows.length} item(s)`;
+  }
+  document.getElementById('txi_reload')?.addEventListener('click', loadTaxis);
+  document.getElementById('txi_filter_sacco')?.addEventListener('change', loadTaxis);
+  document.getElementById('txi_q_plate')?.addEventListener('input', ()=>{ clearTimeout(window._txi_t); window._txi_t=setTimeout(loadTaxis,250); });
+  document.getElementById('txi_submit')?.addEventListener('click', async ()=>{
+    const sacco_id = document.getElementById('txi_sacco')?.value || '';
+    if (!sacco_id) return alert('Choose SACCO');
+    const payload = {
+      sacco_id,
+      number_plate: (document.getElementById('txi_plate')?.value || '').trim().toUpperCase(),
+      owner_name: (document.getElementById('txi_owner')?.value || '').trim() || null,
+      owner_phone: (document.getElementById('txi_phone')?.value || '').trim() || null,
+      vehicle_type: 'TAXI',
+      tlb_number: (document.getElementById('txi_tlb')?.value || '').trim() || null,
+      till_number: (document.getElementById('txi_till')?.value || '').trim() || null
+    };
+    if (!payload.number_plate) return alert('Enter plate');
+    await jpost('/api/admin/register-matatu', payload);
+    ['txi_plate','txi_owner','txi_phone','txi_tlb','txi_till'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    await loadTaxis();
+    toast('✅ Taxi Registered');
+  });
+  document.getElementById('txi_list')?.addEventListener('click', async (e)=>{
+    const b = e.target.closest('button'); if(!b) return;
+    const id = b.dataset.id;
+    if (b.dataset.act==='edit'){
+      const number_plate = prompt('Plate?'); if(!number_plate) return;
+      const owner_name = prompt('Owner?')||null;
+      const owner_phone = prompt('Owner phone?')||null;
+      const vehicle_type = 'TAXI';
+      const tlb_number = prompt('TLB?')||null;
+      const till_number = prompt('Till?')||null;
+      await jpost('/api/admin/update-matatu', { id, number_plate:number_plate.toUpperCase(), owner_name, owner_phone, vehicle_type, tlb_number, till_number });
+      await loadTaxis();
+      toast('✅ Updated');
+    }
+    if (b.dataset.act==='del'){
+      if (!confirm('Delete this Taxi?')) return;
+      await jdel('/api/admin/delete-matatu/'+id);
+      await loadTaxis();
+      toast('🗑️ Deleted');
     }
   });
 
   // ====== USSD pool
   function showMsg(txt, ok=true){
-    const box = $('up_msg'); box.style.display='block';
+    const box = document.getElementById('up_msg'); box.style.display='block';
     box.textContent = txt; box.style.background = ok?'#dcfce7':'#fee2e2'; box.style.borderColor = ok?'#86efac':'#fecaca'; box.style.color= ok?'#064e3b':'#991b1b';
-    setTimeout(()=> box.style.display='none', 2500);
+    clearTimeout(window._up_msg_t);
+    window._up_msg_t = setTimeout(()=> box.style.display='none', 2500);
   }
-  function currentLevel(){ return $('up_level').value; }
+  function currentLevel(){ return document.getElementById('up_level').value; }
   function targetPayload(){
     const level = currentLevel();
     if (level==='MATATU'){
-      const id = $('up_matatu_id').value.trim();
+      const id = (document.getElementById('up_matatu_id').value||'').trim();
       if (!id) throw new Error('Select matatu (Find by plate)');
       return { level, matatu_id:id };
     }
-    const id = $('up_target_id').value.trim();
+    const id = (document.getElementById('up_target_id').value||'').trim();
     if (!id) throw new Error('Enter target UUID');
     if (level==='SACCO') return { level, sacco_id:id };
     throw new Error('Invalid level');
@@ -495,69 +739,70 @@
   async function loadPool(){
     const av = await jget('/api/admin/ussd/pool/available');
     const al = await jget('/api/admin/ussd/pool/allocated');
-    const prefix = $('up_prefix').value||'*001*';
+    const prefix = document.getElementById('up_prefix').value||'*001*';
     const avail = (av.items||[]).filter(x => (x.full_code||'').startsWith(prefix));
     const alloc = (al.items||[]).filter(x => (x.full_code||'').startsWith(prefix));
-    $('up_counts').textContent = `Available: ${avail.length} â€¢ Allocated: ${alloc.length}`;
-    const A = $('up_avail_tbody'); A.innerHTML='';
-    const q = ($('up_search').value||'').toLowerCase();
-    avail.filter(x => !q || x.base.includes(q) || (x.full_code||'').toLowerCase().includes(q))
-         .forEach(r=>{
-            const tr=document.createElement('tr');
-            tr.innerHTML = `
-              <td>${r.base}</td><td>${r.checksum}</td><td class="mono">${r.full_code}</td>
-              <td><button class="btn" data-code="${r.full_code}">Bind</button></td>`;
-            A.appendChild(tr);
-          });
-    const AL = $('up_alloc_tbody'); AL.innerHTML='';
+    document.getElementById('up_counts').textContent = `Available: ${avail.length} • Allocated: ${alloc.length}`;
+    const A = document.getElementById('up_avail_tbody'); A.innerHTML='';
+    const q = (document.getElementById('up_search').value||'').toLowerCase();
+    avail
+      .filter(x => !q || (x.base||'').toLowerCase().includes(q) || (x.full_code||'').toLowerCase().includes(q))
+      .forEach(r=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML = `
+          <td>${esc(r.base)}</td><td>${esc(r.checksum)}</td><td class="mono">${esc(r.full_code)}</td>
+          <td><button class="btn" data-code="${esc(r.full_code)}">Bind</button></td>`;
+        A.appendChild(tr);
+      });
+    const AL = document.getElementById('up_alloc_tbody'); AL.innerHTML='';
     alloc.forEach(r=>{
       const whenIso = r.allocated_at || r.assigned_at || '';
       const when = whenIso ? new Date(whenIso).toLocaleString() : '';
       const type = r.level || r.assigned_type || '';
       const assigned = r.sacco_id || r.matatu_id || r.assigned_id || '';
       const tr=document.createElement('tr');
-      tr.innerHTML = `<td class="mono">${r.full_code}</td><td>${type}</td><td class="mono">${assigned}</td><td>${when}</td>`;
+      tr.innerHTML = `<td class="mono">${esc(r.full_code)}</td><td>${esc(type)}</td><td class="mono">${esc(assigned)}</td><td>${esc(when)}</td>`;
       AL.appendChild(tr);
     });
   }
-  $('up_level').onchange = ()=>{
+  document.getElementById('up_level').onchange = ()=>{
     const lev=currentLevel();
-    $('up_matatu_tools').style.display = (lev==='MATATU')?'block':'none';
-    $('up_other_tools').style.display  = (lev!=='MATATU')?'block':'none';
+    document.getElementById('up_matatu_tools').style.display = (lev==='MATATU')?'block':'none';
+    document.getElementById('up_other_tools').style.display  = (lev!=='MATATU')?'block':'none';
   };
-  $('up_find_plate').onclick = async ()=>{
+  document.getElementById('up_find_plate').onclick = async ()=>{
     try{
-      const plate = $('up_plate').value.trim().toUpperCase(); if(!plate) return showMsg('Enter plate',false);
+      const plate = (document.getElementById('up_plate').value||'').trim().toUpperCase(); if(!plate) return showMsg('Enter plate',false);
       const r = await jget('/api/lookup/matatu?plate='+encodeURIComponent(plate));
-      $('up_matatu_id').value = r.id || '';
-      $('up_found_label').textContent = r.id ? `âœ… ${r.number_plate} (SACCO ${r.sacco_id})` : 'Not found';
+      document.getElementById('up_matatu_id').value = r.id || '';
+      document.getElementById('up_found_label').textContent = r.id ? `✓ ${r.number_plate} (SACCO ${r.sacco_id})` : 'Not found';
       if (!r.id) throw new Error('Matatu not found');
       showMsg('Matatu selected');
     }catch(e){ showMsg(e.message,false); }
   };
-  $('up_assign_next').onclick = async ()=>{
+  document.getElementById('up_assign_next').onclick = async ()=>{
     try{
-      const body = { ...targetPayload(), prefix: $('up_prefix').value||'*001*' };
+      const body = { ...targetPayload(), prefix: document.getElementById('up_prefix').value||'*001*' };
       const r = await jpost('/api/admin/ussd/pool/assign-next', body);
       if (!r.success) throw new Error(r.error||'assign failed');
       showMsg('Assigned '+r.ussd_code);
       await loadPool();
     }catch(e){ showMsg(e.message,false); }
   };
-  $('up_bind_manual').onclick = async ()=>{
+  document.getElementById('up_bind_manual').onclick = async ()=>{
     try{
-      const code = $('up_manual_code').value.trim(); if(!code) return showMsg('Enter a full code',false);
+      const code = (document.getElementById('up_manual_code').value||'').trim(); if(!code) return showMsg('Enter a full code',false);
       const body = { ...targetPayload(), ussd_code: code };
       const r = await jpost('/api/admin/ussd/bind-from-pool', body);
       if (!r.success) throw new Error(r.error||'bind failed');
-      $('up_manual_code').value='';
+      document.getElementById('up_manual_code').value='';
       showMsg('Bound '+r.ussd_code);
       await loadPool();
     }catch(err){ showMsg(err.message,false); }
   };
-  $('up_refresh').onclick = loadPool;
-  $('up_search').oninput = ()=> { clearTimeout(window._up_t); window._up_t=setTimeout(loadPool, 200); };
-  $('up_avail_tbody').addEventListener('click', async (e)=>{
+  document.getElementById('up_refresh').onclick = loadPool;
+  document.getElementById('up_search').oninput = ()=> { clearTimeout(window._up_t); window._up_t=setTimeout(loadPool, 200); };
+  document.getElementById('up_avail_tbody').addEventListener('click', async (e)=>{
     const b = e.target.closest('button'); if(!b) return;
     try{
       const body = { ...targetPayload(), ussd_code: b.dataset.code };
@@ -574,20 +819,20 @@
     const loans = await jget('/api/admin/transactions/loans');
     const feesArr = (fees && fees.data) ? fees.data : (Array.isArray(fees) ? fees : []);
     const loansArr = (loans && loans.data) ? loans.data : (Array.isArray(loans) ? loans : []);
-    const F = $('tx_fee_tbody'); F.innerHTML='';
+    const F = document.getElementById('tx_fee_tbody'); F.innerHTML='';
     (feesArr||[]).forEach(tx=>{
       const tr=document.createElement('tr');
-      tr.innerHTML = `<td>${tx.date}</td><td class="mono">${tx.sacco}</td><td>${tx.amount}</td><td class="mono">${tx.matatu}</td><td>${tx.time}</td>`;
+      tr.innerHTML = `<td>${esc(tx.date)}</td><td class="mono">${esc(tx.sacco)}</td><td>${esc(tx.amount)}</td><td class="mono">${esc(tx.matatu)}</td><td>${esc(tx.time)}</td>`;
       F.appendChild(tr);
     });
-    const L = $('tx_loan_tbody'); L.innerHTML='';
+    const L = document.getElementById('tx_loan_tbody'); L.innerHTML='';
     (loansArr||[]).forEach(tx=>{
       const tr=document.createElement('tr');
-      tr.innerHTML = `<td>${tx.date}</td><td class="mono">${tx.sacco}</td><td>${tx.amount}</td><td class="mono">${tx.matatu}</td><td>${tx.time}</td>`;
+      tr.innerHTML = `<td>${esc(tx.date)}</td><td class="mono">${esc(tx.sacco)}</td><td>${esc(tx.amount)}</td><td class="mono">${esc(tx.matatu)}</td><td>${esc(tx.time)}</td>`;
       L.appendChild(tr);
     });
   }
-  $('tx_reload').onclick = loadTx;
+  document.getElementById('tx_reload').onclick = loadTx;
 
   // ====== csv helper
   window.exportTableToCSV = function(filename, tbodyId){
@@ -601,23 +846,23 @@
     const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; a.click();
   };
 
-  // ====== Admin Tools (NEW)
+  // ====== Admin Tools
   function tlog(msg, obj){
-    const el = $('adminLog');
+    const el = document.getElementById('adminLog');
     const time = new Date().toLocaleTimeString();
     el.textContent = `[${time}] ${msg}` + (obj ? `\n${JSON.stringify(obj,null,2)}` : "") + "\n\n" + el.textContent;
   }
   function renderToolsTable(list=[]){
-    const wrap = $('saccosTable');
+    const wrap = document.getElementById('saccosTable');
     if (!Array.isArray(list) || list.length===0){ wrap.innerHTML = '<div style="padding:8px;">No data</div>'; return; }
     const rows = list.map(s=>`
       <tr>
-        <td>${s.id||''}</td>
-        <td>${s.name||''}</td>
-        <td>${s.contact_name||''}</td>
-        <td>${s.contact_phone||''}</td>
-        <td>${s.default_till||''}</td>
-        <td>${s.created_at||''}</td>
+        <td>${esc(s.id)}</td>
+        <td>${esc(s.name)}</td>
+        <td>${esc(s.contact_name)}</td>
+        <td>${esc(s.contact_phone)}</td>
+        <td>${esc(s.default_till)}</td>
+        <td>${esc(s.created_at)}</td>
       </tr>`).join('');
     wrap.innerHTML = `
       <table>
@@ -627,39 +872,39 @@
         <tbody>${rows}</tbody>
       </table>`;
   }
-  $('tools_list').onclick = async ()=>{
+  document.getElementById('tools_list').onclick = async ()=>{
     try{
       const data = await jget('/api/admin/saccos');
       renderToolsTable(data.items || data || []);
-      tlog('ðŸ“‹ Listed', data);
-    }catch(e){ tlog('âŒ List failed: '+e.message); }
+      tlog('📃 Listed', data);
+    }catch(e){ tlog('✖ List failed: '+e.message); }
   };
-  $('tools_reg_btn').onclick = async ()=>{
+  document.getElementById('tools_reg_btn').onclick = async ()=>{
     const body = {
-      name:          $('tools_reg_name').value.trim(),
-      contact_name:  $('tools_reg_cname').value.trim(),
-      contact_phone: $('tools_reg_phone').value.trim(),
-      default_till:  $('tools_reg_till').value.trim()
+      name:          document.getElementById('tools_reg_name').value.trim(),
+      contact_name:  document.getElementById('tools_reg_cname').value.trim(),
+      contact_phone: document.getElementById('tools_reg_phone').value.trim(),
+      default_till:  document.getElementById('tools_reg_till').value.trim()
     };
-    if (!body.name) return tlog('âš ï¸ Name is required');
+    if (!body.name) return tlog('⚠️ Name is required');
     try{
       const r = await jpost('/api/admin/register-sacco', body);
-      tlog('âœ… Registered', r);
-      $('tools_list').click();
-    }catch(e){ tlog('âŒ Register failed: '+e.message+' (maybe duplicate name?)'); }
+      tlog('✅ Registered', r);
+      document.getElementById('tools_list').click();
+    }catch(e){ tlog('✖ Register failed: '+e.message+' (maybe duplicate name?)'); }
   };
-  $('tools_upd_btn').onclick = async ()=>{
-    const id = $('tools_upd_id').value.trim();
-    if (!id) return tlog('âš ï¸ Provide id');
+  document.getElementById('tools_upd_btn').onclick = async ()=>{
+    const id = document.getElementById('tools_upd_id').value.trim();
+    if (!id) return tlog('⚠️ Provide id');
     const body = { id };
-    const cn = $('tools_upd_cname').value.trim(); if (cn) body.contact_name = cn;
-    const ph = $('tools_upd_phone').value.trim(); if (ph) body.contact_phone = ph;
-    const tl = $('tools_upd_till').value.trim();  if (tl) body.default_till  = tl;
+    const cn = document.getElementById('tools_upd_cname').value.trim(); if (cn) body.contact_name = cn;
+    const ph = document.getElementById('tools_upd_phone').value.trim(); if (ph) body.contact_phone = ph;
+    const tl = document.getElementById('tools_upd_till').value.trim();  if (tl) body.default_till  = tl;
     try{
       const r = await jpost('/api/admin/update-sacco', body);
-      tlog('âœ… Updated', r);
-      $('tools_list').click();
-    }catch(e){ tlog('âŒ Update failed: '+e.message); }
+      tlog('✅ Updated', r);
+      document.getElementById('tools_list').click();
+    }catch(e){ tlog('✖ Update failed: '+e.message); }
   };
 
   // ====== init
@@ -667,6 +912,8 @@
     try{
       await loadSaccos();
       await loadMatatus();
+      await loadBodas();
+      await loadTaxis();
       await loadPool();
       await loadTx();
     }catch(e){ console.error(e); alert('Load error: '+e.message); }
@@ -674,50 +921,5 @@
   init();
 })();
 </script>
-<script>
-  // System overview loader (uses bearer token)
-  (async function loadOverview(){
-    try{
-      const t = (window.TT && TT.getAuth && TT.getAuth()) || localStorage.getItem('auth_token') || '';
-      if(!t) return;
-      const r = await fetch('/api/admin/system-overview', { headers: { Authorization: 'Bearer ' + t }});
-      if(!r.ok) return;
-      const d = await r.json();
-      const counts = d.counts||{}; const pool=d.ussd_pool||{};
-      const S = (id,v)=>{ var el=document.getElementById(id); if(el) el.textContent=String(v); };
-      S('ov_saccos', counts.saccos||0);
-      S('ov_matatus', counts.matatus||0);
-      S('ov_cashiers', counts.cashiers||0);
-      S('ov_tx', counts.tx_today||0);
-      S('ov_pool', (pool.available||0) + ' / ' + (pool.total||0));
-    }catch(e){ }
-  })();
-</script>
-<script>
-  // Guards: require either user auth or root token; then allow root to bypass role checks
-  if (typeof ensureAuthOrRoot === 'function') ensureAuthOrRoot();
-  if (typeof protect === 'function') protect('SYSTEM_ADMIN');
-</script>
-<script>
-  (async function(){
-    try{
-      // Create signed-in pill (fixed at top-left)
-      var pill=document.createElement('div');
-      pill.id='auth_pill'; pill.className='pill';
-      pill.style.cssText='position:fixed;top:12px;left:12px;z-index:10;max-width:40vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
-      pill.textContent='Checking sign-in…';
-      document.body.appendChild(pill);
-      if(window.TT && window.TT.getSupabase){
-        const supa=await window.TT.getSupabase();
-        const {data:{session}}=await supa.auth.getSession();
-        if(session?.user?.email) pill.textContent='Signed in as '+session.user.email; else pill.textContent='Not signed in';
-        var b=document.getElementById('logoutBtn');
-        if(b) b.addEventListener('click', async ()=>{ try{ await supa.auth.signOut(); }catch(_){} }, {passive:true});
-      }
-    }catch(_){}
-  })();
-</script>
 </body>
 </html>
-
-

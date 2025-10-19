@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TekeTeke â€” Taxi Console</title>`n  <script src="/public/js/app-config.js"></script>`n  <script src="/public/js/api.js"></script>
+  <title>TekeTeke — Taxi Console</title>
+  <script src="/public/js/app-config.js"></script>
+  <script src="/public/js/api.js"></script>
   <style>
     :root{
       --sky:#0ea5e9;        /* sky blue */
@@ -65,16 +67,21 @@
       <h1>Taxi Console</h1>
     </div>
     <div class="nav">
-      <a href="/auth/role-select.html">â†© Role Select</a>
+      <a href="/public/auth/role-select.html">↩ Role Select</a>
     </div>
-  </header><div class="row" style="justify-content:flex-end;gap:8px;margin-top:8px"><span id="auth_state" class="pill" style="max-width:40vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Checking sign-in…</span><button id="logoutBtn" style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--sky);color:#fff;font-weight:900">Logout</button></div>
+  </header>
+
+  <div class="row" style="justify-content:flex-end;gap:8px;margin-top:8px">
+    <span id="auth_state" class="pill" style="max-width:40vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Checking sign-in…</span>
+    <button id="logoutBtn" style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--sky);color:#fff;font-weight:900">Logout</button>
+  </div>
 
   <section>
     <h2>Status</h2>
     <div class="row">
       <div>
-        <div class="pill" id="authState">Checking tokenâ€¦</div>
-        <div class="hint" id="whoamiHint">â€”</div>
+        <div class="pill" id="sessionState">Checking session…</div>
+        <div class="hint" id="whoamiHint">—</div>
       </div>
       <div>
         <label for="taxiNo">Taxi Identifier</label>
@@ -90,12 +97,12 @@
   <section>
     <h2>Today</h2>
     <div class="kpis">
-      <div class="kpi"><div class="v" id="kTillToday">â€”</div><div class="l">Till Today (KSh)</div></div>
-      <div class="kpi"><div class="v" id="kCashToday">â€”</div><div class="l">Cash Today (KSh)</div></div>
-      <div class="kpi"><div class="v" id="kExpToday">â€”</div><div class="l">Expenses Today</div></div>
-      <div class="kpi"><div class="v" id="kNetToday">â€”</div><div class="l">Net Today</div></div>
+      <div class="kpi"><div class="v" id="kTillToday">—</div><div class="l">Till Today (KSh)</div></div>
+      <div class="kpi"><div class="v" id="kCashToday">—</div><div class="l">Cash Today (KSh)</div></div>
+      <div class="kpi"><div class="v" id="kExpToday">—</div><div class="l">Expenses Today</div></div>
+      <div class="kpi"><div class="v" id="kNetToday">—</div><div class="l">Net Today</div></div>
     </div>
-    <div class="hint" id="sumHint">Refreshingâ€¦</div>
+    <div class="hint" id="sumHint">Refreshing…</div>
   </section>
 
   <section>
@@ -157,42 +164,40 @@
   </section>
 
   <script>
-    // --- Token helpers ---
-    const Token = {
-      get(){
-        return localStorage.getItem('tt_root_token')
-          || localStorage.getItem('tt_admin_token')
-          || localStorage.getItem('auth_token')
-          || '';
-      },
-      header(){
-        const t = Token.get();
-        return t ? { Authorization: `Bearer ${t}` } : {};
-      }
-    };
+    // ---------- Auth header (no manual token UI) ----------
+    async function getAuthHeader(){
+      try{
+        if (window.TT && typeof TT.getAuth === 'function'){
+          const t = TT.getAuth(); if (t) return { Authorization:'Bearer '+t };
+        }
+        if (window.TT && typeof TT.getSupabase === 'function'){
+          const supa = await TT.getSupabase();
+          const { data:{ session } } = await supa.auth.getSession();
+          if (session?.access_token) return { Authorization:'Bearer '+session.access_token };
+        }
+      }catch(_){ }
+      return {};
+    }
 
     const $ = (id)=>document.getElementById(id);
     const fmt = (n)=> new Intl.NumberFormat('en-KE',{maximumFractionDigits:0}).format(Number(n||0));
 
     async function authFetch(url, opts={}){
-      const res = await fetch(url, {
-        ...opts,
-        headers:{ 'Content-Type': 'application/json', ...(opts.headers||{}), ...Token.header() },
-      });
-      if(!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+      const headers = { 'Content-Type':'application/json', ...(opts.headers||{}), ...(await getAuthHeader()) };
+      const res = await fetch(url, { ...opts, headers });
+      if(!res.ok){
+        let msg = res.status+' '+res.statusText; try{ const j = await res.clone().json(); msg = j.error||j.message||msg; }catch{ }
+        throw new Error(msg);
+      }
       const ct = res.headers.get('content-type')||'';
       return ct.includes('application/json') ? res.json() : res.text();
     }
 
-    function setAuthState(){
-      const pill = $('authState');
-      if(Token.get()) { pill.textContent='Token: present'; pill.classList.add('ok'); }
-      else { pill.textContent='Token: missing'; pill.classList.add('warn'); }
-    }
+    function setSessionState(text, cls){ const el=$('sessionState'); if(!el) return; el.textContent=text; el.className='pill ' + (cls||''); }
 
     // --- Summary ---
     async function refreshSummary(){
-      $('sumHint').textContent='Refreshingâ€¦';
+      $('sumHint').textContent='Refreshing…';
       try{
         const today = new Date().toISOString().slice(0,10);
         const data = await authFetch(`/api/taxi/summary?date=${today}`);
@@ -206,7 +211,7 @@
         $('kNetToday').textContent  = fmt(Number(till) + Number(cash) - Number(exp));
         $('sumHint').textContent='';
       }catch(e){
-        $('sumHint').textContent='No summary (check token/permissions).';
+        $('sumHint').textContent='No summary (check permissions).';
       }
     }
 
@@ -219,7 +224,7 @@
         rows.forEach(r=>{
           const tr = document.createElement('tr');
           const t = r.created_at || r.time || r.timestamp;
-          tr.innerHTML = `<td>${t? new Date(t).toLocaleTimeString():'â€”'}</td><td>${r.name||''}</td><td>${r.phone||''}</td><td>${fmt(r.amount||0)}</td>`;
+          tr.innerHTML = `<td>${t? new Date(t).toLocaleTimeString():'—'}</td><td>${r.name||''}</td><td>${r.phone||''}</td><td>${fmt(r.amount||0)}</td>`;
           tbody.appendChild(tr);
         });
       }catch(e){/* ignore */}
@@ -233,7 +238,7 @@
         rows.forEach(r=>{
           const tr = document.createElement('tr');
           const t = r.created_at || r.time || r.timestamp;
-          tr.innerHTML = `<td>${t? new Date(t).toLocaleTimeString():'â€”'}</td><td>${r.category||'â€”'}</td><td>${fmt(r.amount||0)}</td><td>${r.notes||''}</td>`;
+          tr.innerHTML = `<td>${t? new Date(t).toLocaleTimeString():'—'}</td><td>${r.category||'—'}</td><td>${fmt(r.amount||0)}</td><td>${r.notes||''}</td>`;
           tbody.appendChild(tr);
         });
       }catch(e){/* ignore */}
@@ -245,11 +250,11 @@
       const name = $('cashName').value||'';
       const phone = $('cashPhone').value||'';
       const notes = $('cashNotes').value||'';
-      const out = $('cashMsg'); out.textContent='Savingâ€¦';
+      const out = $('cashMsg'); out.textContent='Saving…';
       try{
         if(!amount) throw new Error('Amount is required');
         await authFetch('/api/taxi/cash', { method:'POST', body: JSON.stringify({ amount, name, phone, notes }) });
-        out.textContent='Saved âœ“'; out.className='success';
+        out.textContent='Saved ✓'; out.className='success';
         $('cashAmt').value=''; $('cashName').value=''; $('cashPhone').value=''; $('cashNotes').value='';
         refreshSummary(); refreshCash();
       }catch(e){ out.textContent=`Error: ${e.message||e}`; out.className='error'; }
@@ -259,26 +264,39 @@
       const category = $('expCat').value||'Other';
       const amount = Number($('expAmt').value||0);
       const notes = $('expNotes').value||'';
-      const out = $('expMsg'); out.textContent='Savingâ€¦';
+      const out = $('expMsg'); out.textContent='Saving…';
       try{
         if(!amount) throw new Error('Amount is required');
         await authFetch('/api/taxi/expenses', { method:'POST', body: JSON.stringify({ category, amount, notes }) });
-        out.textContent='Saved âœ“'; out.className='success';
+        out.textContent='Saved ✓'; out.className='success';
         $('expAmt').value=''; $('expNotes').value='';
         refreshSummary(); refreshExp();
       }catch(e){ out.textContent=`Error: ${e.message||e}`; out.className='error'; }
     }
 
     // --- Init ---
-    (function main(){
-      setAuthState();
+    (async function main(){
+      try{
+        // Session pill (top-right)
+        if(window.TT && window.TT.getSupabase){
+          const supa = await window.TT.getSupabase();
+          const { data:{ session } } = await supa.auth.getSession();
+          const el = document.getElementById('auth_state');
+          if(el) el.textContent = session?.user?.email ? (`Signed in as ${session.user.email}`) : 'Not signed in';
+          const b=document.getElementById('logoutBtn');
+          b?.addEventListener('click', async ()=>{ try{ await supa.auth.signOut(); }catch(_){} localStorage.removeItem('auth_token'); localStorage.removeItem('tt_root_token'); localStorage.removeItem('tt_admin_token'); location.reload(); }, {passive:true});
+          setSessionState(session?.user? 'Session: OK' : 'Session: missing', session?.user? 'ok':'warn');
+        } else {
+          setSessionState('Session: unknown', 'warn');
+        }
+      }catch(_){ setSessionState('Session: error', 'err'); }
+
       refreshSummary(); refreshCash(); refreshExp();
-      $('btnCash').addEventListener('click', saveCash);
-      $('btnExp').addEventListener('click', saveExpense);
+      document.getElementById('btnCash').addEventListener('click', saveCash);
+      document.getElementById('btnExp').addEventListener('click', saveExpense);
       // background refresh
       setInterval(()=>{ refreshSummary(); }, 30000);
     })();
   </script>
-<script>(async function(){try{if(window.TT&&window.TT.getSupabase){const supa=await window.TT.getSupabase();const {data:{session}}=await supa.auth.getSession();const el=document.getElementById("auth_state");if(el) el.textContent=session?.user?.email?(`Signed in as ${session.user.email}`):"Not signed in";const b=document.getElementById("logoutBtn");b?.addEventListener("click",async()=>{try{await supa.auth.signOut()}catch(_){ }localStorage.removeItem("auth_token");localStorage.removeItem("tt_root_token");localStorage.removeItem("tt_admin_token");location.reload()},{passive:true});}}catch(_){ }})();</script></body></html>
-
-
+</body>
+</html>

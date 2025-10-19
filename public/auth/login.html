@@ -1,71 +1,151 @@
 <!doctype html>
-<meta charset=utf-8>
-<meta name=viewport content="width=device-width,initial-scale=1">
-<title>Login – TekeTeke</title>
-<style>
-  body{font-family:system-ui,Segoe UI,Arial;padding:20px}
-  .wrap{max-width:420px;margin:40px auto}
-  .field{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
-  input{padding:10px;border:1px solid #e5e7eb;border-radius:8px}
-  button{padding:10px 12px;border-radius:8px;border:1px solid #ddd;background:#1976d2;color:#fff;cursor:pointer}
-  button.ghost{background:#fff;color:#1976d2}
-  .row{display:flex;gap:8px;align-items:center}
-  .muted{color:#6b7280}
-</style>
-<script src="/public/js/app-config.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<div class=wrap>
-  <h2>Sign in</h2>
-  <div class=field>
-    <label>Email<input id=email placeholder="you@example.com" autocomplete=email></label>
-  </div>
-  <div class=field>
-    <label>Password<input id=password type=password placeholder="••••••••" autocomplete=current-password></label>
-  </div>
-  <div class=row>
-    <button id=signin>Sign in</button>
-    <button id=magic class=ghost>Send magic link</button>
-    <button id=logout class=ghost style="margin-left:auto">Sign out</button>
-  </div>
-  <p class=muted style="margin-top:10px">After sign in, you’ll be redirected to role selection.</p>
-</div>
-
-<script>
-  const sb = window.supabase.createClient(window.SUPABASE_URL||'', window.SUPABASE_ANON_KEY||'');
-
-  signin.onclick = async () => {
-    const emailV = (email.value||'').trim();
-    const passV = password.value || '';
-    if (!emailV || !passV) return alert('Enter email and password');
-    const { data, error } = await sb.auth.signInWithPassword({ email: emailV, password: passV });
-    if (error) return alert(error.message);
-    if (data?.session?.access_token) {
-      localStorage.setItem('auth_token', data.session.access_token);
-      location.href = '/public/auth/role-select.html';
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login — TekeTeke</title>
+  <script src="/public/js/app-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root{
+      --brand:#1976d2; /* system admin blue */
+      --brand-700:#135ba1;
+      --bg:#f6f7fb;
+      --panel:#ffffff;
+      --ink:#0b0f19;
+      --muted:#6b7280;
+      --border:#e5e7eb;
+      --ok:#065f46;
+      --bad:#b91c1c;
     }
-  };
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,Segoe UI,Arial,sans-serif}
+    .wrap{min-height:100dvh;display:grid;place-items:center;padding:20px}
 
-  magic.onclick = async () => {
-    const emailV = (email.value||'').trim();
-    if (!emailV) return alert('Enter email');
-    const { error } = await sb.auth.signInWithOtp({
-      email: emailV,
-      options: { emailRedirectTo: location.origin + '/public/auth/login.html' }
+    .card{width:min(520px,100%);background:var(--panel);border:1px solid var(--border);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.06);padding:22px}
+    .brand{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+    .brand-logo{width:34px;height:34px;border-radius:10px;background:linear-gradient(145deg,var(--brand),var(--brand-700));box-shadow:inset 0 0 0 2px rgba(255,255,255,.35)}
+    h1{margin:0;color:var(--brand);font-size:22px}
+    p.sub{margin:4px 0 14px;color:var(--muted)}
+
+    label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin:10px 0 6px}
+    input{width:100%;padding:12px;border:1px solid var(--border);border-radius:10px;font:inherit;background:#fff}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .actions{display:flex;gap:10px;margin-top:12px}
+    button{padding:10px 12px;border-radius:10px;border:1px solid transparent;background:var(--brand);color:#fff;font-weight:800;cursor:pointer}
+    button:hover{background:var(--brand-700)}
+    button.ghost{background:#fff;color:var(--brand);border-color:var(--brand)}
+
+    .pill{display:inline-block;background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;padding:4px 10px;border-radius:999px;font-size:12px}
+    .muted{color:var(--muted)}
+    .err{color:var(--bad);font-weight:800;margin-top:8px}
+    .ok{color:var(--ok);font-weight:800;margin-top:8px}
+
+    .topline{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+    .link{color:var(--brand);text-decoration:none;font-weight:800}
+
+    .footer{display:flex;justify-content:space-between;align-items:center;margin-top:14px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card" role="dialog" aria-labelledby="t_title">
+      <div class="topline">
+        <span id="auth_state" class="pill">Checking session…</span>
+        <a class="link" href="/public/auth/role-select.html">Role Select</a>
+      </div>
+
+      <div class="brand">
+        <div class="brand-logo" aria-hidden="true"></div>
+        <h1 id="t_title">Sign in to TekeTeke</h1>
+      </div>
+      <p class="sub">Use your work email and password. If your org allows, you can use a magic link.</p>
+
+      <div>
+        <label for="email">Email</label>
+        <input id="email" type="email" placeholder="you@example.com" autocomplete="email" />
+        <label for="password">Password</label>
+        <div class="row" style="gap:6px">
+          <input id="password" type="password" placeholder="••••••••" autocomplete="current-password" />
+          <button id="togglePw" class="ghost" type="button" style="min-width:110px">Show</button>
+        </div>
+        <div class="actions">
+          <button id="signin" type="button">Sign in</button>
+          <button id="magic" type="button" class="ghost">Send magic link</button>
+        </div>
+        <div id="msg" class="muted" aria-live="polite" style="min-height:20px;margin-top:6px"></div>
+      </div>
+
+      <div class="footer">
+        <a class="link" href="/public/auth/forgot.html">Forgot password?</a>
+        <button id="logout" type="button" class="ghost" title="Sign out of current session">Sign out</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const el = (id)=>document.getElementById(id);
+    const msg = (t, cls='muted')=>{ const m=el('msg'); m.className=cls; m.textContent=t; };
+
+    // Build client from app-config.js
+    const sb = window.supabase.createClient(window.SUPABASE_URL||'', window.SUPABASE_ANON_KEY||'');
+
+    async function refreshAuthBadge(){
+      try{
+        const { data:{ session } } = await sb.auth.getSession();
+        el('auth_state').textContent = session?.user?.email ? ('Signed in as '+session.user.email) : 'Not signed in';
+      }catch{ el('auth_state').textContent = 'Not signed in'; }
+    }
+
+    function setLoading(b){
+      el('signin').disabled = b; el('magic').disabled = b; el('togglePw').disabled = b;
+    }
+
+    el('togglePw').addEventListener('click', ()=>{
+      const p = el('password'); const show = p.type === 'password';
+      p.type = show ? 'text' : 'password';
+      el('togglePw').textContent = show ? 'Hide' : 'Show';
+      p.focus();
     });
-    if (error) alert(error.message); else alert('Check your email');
-  };
 
-  logout.onclick = async () => {
-    await sb.auth.signOut();
-    localStorage.removeItem('auth_token');
-    alert('Signed out');
-  };
+    el('signin').addEventListener('click', async ()=>{
+      const emailV = (el('email').value||'').trim();
+      const passV  = el('password').value || '';
+      if(!emailV || !passV) return msg('Enter email and password','err');
+      setLoading(true); msg('Signing in…');
+      try{
+        const { data, error } = await sb.auth.signInWithPassword({ email: emailV, password: passV });
+        if(error) throw error;
+        if(data?.session){
+          msg('Signed in ✓ Redirecting…','ok');
+          // Do NOT store tokens; Supabase handles session storage. Just redirect.
+          location.href = '/public/auth/role-select.html';
+        }else{ msg('No session returned','err'); }
+      }catch(e){ msg(e.message||String(e),'err'); }
+      finally{ setLoading(false); }
+    });
 
-  sb.auth.onAuthStateChange((_e, s) => {
-    if (s?.access_token) {
-      localStorage.setItem('auth_token', s.access_token);
-      location.href = '/public/auth/role-select.html';
-    }
-  });
-</script>
+    el('magic').addEventListener('click', async ()=>{
+      const emailV = (el('email').value||'').trim();
+      if(!emailV) return msg('Enter email first','err');
+      setLoading(true); msg('Sending link…');
+      try{
+        const { error } = await sb.auth.signInWithOtp({ email: emailV, options:{ emailRedirectTo: location.origin + '/public/auth/login.html' } });
+        if(error) throw error; msg('Check your email for the link','ok');
+      }catch(e){ msg(e.message||String(e),'err'); }
+      finally{ setLoading(false); }
+    });
+
+    el('logout').addEventListener('click', async ()=>{
+      try{ await sb.auth.signOut(); msg('Signed out','ok'); }
+      catch(e){ msg(e.message||String(e),'err'); }
+      finally{ refreshAuthBadge(); }
+    });
+
+    // Redirect if already authenticated
+    sb.auth.onAuthStateChange((_e, s)=>{ if(s?.access_token) location.href='/public/auth/role-select.html'; });
+
+    (async function init(){ await refreshAuthBadge(); })();
+  </script>
+</body>
+</html>

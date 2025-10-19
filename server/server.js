@@ -38,6 +38,8 @@ app.use('/u', require('./routes/user'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/staff', require('./routes/staff'));
 app.use('/api/pay', require('./routes/pay-daraja'));
+app.use('/api/taxi', require('./routes/taxi'));
+app.use('/api/boda', require('./routes/boda'));
 
 // health (works on Vercel via rewrite /healthz → /api/index.js)
 app.get(['/healthz','/api/healthz'], (_req,res)=>res.json({ ok:true, mode:'real' }));
