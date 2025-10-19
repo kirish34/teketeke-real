@@ -49,7 +49,7 @@ TT.getAuth = () => localStorage.getItem('auth_token') || '';
 
   async function authFetch(input, init){
     const url = typeof input === 'string' ? input : (input?.url || '');
-    const needsAuth = /^\/(u|api\/staff)\b/.test(url);
+    const needsAuth = /^\/(u|api\/staff|api\/taxi|api\/boda)\b/.test(url);
     if (!needsAuth) return fetch(input, init);
     const token = await getAccessToken();
     const headers = new Headers(init?.headers || {});
@@ -61,11 +61,11 @@ TT.getAuth = () => localStorage.getItem('auth_token') || '';
   window.TT.getSupabase = getSupabase;
   window.authFetch = authFetch;
 
-  // Monkey-patch fetch for /u/* and /api/staff/* only (non-breaking elsewhere)
+  // Monkey-patch fetch for /u/*, /api/staff/*, /api/taxi/*, /api/boda/* (non-breaking elsewhere)
   const origFetch = window.fetch.bind(window);
   window.fetch = async function(input, init){
     const url = typeof input === 'string' ? input : (input?.url || '');
-    if (/^\/(u|api\/staff)\b/.test(url)){
+    if (/^\/(u|api\/staff|api\/taxi|api\/boda)\b/.test(url)){
       return authFetch(input, init);
     }
     return origFetch(input, init);
