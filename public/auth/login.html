@@ -1,9 +1,9 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Login — TekeTeke</title>
+  <title>Login â€” TekeTeke</title>
   <script src="/public/js/app-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -51,7 +51,7 @@
   <div class="wrap">
     <div class="card" role="dialog" aria-labelledby="t_title">
       <div class="topline">
-        <span id="auth_state" class="pill">Checking session…</span>
+        <span id="auth_state" class="pill">Checking sessionâ€¦</span>
         <a class="link" href="/public/auth/role-select.html">Role Select</a>
       </div>
 
@@ -66,7 +66,7 @@
         <input id="email" type="email" placeholder="you@example.com" autocomplete="email" />
         <label for="password">Password</label>
         <div class="row" style="gap:6px">
-          <input id="password" type="password" placeholder="••••••••" autocomplete="current-password" />
+          <input id="password" type="password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" autocomplete="current-password" />
           <button id="togglePw" class="ghost" type="button" style="min-width:110px">Show</button>
         </div>
         <div class="actions">
@@ -112,14 +112,14 @@
       const emailV = (el('email').value||'').trim();
       const passV  = el('password').value || '';
       if(!emailV || !passV) return msg('Enter email and password','err');
-      setLoading(true); msg('Signing in…');
+      setLoading(true); msg('Signing inâ€¦');
       try{
         const { data, error } = await sb.auth.signInWithPassword({ email: emailV, password: passV });
         if(error) throw error;
         if(data?.session){
-          msg('Signed in ✓ Redirecting…','ok');
-          // Do NOT store tokens; Supabase handles session storage. Just redirect.
-          location.href = '/public/auth/role-select.html';
+          msg('Signed in âœ“ Redirectingâ€¦','ok');
+          // Redirect to selected target (or role select)
+          { const sp = new URLSearchParams(location.search); const nxt = sp.get('next') || '/public/auth/role-select.html'; location.href = nxt; }
         }else{ msg('No session returned','err'); }
       }catch(e){ msg(e.message||String(e),'err'); }
       finally{ setLoading(false); }
@@ -128,9 +128,9 @@
     el('magic').addEventListener('click', async ()=>{
       const emailV = (el('email').value||'').trim();
       if(!emailV) return msg('Enter email first','err');
-      setLoading(true); msg('Sending link…');
+      setLoading(true); msg('Sending linkâ€¦');
       try{
-        const { error } = await sb.auth.signInWithOtp({ email: emailV, options:{ emailRedirectTo: location.origin + '/public/auth/login.html' } });
+        const { error } = await sb.auth.signInWithOtp({ email: emailV, options:{ emailRedirectTo: location.origin + '/public/auth/login.html?next=' + encodeURIComponent((new URLSearchParams(location.search).get('next')||'/public/auth/role-select.html')) } });
         if(error) throw error; msg('Check your email for the link','ok');
       }catch(e){ msg(e.message||String(e),'err'); }
       finally{ setLoading(false); }
@@ -143,9 +143,17 @@
     });
 
     // Redirect if already authenticated
-    sb.auth.onAuthStateChange((_e, s)=>{ if(s?.access_token) location.href='/public/auth/role-select.html'; });
+    sb.auth.onAuthStateChange((_e, s)=>{
+      if(s?.access_token){
+        const sp = new URLSearchParams(location.search);
+        const next = sp.get('next') || '/public/auth/role-select.html';
+        location.href = next;
+      }
+    });
 
-    (async function init(){ await refreshAuthBadge(); })();
+    (async function init(){ await refreshAuthBadge(); try{ const { data:{ session } } = await sb.auth.getSession(); if(session?.access_token){ const sp = new URLSearchParams(location.search); const nxt = sp.get('next') || '/public/auth/role-select.html'; location.href = nxt; } }catch(_){ } })();
   </script>
 </body>
 </html>
+
+
