@@ -1,1 +1,21 @@
-(function(){const b=document.getElementById('logoutBtn');if(b){b.addEventListener('click',()=>{localStorage.removeItem('auth_token');localStorage.removeItem('tt_root_token');localStorage.removeItem('tt_admin_token');location.href='/public/auth/role-select.html'})}window.protect=function(_role){const has=localStorage.getItem('tt_admin_token')||localStorage.getItem('tt_root_token')||localStorage.getItem('auth_token');if(!has)location.href='/public/auth/login.html?next='+encodeURIComponent(location.pathname+location.search)}})();
+(function(){
+  const go = (p)=>{ try{ location.href = p; }catch(_){} };
+  const b=document.getElementById('logoutBtn');
+  if(b){
+    b.addEventListener('click', async ()=>{
+      try{
+        if (window.TT && window.TT.getSupabase){ const supa = await window.TT.getSupabase(); await supa?.auth?.signOut(); }
+      }catch(_){ }
+      go('/public/auth/role-select.html');
+    });
+  }
+  window.protect = async function(){
+    try{
+      if (window.TT && window.TT.getSupabase){
+        const supa = await window.TT.getSupabase();
+        const { data:{ session } } = await supa.auth.getSession();
+        if (!session?.access_token){ go('/public/auth/login.html?next='+encodeURIComponent(location.pathname+location.search)); }
+      }
+    }catch(_){ go('/public/auth/login.html'); }
+  };
+})();
