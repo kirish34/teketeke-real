@@ -90,6 +90,27 @@
   };
   await loadSaccos(); await loadMatatus(); await loadTx();
 })();
+<\/script>
+<script src="/public/js/app-config.js"></script>
+<script src="/public/js/api.js"></script>
+<script>
+  (async function(){
+    try{
+      if (window.TT && window.TT.getSupabase){
+        const supa = await window.TT.getSupabase();
+        const { data:{ session } } = await supa.auth.getSession();
+        var bar = document.createElement('div');
+        bar.className='row'; bar.style.cssText='justify-content:space-between;align-items:center;margin:8px 0 12px';
+        var pill=document.createElement('span'); pill.id='auth_state'; pill.style.cssText='background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;padding:4px 10px;border-radius:999px;font-size:12px';
+        pill.textContent = session?.user?.email ? ('Signed in as '+session.user.email) : 'Not signed in';
+        var btn=document.createElement('button'); btn.id='logoutBtn'; btn.textContent='Logout'; btn.style.cssText='padding:8px 10px;border-radius:8px;border:1px solid #cfe3ff;background:#0b5cab;color:#fff';
+        bar.appendChild(document.createElement('span')).innerHTML = '<a href="/public/auth/role-select.html">Back</a>';
+        var box=document.createElement('div'); box.className='row'; box.style.gap='8px'; box.appendChild(pill); box.appendChild(btn);
+        bar.appendChild(box); document.body.insertBefore(bar, document.body.firstChild);
+        btn.addEventListener('click', async ()=>{ try{ await supa.auth.signOut(); }catch(_){} localStorage.removeItem('auth_token'); localStorage.removeItem('tt_root_token'); localStorage.removeItem('tt_admin_token'); location.reload(); }, {passive:true});
+      }
+    }catch(_){ }
+  })();
 </script>
 </body>
 </html>

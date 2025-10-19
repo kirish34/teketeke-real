@@ -698,6 +698,25 @@
   if (typeof ensureAuthOrRoot === 'function') ensureAuthOrRoot();
   if (typeof protect === 'function') protect('SYSTEM_ADMIN');
 </script>
+<script>
+  (async function(){
+    try{
+      // Create signed-in pill (fixed at top-left)
+      var pill=document.createElement('div');
+      pill.id='auth_pill'; pill.className='pill';
+      pill.style.cssText='position:fixed;top:12px;left:12px;z-index:10;';
+      pill.textContent='Checking sign-in…';
+      document.body.appendChild(pill);
+      if(window.TT && window.TT.getSupabase){
+        const supa=await window.TT.getSupabase();
+        const {data:{session}}=await supa.auth.getSession();
+        if(session?.user?.email) pill.textContent='Signed in as '+session.user.email; else pill.textContent='Not signed in';
+        var b=document.getElementById('logoutBtn');
+        if(b) b.addEventListener('click', async ()=>{ try{ await supa.auth.signOut(); }catch(_){} }, {passive:true});
+      }
+    }catch(_){}
+  })();
+</script>
 </body>
 </html>
 

@@ -53,6 +53,8 @@
     window.ensureAuthOrRoot = window.ensureAuthOrRoot || function(){};
     window.protect = window.protect || function(){};
   </script>
+  <script src="/public/js/app-config.js"></script>
+  <script src="/public/js/api.js"></script>
 </head>
 <body>
   <div class="wrap">
@@ -63,7 +65,27 @@
         <a href="/auth/role-select.html">Role Select</a> ·
         <a href="#" id="logoutLink">Logout</a>
       </span>
-    </div>
+</div>
+<script>
+  (async function(){
+    try{
+      if(window.TT && window.TT.getSupabase){
+        const supa = await window.TT.getSupabase();
+        const { data:{ session } } = await supa.auth.getSession();
+        // Add or update signed-in badge
+        var badge = document.getElementById('auth_state');
+        if (!badge){
+          var top = document.querySelector('.top .muted');
+          if (top){ badge = document.createElement('span'); badge.id='auth_state'; badge.className='badge'; top.prepend(badge); }
+        }
+        if (badge) badge.textContent = session?.user?.email ? ('Signed in as '+session.user.email) : 'Not signed in';
+        // Wire logout
+        var L = document.getElementById('logoutLink');
+        L?.addEventListener('click', async (e)=>{ e.preventDefault(); try{ await supa.auth.signOut(); }catch(_){} localStorage.removeItem('auth_token'); localStorage.removeItem('tt_root_token'); localStorage.removeItem('tt_admin_token'); location.reload(); }, {passive:false});
+      }
+    }catch(_){ }
+  })();
+</script>
 
     <!-- Token + API base -->
     <div class="row" style="margin-bottom:12px">
