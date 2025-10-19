@@ -1,9 +1,9 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>TekeTeke — Matatu Owner Dashboard</title>
+  <title>TekeTeke â€” Matatu Owner Dashboard</title>
   <style>
     :root{
       --brand:#0ea5e9; --brand-700:#0284c7;
@@ -62,7 +62,7 @@
       <h2 style="margin:0">Matatu Owner Dashboard</h2>
       <span class="badge">Owner</span>
       <span class="muted" style="margin-left:auto">
-        <a href="/auth/role-select.html">Role Select</a> ·
+        <a href="/public/auth/role-select.html">Role Select</a> Â·
         <a href="#" id="logoutLink">Logout</a>
       </span>
 </div>
@@ -127,9 +127,9 @@
           <button class="btn ghost" id="ov_refresh" style="margin-left:auto">Refresh</button>
         </div>
         <div class="grid">
-          <div class="kv"><div class="k">Plate</div><div class="v" id="ov_plate_v">—</div></div>
-          <div class="kv"><div class="k">SACCO</div><div class="v" id="ov_sacco_v">—</div></div>
-          <div class="kv"><div class="k">Matatu ID</div><div class="v mono" id="ov_id_v">—</div></div>
+          <div class="kv"><div class="k">Plate</div><div class="v" id="ov_plate_v">â€”</div></div>
+          <div class="kv"><div class="k">SACCO</div><div class="v" id="ov_sacco_v">â€”</div></div>
+          <div class="kv"><div class="k">Matatu ID</div><div class="v mono" id="ov_id_v">â€”</div></div>
         </div>
         <div class="note">Use the <strong>Staff</strong> tab to add/remove staff once your vehicle is selected.</div>
       </div>
@@ -150,13 +150,13 @@
         </div>
 
         <div class="grid" style="margin-top:10px">
-          <div class="kv"><div class="k">Plate</div><div class="v" id="mt_plate_v">—</div></div>
-          <div class="kv"><div class="k">Owner</div><div class="v" id="mt_owner_v">—</div></div>
-          <div class="kv"><div class="k">SACCO</div><div class="v" id="mt_sacco_v">—</div></div>
-          <div class="kv"><div class="k">Type</div><div class="v" id="mt_type_v">—</div></div>
-          <div class="kv"><div class="k">TLB</div><div class="v" id="mt_tlb_v">—</div></div>
-          <div class="kv"><div class="k">Till</div><div class="v" id="mt_till_v">—</div></div>
-          <div class="kv"><div class="k">Matatu ID</div><div class="v mono" id="mt_id_v">—</div></div>
+          <div class="kv"><div class="k">Plate</div><div class="v" id="mt_plate_v">â€”</div></div>
+          <div class="kv"><div class="k">Owner</div><div class="v" id="mt_owner_v">â€”</div></div>
+          <div class="kv"><div class="k">SACCO</div><div class="v" id="mt_sacco_v">â€”</div></div>
+          <div class="kv"><div class="k">Type</div><div class="v" id="mt_type_v">â€”</div></div>
+          <div class="kv"><div class="k">TLB</div><div class="v" id="mt_tlb_v">â€”</div></div>
+          <div class="kv"><div class="k">Till</div><div class="v" id="mt_till_v">â€”</div></div>
+          <div class="kv"><div class="k">Matatu ID</div><div class="v mono" id="mt_id_v">â€”</div></div>
         </div>
 
         <div class="note">Details are read-only here. For staff actions, go to the <strong>Staff</strong> tab.</div>
@@ -211,7 +211,7 @@
 
         <div class="note">
           Uses RPCs: <span class="mono">owner_add_staff_by_email</span>, <span class="mono">owner_remove_staff</span>.
-          Listing tries <span class="mono">owner_list_matatu_staff</span>, then falls back to <span class="mono">/api/owner/members?matatu_id=…</span>.
+          Listing tries <span class="mono">owner_list_matatu_staff</span>, then falls back to <span class="mono">/api/owner/members?matatu_id=â€¦</span>.
         </div>
       </div>
     </section>
@@ -241,7 +241,7 @@
 
         <div class="note">
           This tries your RPC <span class="mono">owner_transactions_today</span> (if you created it).  
-          If missing, it falls back to <span class="mono">/api/owner/transactions?matatu_id=…</span>.
+          If missing, it falls back to <span class="mono">/api/owner/transactions?matatu_id=â€¦</span>.
         </div>
       </div>
     </section>
@@ -307,7 +307,7 @@
     $('auth_token').value = token();
     $('save_token').onclick = ()=>{
       localStorage.setItem('auth_token', $('auth_token').value.trim());
-      $('tok_state').textContent = 'saved ✓';
+      $('tok_state').textContent = 'saved âœ“';
       setTimeout(()=> $('tok_state').textContent='', 1200);
     };
 
@@ -329,18 +329,18 @@
 
     // populate overview/vehicle cards
     function fillOverview(m){
-      $('ov_plate_v').textContent = m.number_plate || '—';
-      $('ov_sacco_v').textContent = m.sacco_id || '—';
-      $('ov_id_v').textContent = m.id || '—';
+      $('ov_plate_v').textContent = m.number_plate || 'â€”';
+      $('ov_sacco_v').textContent = m.sacco_id || 'â€”';
+      $('ov_id_v').textContent = m.id || 'â€”';
     }
     function fillVehicle(m){
-      $('mt_plate_v').textContent = m.number_plate || '—';
-      $('mt_owner_v').textContent = m.owner_name || '—';
-      $('mt_sacco_v').textContent = m.sacco_id || '—';
-      $('mt_type_v').textContent  = m.vehicle_type || '—';
-      $('mt_tlb_v').textContent   = m.tlb_number || '—';
-      $('mt_till_v').textContent  = m.till_number || '—';
-      $('mt_id_v').textContent    = m.id || '—';
+      $('mt_plate_v').textContent = m.number_plate || 'â€”';
+      $('mt_owner_v').textContent = m.owner_name || 'â€”';
+      $('mt_sacco_v').textContent = m.sacco_id || 'â€”';
+      $('mt_type_v').textContent  = m.vehicle_type || 'â€”';
+      $('mt_tlb_v').textContent   = m.tlb_number || 'â€”';
+      $('mt_till_v').textContent  = m.till_number || 'â€”';
+      $('mt_id_v').textContent    = m.id || 'â€”';
     }
 
     // -------- Overview find/refresh ----------
@@ -350,9 +350,9 @@
         const r = await lookupMatatuByPlate(plate);
         MATATU_ID = r.id || '';
         MATATU_CTX = r || null;
-        $('ov_found').textContent = MATATU_ID ? `✅ ${r.number_plate} (${r.id})` : 'Not found';
+        $('ov_found').textContent = MATATU_ID ? `âœ… ${r.number_plate} (${r.id})` : 'Not found';
         if (MATATU_ID){ fillOverview(r); fillVehicle(r); }
-      }catch(e){ alert(e.message||e); log('❌ Overview find failed',{error:String(e)}); }
+      }catch(e){ alert(e.message||e); log('âŒ Overview find failed',{error:String(e)}); }
     };
     $('ov_refresh').onclick = ()=>{ if(MATATU_CTX){ fillOverview(MATATU_CTX); fillVehicle(MATATU_CTX); }};
 
@@ -363,9 +363,9 @@
         const r = await lookupMatatuByPlate(plate);
         MATATU_ID = r.id || '';
         MATATU_CTX = r || null;
-        $('mt_found').textContent = MATATU_ID ? `✅ ${r.number_plate} (${r.id})` : 'Not found';
+        $('mt_found').textContent = MATATU_ID ? `âœ… ${r.number_plate} (${r.id})` : 'Not found';
         if (MATATU_ID){ fillOverview(r); fillVehicle(r); }
-      }catch(e){ alert(e.message||e); log('❌ Vehicle find failed',{error:String(e)}); }
+      }catch(e){ alert(e.message||e); log('âŒ Vehicle find failed',{error:String(e)}); }
     };
 
     // ================= STAFF =================
@@ -387,9 +387,9 @@
         if (!confirm('Remove staff ('+uid+')?')) return;
         try{
           await jrpc('owner_remove_staff', { p_matatu: MATATU_ID, p_user: uid });
-          log('🗑️ Removed staff '+uid);
+          log('ðŸ—‘ï¸ Removed staff '+uid);
           $('st_reload').click();
-        }catch(err){ alert(err.message||err); log('❌ Remove failed', { error: String(err) }); }
+        }catch(err){ alert(err.message||err); log('âŒ Remove failed', { error: String(err) }); }
       };
     }
 
@@ -408,7 +408,7 @@
         }
       }
       renderStaff(rows);
-      log('📋 Staff listed', rows);
+      log('ðŸ“‹ Staff listed', rows);
     }
 
     $('st_find').onclick = async ()=>{
@@ -417,9 +417,9 @@
         const r = await lookupMatatuByPlate(plate);
         MATATU_ID = r.id || '';
         MATATU_CTX = r || null;
-        $('st_found').textContent = MATATU_ID ? `✅ ${r.number_plate} (${r.id})` : 'Not found';
+        $('st_found').textContent = MATATU_ID ? `âœ… ${r.number_plate} (${r.id})` : 'Not found';
         if (MATATU_ID){ fillOverview(r); fillVehicle(r); $('st_reload').click(); }
-      }catch(e){ alert(e.message||e); log('❌ Staff find failed',{error:String(e)}); }
+      }catch(e){ alert(e.message||e); log('âŒ Staff find failed',{error:String(e)}); }
     };
     $('st_reload').onclick = loadStaff;
 
@@ -431,9 +431,9 @@
         if (!email) return alert('Enter email');
         await jrpc('owner_add_staff_by_email', { p_matatu: MATATU_ID, p_email: email, p_role: role });
         $('st_email').value='';
-        log('✅ Added staff by email', { email, role });
+        log('âœ… Added staff by email', { email, role });
         await loadStaff();
-      }catch(e){ alert(e.message||e); log('❌ Add staff failed', { error: String(e) }); }
+      }catch(e){ alert(e.message||e); log('âŒ Add staff failed', { error: String(e) }); }
     };
 
     $('st_export').onclick = ()=> exportTableToCSV('matatu-staff.csv', 'st_tbody');
@@ -461,11 +461,11 @@
           const d2 = await jget('/api/owner/transactions?matatu_id='+encodeURIComponent(MATATU_ID));
           rows = d2.items || d2 || [];
         }catch(__){
-          log('ℹ️ No transactions endpoint available; showing empty list.');
+          log('â„¹ï¸ No transactions endpoint available; showing empty list.');
         }
       }
       renderTx(rows);
-      log('💸 Tx listed', rows);
+      log('ðŸ’¸ Tx listed', rows);
     }
 
     $('tx_find').onclick = async ()=>{
@@ -474,9 +474,9 @@
         const r = await lookupMatatuByPlate(plate);
         MATATU_ID = r.id || '';
         MATATU_CTX = r || null;
-        $('tx_found').textContent = MATATU_ID ? `✅ ${r.number_plate} (${r.id})` : 'Not found';
+        $('tx_found').textContent = MATATU_ID ? `âœ… ${r.number_plate} (${r.id})` : 'Not found';
         if (MATATU_ID){ fillOverview(r); fillVehicle(r); $('tx_reload').click(); }
-      }catch(e){ alert(e.message||e); log('❌ Tx find failed',{error:String(e)}); }
+      }catch(e){ alert(e.message||e); log('âŒ Tx find failed',{error:String(e)}); }
     };
     $('tx_reload').onclick = loadTx;
     $('tx_export').onclick = ()=> exportTableToCSV('matatu-transactions.csv', 'tx_tbody');
@@ -486,3 +486,4 @@
   </script>
 </body>
 </html>
+

@@ -1,9 +1,9 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>TekeTeke — Matatu Staff</title>
+  <title>TekeTeke â€” Matatu Staff</title>
   <style>
     :root{ --brand:#0b5cab; --bg:#f6f7fb; --panel:#fff; --border:#e5e7eb; }
     *{box-sizing:border-box} body{font-family:system-ui,Segoe UI,Arial;background:var(--bg);margin:0;padding:20px}
@@ -19,8 +19,8 @@
   </style>
 </head>
 <body>
-  <a href="/public/auth/role-select.html">← Back</a>
-  <h2>Matatu Staff — Cash</h2>
+  <a href="/public/auth/role-select.html">â† Back</a>
+  <h2>Matatu Staff â€” Cash</h2>
 
   <div class="card">
     <div class="row">
@@ -86,7 +86,7 @@
   $('post').onclick=async()=>{
     if(!SACCO_ID||!MATATU_ID) return alert('Select SACCO & Matatu');
     const body={sacco_id:SACCO_ID,matatu_id:MATATU_ID,kind:'DAILY_FEE',amount:Number($('amount').value||0),payer_name:$('name').value.trim(),payer_phone:$('phone').value.trim()};
-    try{const r=await p('/api/staff/cash',body);$('out').textContent=JSON.stringify(r,null,2);await loadTx();alert('Recorded ✅')}catch(e){$('out').textContent=e.message;alert(e.message)}
+    try{const r=await p('/api/staff/cash',body);$('out').textContent=JSON.stringify(r,null,2);await loadTx();alert('Recorded âœ…')}catch(e){$('out').textContent=e.message;alert(e.message)}
   };
   await loadSaccos(); await loadMatatus(); await loadTx();
 })();
@@ -101,7 +101,7 @@
         const { data:{ session } } = await supa.auth.getSession();
         var bar = document.createElement('div');
         bar.className='row'; bar.style.cssText='justify-content:space-between;align-items:center;margin:8px 0 12px';
-        var pill=document.createElement('span'); pill.id='auth_state'; pill.style.cssText='background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;padding:4px 10px;border-radius:999px;font-size:12px';
+        var pill=document.createElement('span'); pill.id='auth_state'; pill.style.cssText='background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;padding:4px 10px;border-radius:999px;font-size:12px;max-width:40vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
         pill.textContent = session?.user?.email ? ('Signed in as '+session.user.email) : 'Not signed in';
         var btn=document.createElement('button'); btn.id='logoutBtn'; btn.textContent='Logout'; btn.style.cssText='padding:8px 10px;border-radius:8px;border:1px solid #cfe3ff;background:#0b5cab;color:#fff';
         bar.appendChild(document.createElement('span')).innerHTML = '<a href="/public/auth/role-select.html">Back</a>';
@@ -114,3 +114,4 @@
 </script>
 </body>
 </html>
+

@@ -67,7 +67,7 @@
     <div class="nav">
       <a href="/auth/role-select.html">â†© Role Select</a>
     </div>
-  </header><div class="row" style="justify-content:flex-end;gap:8px;margin-top:8px"><span id="auth_state" class="pill">Checking sign-in…</span><button id="logoutBtn" style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--sky);color:#fff;font-weight:900">Logout</button></div>
+  </header><div class="row" style="justify-content:flex-end;gap:8px;margin-top:8px"><span id="auth_state" class="pill" style="max-width:40vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Checking sign-in…</span><button id="logoutBtn" style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--sky);color:#fff;font-weight:900">Logout</button></div>
 
   <section>
     <h2>Status</h2>
@@ -280,4 +280,5 @@
     })();
   </script>
 <script>(async function(){try{if(window.TT&&window.TT.getSupabase){const supa=await window.TT.getSupabase();const {data:{session}}=await supa.auth.getSession();const el=document.getElementById("auth_state");if(el) el.textContent=session?.user?.email?(`Signed in as ${session.user.email}`):"Not signed in";const b=document.getElementById("logoutBtn");b?.addEventListener("click",async()=>{try{await supa.auth.signOut()}catch(_){ }localStorage.removeItem("auth_token");localStorage.removeItem("tt_root_token");localStorage.removeItem("tt_admin_token");location.reload()},{passive:true});}}catch(_){ }})();</script></body></html>
+
 
