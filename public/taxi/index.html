@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TekeTeke — Taxi Console</title>
+  <title>TekeTeke â€” Taxi Console</title>`n  <script src="/public/js/app-config.js"></script>`n  <script src="/public/js/api.js"></script>
   <style>
     :root{
       --sky:#0ea5e9;        /* sky blue */
@@ -65,16 +65,16 @@
       <h1>Taxi Console</h1>
     </div>
     <div class="nav">
-      <a href="/auth/role-select.html">↩ Role Select</a>
+      <a href="/auth/role-select.html">â†© Role Select</a>
     </div>
-  </header>
+  </header><div class="row" style="justify-content:flex-end;gap:8px;margin-top:8px"><span id="auth_state" class="pill">Checking sign-in…</span><button id="logoutBtn" style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--sky);color:#fff;font-weight:900">Logout</button></div>
 
   <section>
     <h2>Status</h2>
     <div class="row">
       <div>
-        <div class="pill" id="authState">Checking token…</div>
-        <div class="hint" id="whoamiHint">—</div>
+        <div class="pill" id="authState">Checking tokenâ€¦</div>
+        <div class="hint" id="whoamiHint">â€”</div>
       </div>
       <div>
         <label for="taxiNo">Taxi Identifier</label>
@@ -90,12 +90,12 @@
   <section>
     <h2>Today</h2>
     <div class="kpis">
-      <div class="kpi"><div class="v" id="kTillToday">—</div><div class="l">Till Today (KSh)</div></div>
-      <div class="kpi"><div class="v" id="kCashToday">—</div><div class="l">Cash Today (KSh)</div></div>
-      <div class="kpi"><div class="v" id="kExpToday">—</div><div class="l">Expenses Today</div></div>
-      <div class="kpi"><div class="v" id="kNetToday">—</div><div class="l">Net Today</div></div>
+      <div class="kpi"><div class="v" id="kTillToday">â€”</div><div class="l">Till Today (KSh)</div></div>
+      <div class="kpi"><div class="v" id="kCashToday">â€”</div><div class="l">Cash Today (KSh)</div></div>
+      <div class="kpi"><div class="v" id="kExpToday">â€”</div><div class="l">Expenses Today</div></div>
+      <div class="kpi"><div class="v" id="kNetToday">â€”</div><div class="l">Net Today</div></div>
     </div>
-    <div class="hint" id="sumHint">Refreshing…</div>
+    <div class="hint" id="sumHint">Refreshingâ€¦</div>
   </section>
 
   <section>
@@ -192,7 +192,7 @@
 
     // --- Summary ---
     async function refreshSummary(){
-      $('sumHint').textContent='Refreshing…';
+      $('sumHint').textContent='Refreshingâ€¦';
       try{
         const today = new Date().toISOString().slice(0,10);
         const data = await authFetch(`/api/taxi/summary?date=${today}`);
@@ -219,7 +219,7 @@
         rows.forEach(r=>{
           const tr = document.createElement('tr');
           const t = r.created_at || r.time || r.timestamp;
-          tr.innerHTML = `<td>${t? new Date(t).toLocaleTimeString():'—'}</td><td>${r.name||''}</td><td>${r.phone||''}</td><td>${fmt(r.amount||0)}</td>`;
+          tr.innerHTML = `<td>${t? new Date(t).toLocaleTimeString():'â€”'}</td><td>${r.name||''}</td><td>${r.phone||''}</td><td>${fmt(r.amount||0)}</td>`;
           tbody.appendChild(tr);
         });
       }catch(e){/* ignore */}
@@ -233,7 +233,7 @@
         rows.forEach(r=>{
           const tr = document.createElement('tr');
           const t = r.created_at || r.time || r.timestamp;
-          tr.innerHTML = `<td>${t? new Date(t).toLocaleTimeString():'—'}</td><td>${r.category||'—'}</td><td>${fmt(r.amount||0)}</td><td>${r.notes||''}</td>`;
+          tr.innerHTML = `<td>${t? new Date(t).toLocaleTimeString():'â€”'}</td><td>${r.category||'â€”'}</td><td>${fmt(r.amount||0)}</td><td>${r.notes||''}</td>`;
           tbody.appendChild(tr);
         });
       }catch(e){/* ignore */}
@@ -245,11 +245,11 @@
       const name = $('cashName').value||'';
       const phone = $('cashPhone').value||'';
       const notes = $('cashNotes').value||'';
-      const out = $('cashMsg'); out.textContent='Saving…';
+      const out = $('cashMsg'); out.textContent='Savingâ€¦';
       try{
         if(!amount) throw new Error('Amount is required');
         await authFetch('/api/taxi/cash', { method:'POST', body: JSON.stringify({ amount, name, phone, notes }) });
-        out.textContent='Saved ✓'; out.className='success';
+        out.textContent='Saved âœ“'; out.className='success';
         $('cashAmt').value=''; $('cashName').value=''; $('cashPhone').value=''; $('cashNotes').value='';
         refreshSummary(); refreshCash();
       }catch(e){ out.textContent=`Error: ${e.message||e}`; out.className='error'; }
@@ -259,11 +259,11 @@
       const category = $('expCat').value||'Other';
       const amount = Number($('expAmt').value||0);
       const notes = $('expNotes').value||'';
-      const out = $('expMsg'); out.textContent='Saving…';
+      const out = $('expMsg'); out.textContent='Savingâ€¦';
       try{
         if(!amount) throw new Error('Amount is required');
         await authFetch('/api/taxi/expenses', { method:'POST', body: JSON.stringify({ category, amount, notes }) });
-        out.textContent='Saved ✓'; out.className='success';
+        out.textContent='Saved âœ“'; out.className='success';
         $('expAmt').value=''; $('expNotes').value='';
         refreshSummary(); refreshExp();
       }catch(e){ out.textContent=`Error: ${e.message||e}`; out.className='error'; }
@@ -279,5 +279,5 @@
       setInterval(()=>{ refreshSummary(); }, 30000);
     })();
   </script>
-</body>
-</html>
+<script>(async function(){try{if(window.TT&&window.TT.getSupabase){const supa=await window.TT.getSupabase();const {data:{session}}=await supa.auth.getSession();const el=document.getElementById("auth_state");if(el) el.textContent=session?.user?.email?(`Signed in as ${session.user.email}`):"Not signed in";const b=document.getElementById("logoutBtn");b?.addEventListener("click",async()=>{try{await supa.auth.signOut()}catch(_){ }localStorage.removeItem("auth_token");localStorage.removeItem("tt_root_token");localStorage.removeItem("tt_admin_token");location.reload()},{passive:true});}}catch(_){ }})();</script></body></html>
+
