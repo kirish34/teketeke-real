@@ -51,6 +51,11 @@ if (!process.env.VERCEL) {
   app.listen(PORT, () => console.log('TekeTeke REAL API listening on ' + PORT));
 }
 
+// 404 fallback to avoid hanging in serverless when route not matched
+app.use((req, res, _next) => {
+  res.status(404).json({ error: 'not_found', path: req.path, url: req.originalUrl });
+});
+
 // error handler (last)
 app.use((err, req, res, _next) => {
   console.error(err);
