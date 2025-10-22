@@ -67,8 +67,22 @@
 </head>
 <body>
 
-  <h2>System Admin Dashboard — TekeTeke</h2>
+  <h2>System Admin Dashboard - TekeTeke</h2>
   <button id="logoutBtn" class="btn" style="position:fixed;top:12px;right:12px;z-index:10;">Logout</button>
+
+  <!-- Admin Token quick set -->
+  <div class="row" id="adminTokenRow" style="margin:8px 0 14px;align-items:flex-end">
+    <div class="field" style="max-width:420px">
+      <label for="adminTokenInput">Admin Token
+        <input id="adminTokenInput" type="password" placeholder="enter admin token" autocomplete="off" />
+      </label>
+      <small class="muted">Used for /api/admin/* actions</small>
+    </div>
+    <button class="btn" id="adminTokenSave" type="button">Save</button>
+    <button class="btn ghost" id="adminTokenShow" type="button">Show</button>
+    <span id="adminTokenStatus" class="pill" style="margin-left:6px">Not set</span>
+    <button class="btn ghost right" id="adminTokenTest" type="button" title="Test admin access">Test</button>
+  </div>
 
   <div class="tabs" role="tablist" aria-label="Sections">
     <div class="tab active" data-panel="p_saccos" role="tab" aria-selected="true">SACCOs</div>
@@ -345,8 +359,8 @@
 
   <div id="toast" role="status" aria-live="polite"></div>
 
-<script>
-(function(){
+  <script>
+  (function(){
   // ====== helpers
   const $ = (id)=>document.getElementById(id);
   const BASE = () => '';
@@ -354,24 +368,51 @@
   async function H(){
     const h = { 'Content-Type':'application/json' };
     try{
+      // Bearer token (Supabase session)
       if (!BEARER && window.TT && typeof TT.getAuth === 'function') BEARER = TT.getAuth();
       if (!BEARER && window.TT && typeof TT.getSupabase === 'function'){
         const supa = await TT.getSupabase();
         const {data:{session}} = await supa.auth.getSession();
         if (session?.access_token) BEARER = session.access_token;
       }
+      // Admin token header for /api/admin/* endpoints
+      const adminTok = localStorage.getItem('tt_admin_token') || localStorage.getItem('tt_root_token') || '';
+      if (adminTok) h['x-admin-token'] = adminTok;
     }catch(_){ }
     if (BEARER) h['Authorization'] = 'Bearer ' + BEARER;
     return h;
   }
   const esc = (v)=> String(v ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
 
-  function toast(msg){
-    const t = $('toast'); if(!t) return;
-    t.textContent = msg; t.classList.add('show');
-    clearTimeout(window._toast_t);
-    window._toast_t = setTimeout(()=> t.classList.remove('show'), 2200);
-  }
+    function toast(msg){
+      const t = $('toast'); if(!t) return;
+      t.textContent = msg; t.classList.add('show');
+      clearTimeout(window._toast_t);
+      window._toast_t = setTimeout(()=> t.classList.remove('show'), 2200);
+    }
+
+    // ====== Admin Token UI ======
+    (function adminTokenUI(){
+      const input = $('adminTokenInput');
+      const saveBtn = $('adminTokenSave');
+      const showBtn = $('adminTokenShow');
+      const testBtn = $('adminTokenTest');
+      const status = $('adminTokenStatus');
+
+      const readTok = () => localStorage.getItem('tt_admin_token') || localStorage.getItem('tt_root_token') || '';
+      const writeTok = (v) => { localStorage.setItem('tt_admin_token', v||''); localStorage.setItem('tt_root_token', v||''); };
+      const mask = (v) => (v ? ('Set (' + Math.max(0, v.length-3) + '•' + v.slice(-3) + ')') : 'Not set');
+
+      function refresh(){ const t = readTok(); status.textContent = mask(t); if (input && !input.value) input.value = t; }
+      refresh();
+
+      saveBtn?.addEventListener('click', ()=>{ writeTok(input?.value?.trim() || ''); refresh(); toast('Admin token saved'); });
+      showBtn?.addEventListener('click', ()=>{ if (!input) return; input.type = (input.type==='password' ? 'text' : 'password'); showBtn.textContent = (input.type==='password') ? 'Show' : 'Hide'; input.focus(); });
+      testBtn?.addEventListener('click', async ()=>{
+        try { await jget('/api/admin/saccos'); toast('Admin access OK'); }
+        catch(e){ toast(e.message||'Admin access failed'); }
+      });
+    })();
 
   async function parseJSONSafe(text){
     if (!text) return {};
