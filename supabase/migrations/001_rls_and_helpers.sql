@@ -34,16 +34,16 @@ returns int language sql stable as $$
 $$;
 
 create or replace function public.fees_today()
-returns table(date text, sacco uuid, amount numeric, matatu uuid, time text) language sql stable as $$
-  select to_char(now(),'YYYY-MM-DD') as date, t.sacco_id as sacco, t.fare_amount_kes as amount, t.matatu_id as matatu, to_char(t.created_at,'HH24:MI:SS') as time
+returns table(date text, sacco uuid, amount numeric, matatu uuid, "time" text) language sql stable as $$
+  select to_char(now(),'YYYY-MM-DD') as date, t.sacco_id as sacco, t.fare_amount_kes as amount, t.matatu_id as matatu, to_char(t.created_at,'HH24:MI:SS') as "time"
   from public.transactions t
   where t.kind='SACCO_FEE' and t.created_at::date = now()::date
   order by t.created_at desc;
 $$;
 
 create or replace function public.loans_today()
-returns table(date text, sacco uuid, amount numeric, matatu uuid, time text) language sql stable as $$
-  select to_char(now(),'YYYY-MM-DD') as date, t.sacco_id as sacco, t.fare_amount_kes as amount, t.matatu_id as matatu, to_char(t.created_at,'HH24:MI:SS') as time
+returns table(date text, sacco uuid, amount numeric, matatu uuid, "time" text) language sql stable as $$
+  select to_char(now(),'YYYY-MM-DD') as date, t.sacco_id as sacco, t.fare_amount_kes as amount, t.matatu_id as matatu, to_char(t.created_at,'HH24:MI:SS') as "time"
   from public.transactions t
   where t.kind='LOAN_REPAY' and t.created_at::date = now()::date
   order by t.created_at desc;
