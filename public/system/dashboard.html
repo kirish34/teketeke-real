@@ -404,14 +404,29 @@
       const mask = (v) => (v ? ('Set (' + Math.max(0, v.length-3) + '•' + v.slice(-3) + ')') : 'Not set');
 
       function refresh(){ const t = readTok(); status.textContent = mask(t); if (input && !input.value) input.value = t; }
+
+      async function validateAdmin(){
+        try {
+          await jget('/api/admin/ping');
+          status.textContent = 'Valid';
+          toast('Admin token valid');
+          return true;
+        } catch(e){
+          status.textContent = 'Invalid';
+          toast(e.message || 'Admin token invalid');
+          return false;
+        }
+      }
       refresh();
 
-      saveBtn?.addEventListener('click', ()=>{ writeTok(input?.value?.trim() || ''); refresh(); toast('Admin token saved'); });
-      showBtn?.addEventListener('click', ()=>{ if (!input) return; input.type = (input.type==='password' ? 'text' : 'password'); showBtn.textContent = (input.type==='password') ? 'Show' : 'Hide'; input.focus(); });
-      testBtn?.addEventListener('click', async ()=>{
-        try { await jget('/api/admin/saccos'); toast('Admin access OK'); }
-        catch(e){ toast(e.message||'Admin access failed'); }
+      // Save now auto-validates against /api/admin/ping
+      saveBtn?.addEventListener('click', async ()=>{
+        writeTok(input?.value?.trim() || '');
+        refresh();
+        await validateAdmin();
       });
+      showBtn?.addEventListener('click', ()=>{ if (!input) return; input.type = (input.type==='password' ? 'text' : 'password'); showBtn.textContent = (input.type==='password') ? 'Show' : 'Hide'; input.focus(); });
+      testBtn?.addEventListener('click', validateAdmin);
     })();
 
   async function parseJSONSafe(text){
