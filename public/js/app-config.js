@@ -1,2 +1,4 @@
-window.SUPABASE_URL='https://cacqxggrlabkhpvpiqxj.supabase.co';
-window.SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNhY3F4Z2dybGFia2hwdnBpcXhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA3MzM3NTAsImV4cCI6MjA3NjMwOTc1MH0.wb9nGodssTyGsoCd6qgmTwRhlzie4nZKR2-DpJ82kOI';
+// Supabase client configuration for the front-end
+// Update the ANON key to the one from the new project.
+window.SUPABASE_URL='https://ecjkxgegjzvixyuukysk.supabase.co';
+window.SUPABASE_ANON_KEY='';
