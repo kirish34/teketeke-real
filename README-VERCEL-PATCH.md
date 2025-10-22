@@ -3,7 +3,7 @@
 This patch adds Vercel serverless support to your existing project.
 
 ## What it adds
-- `api/index.js` → wraps the Express app with serverless-http
+- `api/index.js` → exports the Express app for Vercel Node runtime
 - `vercel.json`  → routes `/api/*` and `/u/*` to the serverless function
 - `scripts/patch-server-for-vercel.ps1` → modifies `server/server.js` to export the app and avoid listening on Vercel
 
@@ -13,16 +13,13 @@ This patch adds Vercel serverless support to your existing project.
    ```powershell
    ./scripts/patch-server-for-vercel.ps1
    ```
-3) Add a dependency:
-   ```powershell
-   npm i serverless-http
+powershell
    ```
 4) Commit and push to GitHub, then import to Vercel (or use `vercel` CLI).
-5) In Vercel → Project Settings → Environment Variables, add:
+5) In Vercel � Project Settings � Environment Variables, add:
    - SUPABASE_URL
    - SUPABASE_ANON_KEY
    - SUPABASE_SERVICE_ROLE_KEY
-   - ADMIN_TOKEN
    - DARAJA_ENV, DARAJA_CONSUMER_KEY, DARAJA_CONSUMER_SECRET, DARAJA_SHORTCODE, DARAJA_PASSKEY
    - DARAJA_CALLBACK_URL = `https://<your-vercel-domain>/api/pay/stk/callback`
 
