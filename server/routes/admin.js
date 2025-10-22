@@ -2,19 +2,30 @@ const express = require('express');
 const { timingSafeEqual } = require('crypto');
 const { supabaseAdmin } = require('../supabase');
 const router = express.Router();
+const DEBUG = process.env.DEBUG_ADMIN === '1';
 
 function checkAdmin(req,res,next){
   const expected = (process.env.ADMIN_TOKEN || '');
   if (!expected) return res.status(500).json({ error: 'ADMIN_TOKEN not set' });
   const got = String(req.headers['x-admin-token'] || '');
   const a = Buffer.from(expected), b = Buffer.from(got);
-  if (a.length !== b.length) return res.status(401).json({ error: 'admin token required' });
+  if (a.length !== b.length) {
+    if (DEBUG) console.warn('[admin] deny: len mismatch path=%s', req.path);
+    return res.status(401).json({ error: 'admin token required' });
+  }
   try {
-    if (timingSafeEqual(a,b)) return next();
+    if (timingSafeEqual(a,b)) {
+      if (DEBUG) console.log('[admin] ok path=%s', req.path);
+      return next();
+    }
   } catch (_) {}
+  if (DEBUG) console.warn('[admin] deny: mismatch path=%s', req.path);
   return res.status(401).json({ error: 'admin token required' });
 }
 router.use(checkAdmin);
+
+// Simple ping for UI testing
+router.get('/ping', (_req,res)=> res.json({ ok:true }));
 
 // Overview
 router.get('/system-overview', async (_req, res) => {
