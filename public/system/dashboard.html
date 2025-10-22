@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>System Admin Dashboard — TekeTeke</title>
+  <title>System Admin Dashboard ? TekeTeke</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <!-- App bootstrap (unchanged paths) -->
@@ -68,7 +68,16 @@
 <body>
 
   <h2>System Admin Dashboard - TekeTeke</h2>
-  <button id="logoutBtn" class="btn" style="position:fixed;top:12px;right:12px;z-index:10;">Logout</button>
+  <button id="logoutBtn" class="btn" style="position:fixed;top:12px;right:12px;z-index:10;">Logout</button>  <!-- Tabs navigation -->
+  <div class="tabs" role="tablist" aria-label="Sections">
+    <div class="tab active" data-panel="p_saccos" role="tab" aria-selected="true">SACCOs</div>
+    <div class="tab" data-panel="p_matatus" role="tab" aria-selected="false">Matatus</div>
+    <div class="tab" data-panel="p_bodas" role="tab" aria-selected="false">BodaBodas</div>
+    <div class="tab" data-panel="p_taxis" role="tab" aria-selected="false">Taxis</div>
+    <div class="tab" data-panel="p_pool" role="tab" aria-selected="false">USSD Pool</div>
+    <div class="tab" data-panel="p_tx" role="tab" aria-selected="false">Transactions</div>
+    <div class="tab" data-panel="p_tools" role="tab" aria-selected="false">Admin Tools</div>
+  </div>
   </div>
 
   <div class="tabs" role="tablist" aria-label="Sections">
@@ -94,7 +103,7 @@
     </div>
 
     <div class="row" style="margin-top:12px">
-      <input id="sc_q" placeholder="Search by name…" style="padding:10px;border:1px solid var(--border);border-radius:8px;min-width:260px" autocomplete="off">
+      <input id="sc_q" placeholder="Search by name?" style="padding:10px;border:1px solid var(--border);border-radius:8px;min-width:260px" autocomplete="off">
       <button class="btn ghost" id="sc_reload">Reload</button>
       <span class="right muted" id="sc_count"></span>
     </div>
@@ -120,17 +129,17 @@
       <div class="field"><label>Vehicle type<input id="mt_type" placeholder="e.g. PSV 14-seater" autocomplete="off"></label></div>
       <div class="field"><label>TLB number<input id="mt_tlb" placeholder="optional" autocomplete="off"></label></div>
       <div class="field"><label>Till number<input id="mt_till" placeholder="e.g. 987654" autocomplete="off"></label></div>
-      <div class="field"><label>SACCO<select id="mt_sacco"><option value="">— choose SACCO —</option></select></label></div>
+      <div class="field"><label>SACCO<select id="mt_sacco"><option value="">? choose SACCO ?</option></select></label></div>
       <div class="field"><label>&nbsp;<button class="btn ok" id="mt_submit">Register Matatu</button></label></div>
     </div>
 
     <div class="row" style="margin-top:12px">
       <label class="row">Filter by SACCO
         <select id="mt_filter_sacco" style="margin-left:8px;padding:8px;border:1px solid var(--border);border-radius:8px;min-width:260px">
-          <option value="">— all —</option>
+          <option value="">? all ?</option>
         </select>
       </label>
-      <input id="mt_q_plate" placeholder="Search plate…" style="margin-left:10px;padding:10px;border:1px solid var(--border);border-radius:8px;min-width:200px" autocomplete="off">
+      <input id="mt_q_plate" placeholder="Search plate?" style="margin-left:10px;padding:10px;border:1px solid var(--border);border-radius:8px;min-width:200px" autocomplete="off">
       <button class="btn ghost" id="mt_reload">Reload</button>
       <span class="right muted" id="mt_count"></span>
     </div>
@@ -157,17 +166,17 @@
       <div class="field"><label>Owner phone<input id="bd_phone" placeholder="2547..." autocomplete="off"></label></div>
       <div class="field"><label>TLB number<input id="bd_tlb" placeholder="optional" autocomplete="off"></label></div>
       <div class="field"><label>Till number<input id="bd_till" placeholder="e.g. 987654" autocomplete="off"></label></div>
-      <div class="field"><label>SACCO<select id="bd_sacco"><option value="">— choose SACCO —</option></select></label></div>
+      <div class="field"><label>SACCO<select id="bd_sacco"><option value="">? choose SACCO ?</option></select></label></div>
       <div class="field"><label>&nbsp;<button class="btn ok" id="bd_submit">Register BodaBoda</button></label></div>
     </div>
 
     <div class="row" style="margin-top:12px">
       <label class="row">Filter by SACCO
         <select id="bd_filter_sacco" style="margin-left:8px;padding:8px;border:1px solid var(--border);border-radius:8px;min-width:260px">
-          <option value="">— all —</option>
+          <option value="">? all ?</option>
         </select>
       </label>
-      <input id="bd_q_plate" placeholder="Search plate…" style="margin-left:10px;padding:10px;border:1px solid var(--border);border-radius:8px;min-width:200px" autocomplete="off">
+      <input id="bd_q_plate" placeholder="Search plate?" style="margin-left:10px;padding:10px;border:1px solid var(--border);border-radius:8px;min-width:200px" autocomplete="off">
       <button class="btn ghost" id="bd_reload">Reload</button>
       <span class="right muted" id="bd_count"></span>
     </div>
@@ -194,17 +203,17 @@
       <div class="field"><label>Owner phone<input id="txi_phone" placeholder="2547..." autocomplete="off"></label></div>
       <div class="field"><label>TLB number<input id="txi_tlb" placeholder="optional" autocomplete="off"></label></div>
       <div class="field"><label>Till number<input id="txi_till" placeholder="e.g. 987654" autocomplete="off"></label></div>
-      <div class="field"><label>SACCO<select id="txi_sacco"><option value="">— choose SACCO —</option></select></label></div>
+      <div class="field"><label>SACCO<select id="txi_sacco"><option value="">? choose SACCO ?</option></select></label></div>
       <div class="field"><label>&nbsp;<button class="btn ok" id="txi_submit">Register Taxi</button></label></div>
     </div>
 
     <div class="row" style="margin-top:12px">
       <label class="row">Filter by SACCO
         <select id="txi_filter_sacco" style="margin-left:8px;padding:8px;border:1px solid var(--border);border-radius:8px;min-width:260px">
-          <option value="">— all —</option>
+          <option value="">? all ?</option>
         </select>
       </label>
-      <input id="txi_q_plate" placeholder="Search plate…" style="margin-left:10px;padding:10px;border:1px solid var(--border);border-radius:8px;min-width:200px" autocomplete="off">
+      <input id="txi_q_plate" placeholder="Search plate?" style="margin-left:10px;padding:10px;border:1px solid var(--border);border-radius:8px;min-width:200px" autocomplete="off">
       <button class="btn ghost" id="txi_reload">Reload</button>
       <span class="right muted" id="txi_count"></span>
     </div>
@@ -224,7 +233,7 @@
 
   <!-- USSD Pool -->
   <section id="p_pool" class="panel" aria-labelledby="tab_pool">
-    <h3>USSD Pool (0011 ? 0022 ? … ? 9999)</h3>
+    <h3>USSD Pool (0011 ? 0022 ? ? ? 9999)</h3>
     <div class="grid grid-3" id="up_controls">
       <div class="field"><label>Level
         <select id="up_level">
@@ -262,7 +271,7 @@
     <div class="grid">
       <div>
         <h4>Available</h4>
-        <input id="up_search" placeholder="Search code/base…" style="padding:8px;border:1px solid var(--border);border-radius:8px;min-width:220px" autocomplete="off">
+        <input id="up_search" placeholder="Search code/base?" style="padding:8px;border:1px solid var(--border);border-radius:8px;min-width:220px" autocomplete="off">
         <div class="table-wrap">
           <table>
             <thead><tr><th>Base</th><th>Check</th><th>Code</th><th></th></tr></thead>
@@ -311,7 +320,7 @@
 
   <!-- Admin Tools panel (quick tester) -->
   <section id="p_tools" class="panel" aria-labelledby="tab_tools">
-    <h3>??? Admin Tools — SACCOs (Quick Test)</h3>
+    <h3>??? Admin Tools ? SACCOs (Quick Test)</h3>
     <p class="muted">Uses your current signed-in session.</p>
 
     <div class="row" style="margin:8px 0;">
@@ -380,7 +389,7 @@
 
       
       
-      const mask = (v) => (v ? ('Set (' + Math.max(0, v.length-3) + '•' + v.slice(-3) + ')') : 'Not set');
+      const mask = (v) => (v ? ('Set (' + Math.max(0, v.length-3) + '?' + v.slice(-3) + ')') : 'Not set');
 
       function refresh(){ const t = readTok(); status.textContent = mask(t); if (input && !input.value) input.value = t; }
 
@@ -478,12 +487,12 @@
         const o=document.createElement('option'); o.value=s.id; o.textContent=s.name; el.appendChild(o);
       });
     };
-    fillSelect('mt_sacco','<option value="">— choose SACCO —</option>');
-    fillSelect('mt_filter_sacco','<option value="">— all —</option>');
-    fillSelect('bd_sacco','<option value="">— choose SACCO —</option>');
-    fillSelect('bd_filter_sacco','<option value="">— all —</option>');
-    fillSelect('txi_sacco','<option value="">— choose SACCO —</option>');
-    fillSelect('txi_filter_sacco','<option value="">— all —</option>');
+    fillSelect('mt_sacco','<option value="">? choose SACCO ?</option>');
+    fillSelect('mt_filter_sacco','<option value="">? all ?</option>');
+    fillSelect('bd_sacco','<option value="">? choose SACCO ?</option>');
+    fillSelect('bd_filter_sacco','<option value="">? all ?</option>');
+    fillSelect('txi_sacco','<option value="">? choose SACCO ?</option>');
+    fillSelect('txi_filter_sacco','<option value="">? all ?</option>');
   }
   $('sc_reload').onclick = loadSaccos;
   $('sc_q').oninput = ()=> { clearTimeout(window._sc_t); window._sc_t=setTimeout(loadSaccos, 250); };
@@ -781,7 +790,7 @@
     const prefix = document.getElementById('up_prefix').value||'*001*';
     const avail = (av.items||[]).filter(x => (x.full_code||'').startsWith(prefix));
     const alloc = (al.items||[]).filter(x => (x.full_code||'').startsWith(prefix));
-    document.getElementById('up_counts').textContent = `Available: ${avail.length} • Allocated: ${alloc.length}`;
+    document.getElementById('up_counts').textContent = `Available: ${avail.length} ? Allocated: ${alloc.length}`;
     const A = document.getElementById('up_avail_tbody'); A.innerHTML='';
     const q = (document.getElementById('up_search').value||'').toLowerCase();
     avail
