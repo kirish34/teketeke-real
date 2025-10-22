@@ -502,11 +502,15 @@
       default_till: $('sc_default_till').value.trim()||null
     };
     if (!payload.name) return alert('Enter SACCO name');
-    await jpost('/api/admin/register-sacco', payload);
-    $('sc_name').value=''; $('sc_contact_name').value=''; $('sc_contact_phone').value='';
-    $('sc_contact_email').value=''; $('sc_default_till').value='';
-    await loadSaccos();
-    toast('✅ SACCO Registered');
+    try{
+      await jpost('/api/admin/register-sacco', payload);
+      $('sc_name').value=''; $('sc_contact_name').value=''; $('sc_contact_phone').value='';
+      $('sc_contact_email').value=''; $('sc_default_till').value='';
+      await loadSaccos();
+      toast('✅ SACCO Registered');
+    }catch(e){
+      toast(e.message||'Failed to register',);
+    }
   };
   $('sc_list').addEventListener('click', async (e)=>{
     const b = e.target.closest('button'); if(!b) return;
