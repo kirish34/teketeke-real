@@ -1,7 +1,7 @@
 # TekeTeke — REAL v8 (Supabase/Postgres)
 
 This build wires all dashboards to **real Postgres** via Supabase.
-Admin endpoints use the Supabase **service role key** (server-side) and an `x-admin-token`.
+Admin endpoints use the Supabase **service role key** (server-side) and require a signed-in user with role `SYSTEM_ADMIN`.
 
 ## Run (local)
 ```bash
@@ -12,7 +12,7 @@ npm run dev
 open http://localhost:5001/public/auth/role-select.html
 ```
 Use the **Use Demo Token** button only to bypass UI auth during development.
-System Admin actions require header `x-admin-token: <ADMIN_TOKEN>` (default `change-me`).
+System Admin actions require an authenticated Supabase session for a user present in `public.staff_profiles` with role `SYSTEM_ADMIN`.
 
 ## Database
 Apply SQL in order:

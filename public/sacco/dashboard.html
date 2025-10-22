@@ -1,8 +1,8 @@
-Ôªø<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
-  <title>TekeTeke ‚Äî SACCO Dashboard</title>
+  <title>TekeTeke ó SACCO Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
 
   <!-- Charts -->
@@ -44,7 +44,7 @@
 </head>
 <body>
 
-  <a class="back" href="/public/auth/role-select.html">‚Üê Back</a>
+  <a class="back" href="/public/auth/role-select.html">? Back</a>
   <h2>SACCO Dashboard</h2>
 
   <div class="bar">
@@ -67,7 +67,7 @@
   <!-- Matatus -->
   <section id="p_matatus" class="panel active">
     <div class="row">
-      <input id="matatuSearch" placeholder="Search plate‚Ä¶"/>
+      <input id="matatuSearch" placeholder="Search plateÖ"/>
       <button class="ghost" id="reloadMatatus">Reload</button>
       <span class="right k" id="matatuCount"></span>
     </div>
@@ -162,7 +162,7 @@
       <h3>Create Loan</h3>
       <div class="form-grid">
         <input id="lnBorrower" placeholder="Borrower name"/>
-        <select id="lnMatatu" class="w-2"><option value="">‚Äî optional ‚Äî Matatu</option></select>
+        <select id="lnMatatu" class="w-2"><option value="">ó optional ó Matatu</option></select>
         <input id="lnPrincipal" type="number" placeholder="Principal (KES)"/>
         <input id="lnRate" type="number" placeholder="Interest % p.a"/>
         <input id="lnTerm" type="number" placeholder="Term (months)"/>
@@ -184,7 +184,7 @@
     const isoDate = d => new Date(d).toISOString().slice(0,10);
     const today = isoDate(new Date());
     const bearer = () => localStorage.getItem('auth_token') || '';
-    const adminTok = () => localStorage.getItem('tt_root_token') || 'dev'; // still used for staff/loans admin endpoints
+    const adminTok = () => '';
     const fmtKES = n => Number(n||0).toLocaleString('en-KE',{minimumFractionDigits:2,maximumFractionDigits:2});
 
     async function parse(res){
@@ -202,7 +202,7 @@
     }
     async function jadmin(method, path, body){
       // Admin-only endpoints retained for staff/loans. No USSD calls here anymore.
-      const headers = {'x-admin-token': adminTok(), 'Content-Type':'application/json'};
+      const headers = {'Content-Type':'application/json'};
       const res = await fetch(path,{method,headers,body: body? JSON.stringify(body): undefined});
       return parse(res);
     }
@@ -234,7 +234,7 @@
 
     async function loadSaccos(){
       const sel = $('saccoSelect');
-      sel.innerHTML = '<option value="">‚Äî choose ‚Äî</option>';
+      sel.innerHTML = '<option value="">ó choose ó</option>';
       const res = await jget('/u/my-saccos');
       const items = res.items || [];
       items.forEach(s=>{
@@ -269,7 +269,7 @@
 
       // loans matatu select
       const sel = $('lnMatatu');
-      sel.innerHTML = '<option value="">‚Äî optional ‚Äî Matatu</option>';
+      sel.innerHTML = '<option value="">ó optional ó Matatu</option>';
       (data.items||[]).forEach(m=>{
         const o=document.createElement('option');
         o.value=m.id; o.textContent=m.number_plate;
@@ -437,7 +437,7 @@
     // Init
     (async function init(){
       try{
-        if(!localStorage.getItem('tt_root_token')) localStorage.setItem('tt_root_token','dev');
+        
         await loadSaccos();
         await Promise.all([ loadMatatus(), loadTxAndTotals(), loadStaff(), loadLoans() ]);
       }catch(e){
@@ -460,7 +460,7 @@
       const pill=document.createElement('span');
       pill.id='auth_state';
       pill.style.cssText='background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;padding:4px 10px;border-radius:999px;font-size:12px;max-width:40vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
-      pill.textContent='Checking sign-in‚Ä¶';
+      pill.textContent='Checking sign-inÖ';
       const btn=document.createElement('button');
       btn.textContent='Logout';
       btn.style.cssText='padding:6px 10px;border-radius:6px;border:1px solid #cfe3ff;background:#0b5cab;color:#fff;cursor:pointer';

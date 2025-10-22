@@ -17,3 +17,17 @@ with your auth user id and role 'SYSTEM_ADMIN'. Example:
 insert into public.staff_profiles(user_id, role, name, email)
 values ('<YOUR_AUTH_USER_UUID>', 'SYSTEM_ADMIN', 'You', 'you@example.com');
 ```
+
+## BodaBoda/Taxi
+
+Add after seeds:
+
+4. `migrations/003_boda_taxi.sql` — BodaBoda/Taxi tables (per-user) + RLS
+
+Tables (per-user scope via RLS):
+- `boda_cash_entries` (user_id, amount, payer_name, phone, notes, created_at)
+- `boda_expense_entries` (user_id, category, amount, notes, created_at)
+- `taxi_cash_entries` (user_id, amount, name, phone, notes, created_at)
+- `taxi_expense_entries` (user_id, category, amount, notes, created_at)
+
+Each signed-in user can read/insert only their own rows.

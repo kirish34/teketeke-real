@@ -1,40 +1,10 @@
 const express = require('express');
-const { timingSafeEqual } = require('crypto');
 const { supabaseAdmin } = require('../supabase');
 const { requireUser } = require('../middleware/auth');
 const router = express.Router();
-const DEBUG = process.env.DEBUG_ADMIN === '1';
 
-function checkAdmin(req,res,next){
-  const expected = (process.env.ADMIN_TOKEN || '');
-  if (!expected) return res.status(500).json({ error: 'ADMIN_TOKEN not set' });
-  const got = String(req.headers['x-admin-token'] || '');
-  const a = Buffer.from(expected), b = Buffer.from(got);
-  if (a.length !== b.length) {
-    if (DEBUG) console.warn('[admin] deny: len mismatch path=%s', req.path);
-    return res.status(401).json({ error: 'admin token required' });
-  }
-  try {
-    if (timingSafeEqual(a,b)) {
-      if (DEBUG) console.log('[admin] ok path=%s', req.path);
-      return next();
-    }
-  } catch (_) {}
-  if (DEBUG) console.warn('[admin] deny: mismatch path=%s', req.path);
-  return res.status(401).json({ error: 'admin token required' });
-}
-
-// New: allow either valid ADMIN_TOKEN header, or a signed-in SYSTEM_ADMIN user (Supabase)
-async function requireSystemAdminOrToken(req, res, next){
-  const expected = (process.env.ADMIN_TOKEN || '');
-  const got = String(req.headers['x-admin-token'] || '');
-  if (expected && got) {
-    const a = Buffer.from(expected), b = Buffer.from(got);
-    if (a.length === b.length) {
-      try { if (timingSafeEqual(a,b)) return next(); } catch(_) {}
-    }
-  }
-  // Fallback to Supabase role check using the end-user JWT
+// Require a signed-in Supabase user with role SYSTEM_ADMIN
+async function requireSystemAdmin(req, res, next){
   return requireUser(req, res, async () => {
     try{
       const uid = req.user?.id;
@@ -52,7 +22,7 @@ async function requireSystemAdminOrToken(req, res, next){
   });
 }
 
-router.use(requireSystemAdminOrToken);
+router.use(requireSystemAdmin);
 
 // Simple ping for UI testing
 router.get('/ping', (_req,res)=> res.json({ ok:true }));

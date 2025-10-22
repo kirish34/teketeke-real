@@ -52,16 +52,11 @@ TT.getAuth = () => localStorage.getItem('auth_token') || '';
     const needsAuth = /^\/(u|api\/staff|api\/taxi|api\/boda|api\/admin)\b/.test(url);
     if (!needsAuth) return fetch(input, init);
     const headers = new Headers(init?.headers || {});
-    // User auth (Supabase)
+    // Attach Supabase user JWT
     try{
       const token = await getAccessToken();
       if (token) headers.set('Authorization','Bearer '+token);
     }catch(_){ }
-    // Admin token for /api/admin
-    if (/^\/api\/admin\b/.test(url)){
-      const adminTok = localStorage.getItem('tt_admin_token') || localStorage.getItem('tt_root_token') || '';
-      if (adminTok && !headers.has('x-admin-token')) headers.set('x-admin-token', adminTok);
-    }
     return fetch(input, { ...(init||{}), headers });
   }
 
