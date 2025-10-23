@@ -3,47 +3,35 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Login â€” TekeTeke</title>
+  <title>Login — TekeTeke</title>
   <script src="/public/js/app-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root{
-      --brand:#1976d2; /* system admin blue */
-      --brand-700:#135ba1;
-      --bg:#f6f7fb;
-      --panel:#ffffff;
-      --ink:#0b0f19;
-      --muted:#6b7280;
-      --border:#e5e7eb;
-      --ok:#065f46;
-      --bad:#b91c1c;
+      --brand:#1976d2; --brand-700:#135ba1; --bg:#f6f7fb; --panel:#ffffff;
+      --ink:#0b0f19; --muted:#6b7280; --border:#e5e7eb; --ok:#065f46; --bad:#b91c1c;
     }
     *{box-sizing:border-box}
     body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,Segoe UI,Arial,sans-serif}
     .wrap{min-height:100dvh;display:grid;place-items:center;padding:20px}
-
     .card{width:min(520px,100%);background:var(--panel);border:1px solid var(--border);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.06);padding:22px}
     .brand{display:flex;align-items:center;gap:10px;margin-bottom:6px}
     .brand-logo{width:34px;height:34px;border-radius:10px;background:linear-gradient(145deg,var(--brand),var(--brand-700));box-shadow:inset 0 0 0 2px rgba(255,255,255,.35)}
     h1{margin:0;color:var(--brand);font-size:22px}
     p.sub{margin:4px 0 14px;color:var(--muted)}
-
     label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin:10px 0 6px}
     input{width:100%;padding:12px;border:1px solid var(--border);border-radius:10px;font:inherit;background:#fff}
-    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
     .actions{display:flex;gap:10px;margin-top:12px}
     button{padding:10px 12px;border-radius:10px;border:1px solid transparent;background:var(--brand);color:#fff;font-weight:800;cursor:pointer}
     button:hover{background:var(--brand-700)}
     button.ghost{background:#fff;color:var(--brand);border-color:var(--brand)}
-
     .pill{display:inline-block;background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;padding:4px 10px;border-radius:999px;font-size:12px}
     .muted{color:var(--muted)}
     .err{color:var(--bad);font-weight:800;margin-top:8px}
     .ok{color:var(--ok);font-weight:800;margin-top:8px}
-
     .topline{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
     .link{color:var(--brand);text-decoration:none;font-weight:800}
-
     .footer{display:flex;justify-content:space-between;align-items:center;margin-top:14px}
   </style>
 </head>
@@ -51,7 +39,7 @@
   <div class="wrap">
     <div class="card" role="dialog" aria-labelledby="t_title">
       <div class="topline">
-        <span id="auth_state" class="pill">Checking sessionâ€¦</span>
+        <span id="auth_state" class="pill">Checking session…</span>
         <a class="link" href="/public/auth/role-select.html">Role Select</a>
       </div>
 
@@ -65,8 +53,8 @@
         <label for="email">Email</label>
         <input id="email" type="email" placeholder="you@example.com" autocomplete="email" />
         <label for="password">Password</label>
-        <div class="row" style="gap:6px">
-          <input id="password" type="password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" autocomplete="current-password" />
+        <div class="row">
+          <input id="password" type="password" placeholder="••••••••" autocomplete="current-password" />
           <button id="togglePw" class="ghost" type="button" style="min-width:110px">Show</button>
         </div>
         <div class="actions">
@@ -84,25 +72,53 @@
   </div>
 
   <script>
+    // --- helpers ---
     const el = (id)=>document.getElementById(id);
     const msg = (t, cls='muted')=>{ const m=el('msg'); m.className=cls; m.textContent=t; };
 
     // Build client from app-config.js
     const sb = window.supabase.createClient(window.SUPABASE_URL||'', window.SUPABASE_ANON_KEY||'');
 
+    function setAuthToken(token){
+      try {
+        if (!token) return;
+        localStorage.setItem('auth_token', token);       // for your app/Swagger to read
+        sessionStorage.setItem('auth_token', token);     // short-lived tab storage
+      } catch {}
+    }
+
+    async function getToken(){
+      const { data:{ session } } = await sb.auth.getSession();
+      return session?.access_token || localStorage.getItem('auth_token') || null;
+    }
+
+    // Use this for any calls to your backend like /u/profile, /u/loans, etc.
+    async function authedFetch(url, options = {}){
+      const token = await getToken();
+      if (!token) throw new Error('No auth token');
+      return fetch(url, {
+        ...options,
+        headers: { ...(options.headers||{}), Authorization: `Bearer ${token}` }
+      });
+    }
+
     async function refreshAuthBadge(){
-      try{
+      try {
         const { data:{ session } } = await sb.auth.getSession();
-        el('auth_state').textContent = session?.user?.email ? ('Signed in as '+session.user.email) : 'Not signed in';
-      }catch{ el('auth_state').textContent = 'Not signed in'; }
+        el('auth_state').textContent = session?.user?.email ? ('Signed in as ' + session.user.email) : 'Not signed in';
+      } catch {
+        el('auth_state').textContent = 'Not signed in';
+      }
     }
 
     function setLoading(b){
       el('signin').disabled = b; el('magic').disabled = b; el('togglePw').disabled = b;
     }
 
+    // --- UI events ---
     el('togglePw').addEventListener('click', ()=>{
-      const p = el('password'); const show = p.type === 'password';
+      const p = el('password');
+      const show = p.type === 'password';
       p.type = show ? 'text' : 'password';
       el('togglePw').textContent = show ? 'Hide' : 'Show';
       p.focus();
@@ -112,38 +128,57 @@
       const emailV = (el('email').value||'').trim();
       const passV  = el('password').value || '';
       if(!emailV || !passV) return msg('Enter email and password','err');
-      setLoading(true); msg('Signing inâ€¦');
+      setLoading(true); msg('Signing in…');
       try{
         const { data, error } = await sb.auth.signInWithPassword({ email: emailV, password: passV });
         if(error) throw error;
-        if(data?.session){
-          msg('Signed in âœ“ Redirectingâ€¦','ok');
-          // Redirect to selected target (or role select)
-          { const sp = new URLSearchParams(location.search); const nxt = sp.get('next') || '/public/auth/role-select.html'; location.href = nxt; }
-        }else{ msg('No session returned','err'); }
+
+        if(data?.session?.access_token){
+          // store JWT so the rest of the app (and Swagger) can use it
+          setAuthToken(data.session.access_token);
+          msg('Signed in ✓ Redirecting…','ok');
+
+          // OPTIONAL: quick sanity call to your backend
+          // const r = await authedFetch('/u/profile'); console.log('profile', await r.json());
+
+          const sp = new URLSearchParams(location.search);
+          const nxt = sp.get('next') || '/public/auth/role-select.html';
+          location.href = nxt;
+        }else{
+          msg('No session returned','err');
+        }
       }catch(e){ msg(e.message||String(e),'err'); }
-      finally{ setLoading(false); }
+      finally{ setLoading(false); refreshAuthBadge(); }
     });
 
     el('magic').addEventListener('click', async ()=>{
       const emailV = (el('email').value||'').trim();
       if(!emailV) return msg('Enter email first','err');
-      setLoading(true); msg('Sending linkâ€¦');
+      setLoading(true); msg('Sending link…');
       try{
-        const { error } = await sb.auth.signInWithOtp({ email: emailV, options:{ emailRedirectTo: location.origin + '/public/auth/login.html?next=' + encodeURIComponent((new URLSearchParams(location.search).get('next')||'/public/auth/role-select.html')) } });
-        if(error) throw error; msg('Check your email for the link','ok');
+        const sp = new URLSearchParams(location.search);
+        const redirect = location.origin + '/public/auth/login.html?next=' + encodeURIComponent(sp.get('next')||'/public/auth/role-select.html');
+        const { error } = await sb.auth.signInWithOtp({ email: emailV, options:{ emailRedirectTo: redirect } });
+        if(error) throw error;
+        msg('Check your email for the link','ok');
       }catch(e){ msg(e.message||String(e),'err'); }
       finally{ setLoading(false); }
     });
 
     el('logout').addEventListener('click', async ()=>{
-      try{ await sb.auth.signOut(); msg('Signed out','ok'); }
-      catch(e){ msg(e.message||String(e),'err'); }
+      try{
+        await sb.auth.signOut();
+        localStorage.removeItem('auth_token');
+        sessionStorage.removeItem('auth_token');
+        msg('Signed out','ok');
+      }catch(e){ msg(e.message||String(e),'err'); }
       finally{ refreshAuthBadge(); }
     });
 
-    // Redirect if already authenticated
-    sb.auth.onAuthStateChange((_e, s)=>{
+    // Keep token fresh + stored whenever auth state changes (incl. magic link return)
+    sb.auth.onAuthStateChange(async (_e, s)=>{
+      if(s?.access_token){ setAuthToken(s.access_token); }
+      await refreshAuthBadge();
       if(s?.access_token){
         const sp = new URLSearchParams(location.search);
         const next = sp.get('next') || '/public/auth/role-select.html';
@@ -151,9 +186,19 @@
       }
     });
 
-    (async function init(){ await refreshAuthBadge(); try{ const { data:{ session } } = await sb.auth.getSession(); if(session?.access_token){ const sp = new URLSearchParams(location.search); const nxt = sp.get('next') || '/public/auth/role-select.html'; location.href = nxt; } }catch(_){ } })();
+    // Init
+    (async function init(){
+      await refreshAuthBadge();
+      try {
+        const t = await getToken();
+        if(t){
+          // already signed in, go ahead
+          const sp = new URLSearchParams(location.search);
+          const nxt = sp.get('next') || '/public/auth/role-select.html';
+          location.href = nxt;
+        }
+      } catch {}
+    })();
   </script>
 </body>
 </html>
-
-
