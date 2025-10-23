@@ -1,8 +1,11 @@
 window.TT = window.TT || {};
 TT.getAuth = () => localStorage.getItem('auth_token') || '';
 
-// Lightweight Supabase JWT helper + authFetch
+// Lightweight Supabase JWT helper + authFetch (with 401 redirect)
 (function(){
+  // Keep original fetch to avoid recursion
+  const origFetch = window.fetch.bind(window);
+
   let supaLoaded = false;
   let supaClient = null;
 
@@ -49,28 +52,63 @@ TT.getAuth = () => localStorage.getItem('auth_token') || '';
 
   async function authFetch(input, init){
     const url = typeof input === 'string' ? input : (input?.url || '');
-    const needsAuth = /^\/(u|api\/staff|api\/taxi|api\/boda|api\/admin)\b/.test(url);
-    if (!needsAuth) return fetch(input, init);
+    const needsAuth = /^\/(u|api)\b/.test(url); // cover /u and all /api routes
+    if (!needsAuth) return origFetch(input, init);
     const headers = new Headers(init?.headers || {});
-    // Attach Supabase user JWT
     try{
       const token = await getAccessToken();
       if (token) headers.set('Authorization','Bearer '+token);
     }catch(_){ }
-    return fetch(input, { ...(init||{}), headers });
+    const resp = await origFetch(input, { ...(init||{}), headers });
+    try{
+      if (resp.status === 401 && !/\/public\/auth\/login\.html$/.test(location.pathname)){
+        const next = location.pathname + location.search;
+        location.href = '/public/auth/login.html?next=' + encodeURIComponent(next);
+      }
+    }catch(_){ }
+    return resp;
   }
 
   // Expose helpers
   window.TT.getSupabase = getSupabase;
   window.authFetch = authFetch;
 
-  // Monkey-patch fetch for /u/*, /api/staff/*, /api/taxi/*, /api/boda/* (non-breaking elsewhere)
-  const origFetch = window.fetch.bind(window);
+  // Monkey-patch fetch for /u/* and /api/* (non-breaking elsewhere)
   window.fetch = async function(input, init){
     const url = typeof input === 'string' ? input : (input?.url || '');
-    if (/^\/(u|api\/staff|api\/taxi|api\/boda)\b/.test(url)){
+    if (/^\/(u|api)\b/.test(url)){
       return authFetch(input, init);
     }
     return origFetch(input, init);
   };
+
+  // Gentle runtime cleanup for occasional mojibake characters
+  document.addEventListener('DOMContentLoaded', () => {
+    try{
+      if (/\uFFFD/.test(document.title)) {
+        document.title = document.title.replace(/\uFFFD+/g, '-');
+      }
+    }catch(_){ }
+    try{
+      const as = document.getElementById('auth_state');
+      if (as && /\uFFFD/.test(as.textContent||'')) {
+        as.textContent = 'Checking sign-in...';
+      }
+    }catch(_){ }
+    try{
+      document.querySelectorAll('a').forEach(a => {
+        const t = (a.textContent||'').trim();
+        if (t === '? Back') a.textContent = 'Back';
+        if (/^\?\s*Role Select$/.test(t)) a.textContent = 'Role Select';
+      });
+    }catch(_){ }
+    try{
+      ['ov_found','mt_found','up_found_label'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && /^\?\s/.test(el.textContent||'')) {
+          el.textContent = el.textContent.replace(/^\?\s/, '✓ ');
+        }
+      });
+    }catch(_){ }
+  });
 })();
