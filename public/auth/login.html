@@ -49,20 +49,20 @@
       </div>
       <p class="sub">Use your work email and password. If your org allows, you can use a magic link.</p>
 
-      <form id="loginForm" autocomplete="on" novalidate>
+      <div>
         <label for="email">Email</label>
-        <input id="email" name="email" type="email" inputmode="email" placeholder="you@example.com" autocomplete="username" autocapitalize="none" spellcheck="false" />
+        <input id="email" type="email" placeholder="you@example.com" autocomplete="email" />
         <label for="password">Password</label>
         <div class="row">
           <input id="password" type="password" placeholder="••••••••" autocomplete="current-password" />
           <button id="togglePw" class="ghost" type="button" style="min-width:110px">Show</button>
         </div>
         <div class="actions">
-          <button id="signin" type="submit">Sign in</button>
+          <button id="signin" type="button">Sign in</button>
           <button id="magic" type="button" class="ghost">Send magic link</button>
         </div>
         <div id="msg" class="muted" aria-live="polite" style="min-height:20px;margin-top:6px"></div>
-      </form>
+      </div>
 
       <div class="footer">
         <a class="link" href="/public/auth/forgot.html">Forgot password?</a>
@@ -125,7 +125,6 @@
     });
 
     el('signin').addEventListener('click', async ()=>{
-      await new Promise(r=>setTimeout(r,50));
       const emailV = (el('email').value||'').trim();
       const passV  = el('password').value || '';
       if(!emailV || !passV) return msg('Enter email and password','err');
