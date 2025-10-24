@@ -129,16 +129,6 @@
       const passV  = el('password').value || '';
       if(!emailV || !passV) return msg('Enter email and password','err');
       setLoading(true); msg('Signing in…');
-      // Safety timeout in case network/auth request stalls (e.g., CORS/firewall)
-      let stalled = false;
-      const stallTimer = setTimeout(()=>{
-        stalled = true;
-        // If still in loading state, surface a helpful message and allow retry
-        if (el('signin').disabled) {
-          msg('Taking longer than usual… Check internet or Supabase config (public/js/app-config.js).', 'err');
-          setLoading(false);
-        }
-      }, 12000);
       try{
         const { data, error } = await sb.auth.signInWithPassword({ email: emailV, password: passV });
         if(error) throw error;
@@ -153,12 +143,12 @@
 
           const sp = new URLSearchParams(location.search);
           const nxt = sp.get('next') || '/public/auth/role-select.html';
-          location.replace(nxt);
+          location.href = nxt;
         }else{
           msg('No session returned','err');
         }
-      }catch(e){ msg(e.message||String(e),'err'); console?.error?.('[login] signInWithPassword error:', e); }
-      finally{ clearTimeout(stallTimer); if(!stalled) setLoading(false); refreshAuthBadge(); }
+      }catch(e){ msg(e.message||String(e),'err'); }
+      finally{ setLoading(false); refreshAuthBadge(); }
     });
 
     el('magic').addEventListener('click', async ()=>{
@@ -192,7 +182,7 @@
       if(s?.access_token){
         const sp = new URLSearchParams(location.search);
         const next = sp.get('next') || '/public/auth/role-select.html';
-        location.replace(next);
+        location.href = next;
       }
     });
 
@@ -205,7 +195,7 @@
           // already signed in, go ahead
           const sp = new URLSearchParams(location.search);
           const nxt = sp.get('next') || '/public/auth/role-select.html';
-          location.replace(nxt);
+          location.href = nxt;
         }
       } catch {}
     })();
