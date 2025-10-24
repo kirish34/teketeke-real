@@ -8,3 +8,6 @@ coverage/
 .DS_Store
 
 .vercel
+
+# Temp/working HTML snapshots
+.tmp_*.html
