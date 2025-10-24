@@ -30,16 +30,6 @@ app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100 });
 app.use(['/api', '/u'], apiLimiter);
 
-// Serve dynamic Supabase client config for the browser from env
-// Keeps client/server in sync and avoids stale hard-coded keys
-app.get('/public/js/app-config.js', (_req, res) => {
-  const url = process.env.SUPABASE_URL || '';
-  const anon = process.env.SUPABASE_ANON_KEY || '';
-  const body = `// generated at runtime by server\nwindow.SUPABASE_URL=${JSON.stringify(url)};\nwindow.SUPABASE_ANON_KEY=${JSON.stringify(anon)};\n`;
-  res.setHeader('Content-Type', 'application/javascript; charset=UTF-8');
-  return res.status(200).send(body);
-});
-
 // static
 app.use('/public', express.static(path.join(__dirname, '..', 'public')));
 
