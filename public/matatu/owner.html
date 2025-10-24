@@ -324,7 +324,7 @@
     document.getElementById('logoutLink')?.addEventListener('click',(e)=>{
       e.preventDefault();
       ['tt_root_token','tt_admin_token','auth_token'].forEach(k=>localStorage.removeItem(k));
-      location.replace('/auth/login.html');
+      location.replace('/public/auth/login.html');
     });
 
     // shared state

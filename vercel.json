@@ -1,4 +1,4 @@
-{"version":2,
+ {"version":2,
  "builds":[
    {"src":"api/index.js","use":"@vercel/node"},
    {"src":"public/**","use":"@vercel/static"}
@@ -9,6 +9,12 @@
    {"src":"^/healthz$","dest":"/api/index.js"},
    {"src":"^/$","dest":"/public/auth/role-select.html"},
    {"src":"^/login$","dest":"/public/auth/login.html"},
+   {"src":"^/auth/(.*)$","dest":"/public/auth/$1"},
+   {"src":"^/system/(.*)$","dest":"/public/system/$1"},
+   {"src":"^/sacco/(.*)$","dest":"/public/sacco/$1"},
+   {"src":"^/matatu/(.*)$","dest":"/public/matatu/$1"},
+   {"src":"^/bodaboda/(.*)$","dest":"/public/bodaboda/$1"},
+   {"src":"^/taxi/(.*)$","dest":"/public/taxi/$1"},
    {"src":"^/public/(.*)$","dest":"/public/$1"}
  ]
 }

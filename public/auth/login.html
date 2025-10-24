@@ -153,7 +153,7 @@
 
           const sp = new URLSearchParams(location.search);
           const nxt = sp.get('next') || '/public/auth/role-select.html';
-          location.replace(nxt);
+          location.href = nxt;
         }else{
           msg('No session returned','err');
         }
@@ -192,7 +192,7 @@
       if(s?.access_token){
         const sp = new URLSearchParams(location.search);
         const next = sp.get('next') || '/public/auth/role-select.html';
-        location.replace(next);
+        location.href = next;
       }
     });
 
@@ -205,7 +205,7 @@
           // already signed in, go ahead
           const sp = new URLSearchParams(location.search);
           const nxt = sp.get('next') || '/public/auth/role-select.html';
-          location.replace(nxt);
+          location.href = nxt;
         }
       } catch {}
     })();
