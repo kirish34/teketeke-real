@@ -1,8 +1,8 @@
-ï»¿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
-  <title>TekeTeke Ã¹ SACCO Dashboard</title>
+  <title>TekeTeke — SACCO Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
 
   <!-- Charts -->
@@ -44,7 +44,7 @@
 </head>
 <body>
 
-  <a class="back" href="/public/auth/role-select.html">?Back</a>
+  <a class="back" href="/public/auth/role-select.html">? Back</a>
   <h2>SACCO Dashboard</h2>
 
   <div class="bar">
@@ -67,7 +67,7 @@
   <!-- Matatus -->
   <section id="p_matatus" class="panel active">
     <div class="row">
-      <input id="matatuSearch" placeholder="Search plateÃ "/>
+      <input id="matatuSearch" placeholder="Search plate…"/>
       <button class="ghost" id="reloadMatatus">Reload</button>
       <span class="right k" id="matatuCount"></span>
     </div>
@@ -162,7 +162,7 @@
       <h3>Create Loan</h3>
       <div class="form-grid">
         <input id="lnBorrower" placeholder="Borrower name"/>
-        <select id="lnMatatu" class="w-2"><option value="">Ã¹ optional Ã¹ Matatu</option></select>
+        <select id="lnMatatu" class="w-2"><option value="">— optional — Matatu</option></select>
         <input id="lnPrincipal" type="number" placeholder="Principal (KES)"/>
         <input id="lnRate" type="number" placeholder="Interest % p.a"/>
         <input id="lnTerm" type="number" placeholder="Term (months)"/>
@@ -234,7 +234,7 @@
 
     async function loadSaccos(){
       const sel = $('saccoSelect');
-      sel.innerHTML = '<option value="">Ã¹ choose Ã¹</option>';
+      sel.innerHTML = '<option value="">— choose —</option>';
       const res = await jget('/u/my-saccos');
       const items = res.items || [];
       items.forEach(s=>{
@@ -269,7 +269,7 @@
 
       // loans matatu select
       const sel = $('lnMatatu');
-      sel.innerHTML = '<option value="">Ã¹ optional Ã¹ Matatu</option>';
+      sel.innerHTML = '<option value="">— optional — Matatu</option>';
       (data.items||[]).forEach(m=>{
         const o=document.createElement('option');
         o.value=m.id; o.textContent=m.number_plate;
@@ -303,7 +303,7 @@
       if(ctx._inst) ctx._inst.destroy();
       ctx._inst=new Chart(ctx,{
         type:'line',
-        data:{ labels, datasets:[{ label, data:values, borderColor:'#1976d2',BackgroundColor:'transparent', tension:.25 }] },
+        data:{ labels, datasets:[{ label, data:values, borderColor:'#1976d2', backgroundColor:'transparent', tension:.25 }] },
         options:{ responsive:true, scales:{ y:{ beginAtZero:true } } }
       });
     }
@@ -460,7 +460,7 @@
       const pill=document.createElement('span');
       pill.id='auth_state';
       pill.style.cssText='background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;padding:4px 10px;border-radius:999px;font-size:12px;max-width:40vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
-      pill.textContent='Checking sign-inÃ ';
+      pill.textContent='Checking sign-in…';
       const btn=document.createElement('button');
       btn.textContent='Logout';
       btn.style.cssText='padding:6px 10px;border-radius:6px;border:1px solid #cfe3ff;background:#0b5cab;color:#fff;cursor:pointer';
@@ -484,4 +484,3 @@
   </script>
 </body>
 </html>
-

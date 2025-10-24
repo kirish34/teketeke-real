@@ -9,7 +9,7 @@
   <style>
     :root{ --brand:#1976d2; --brand-700:#135ba1; --bg:#f6f7fb; --panel:#fff; --border:#e5e7eb; --muted:#6b7280; --ink:#0b0f19; }
     *{box-sizing:border-box}
-    body{font-family:system-ui, Segoe UI, Arial;Background:var(--bg); color:var(--ink); margin:0; padding:20px}
+    body{font-family:system-ui, Segoe UI, Arial; background:var(--bg); color:var(--ink); margin:0; padding:20px}
     h2{color:var(--brand); margin:0 0 12px}
     h3{margin:0 0 10px}
     .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
@@ -25,13 +25,13 @@
     th{background:var(--brand); color:#fff}
     .pill{background:#eef2ff; color:#3730a3; border:1px solid #c7d2fe; padding:4px 10px; border-radius:999px; font-size:12px; max-width:40vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
     .table-wrap{max-height:360px; overflow:auto; border:1px solid var(--border); border-radius:10px}
-    #toast{position:fixed; bottom:14px; right:14px;Background:#111827; color:#fff; padding:10px 12px; border-radius:8px; opacity:0; pointer-events:none; transition:.2s; box-shadow:0 4px 18px rgba(0,0,0,.2)}
+    #toast{position:fixed; bottom:14px; right:14px; background:#111827; color:#fff; padding:10px 12px; border-radius:8px; opacity:0; pointer-events:none; transition:.2s; box-shadow:0 4px 18px rgba(0,0,0,.2)}
     #toast.show{opacity:1; pointer-events:auto}
     /* Admin-style tabs */
     .tabs{display:flex; gap:8px; margin:12px 0 16px}
-    .tab{padding:10px 14px;Background:#1976d2; color:#fff; border-radius:8px; cursor:pointer}
+    .tab{padding:10px 14px; background:#1976d2; color:#fff; border-radius:8px; cursor:pointer}
     .tab.active{background:#135ba1}
-    .panel{display:none;Background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px; box-shadow:0 2px 8px rgba(0,0,0,.04)}
+    .panel{display:none; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px; box-shadow:0 2px 8px rgba(0,0,0,.04)}
     .panel.active{display:block}
     .amount{width:130px}
     .w-2{min-width:220px}
@@ -40,10 +40,10 @@
 </head>
 <body>
   <div class="row" style="justify-content:space-between; align-items:center; margin-bottom:8px">
-    <a href="/public/auth/role-select.html">←Back</a>
+    <a href="/public/auth/role-select.html">← Back</a>
     <div class="row" style="gap:8px">
       <span id="auth_state" class="pill">Checking sign-in…</span>
-      <button id="logoutBtn" style="padding:8px 10px; border-radius:8px; border:1px solid #cfe3ff;Background:#0b5cab; color:#fff">Logout</button>
+      <button id="logoutBtn" style="padding:8px 10px; border-radius:8px; border:1px solid #cfe3ff; background:#0b5cab; color:#fff">Logout</button>
     </div>
   </div>
   <h2>Matatu Staff — Trips & Cash</h2>
@@ -359,4 +359,3 @@
 </script>
 </body>
 </html>
-
