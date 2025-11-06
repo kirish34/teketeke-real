@@ -133,22 +133,32 @@
         const { data, error } = await sb.auth.signInWithPassword({ email: emailV, password: passV });
         if(error) throw error;
 
-        if(data?.session?.access_token){
-          // store JWT so the rest of the app (and Swagger) can use it
-          setAuthToken(data.session.access_token);
-          msg('Signed in ✓ Redirecting…','ok');
-
-          // OPTIONAL: quick sanity call to your backend
-          // const r = await authedFetch('/u/profile'); console.log('profile', await r.json());
-
-          const sp = new URLSearchParams(location.search);
-          const nxt = sp.get('next') || '/public/auth/role-select.html';
-          location.href = nxt;
-        }else{
-          msg('No session returned','err');
+        let session = data?.session;
+        if(!session?.access_token){
+          const { data: sessionData, error: sessionErr } = await sb.auth.getSession();
+          if(sessionErr) throw sessionErr;
+          session = sessionData?.session;
         }
-      }catch(e){ msg(e.message||String(e),'err'); }
-      finally{ setLoading(false); refreshAuthBadge(); }
+
+        if(!session?.access_token){
+          throw new Error('No session returned');
+        }
+
+        // store JWT so the rest of the app (and Swagger) can use it
+        setAuthToken(session.access_token);
+        msg('Signed in ✓ Redirecting…','ok');
+        setLoading(false);
+        await refreshAuthBadge();
+
+        const sp = new URLSearchParams(location.search);
+        const nxt = sp.get('next') || '/public/auth/role-select.html';
+        setTimeout(()=>{ location.href = nxt; }, 120);
+      }catch(e){
+        msg(e.message||String(e),'err');
+      }finally{
+        setLoading(false);
+        await refreshAuthBadge();
+      }
     });
 
     el('magic').addEventListener('click', async ()=>{
