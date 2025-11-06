@@ -21,12 +21,13 @@
 </head>
 <body>
   <h2>System Admin</h2>
-  <div class="tabs">
-    <div class="tab active" data-id="saccos">SACCOs</div>
-    <div class="tab" data-id="matatus">Matatus</div>
-    <div class="tab" data-id="pool">USSD Pool</div>
-    <div class="tab" data-id="roles">User Roles</div>
-  </div>
+    <div class="tabs">
+      <div class="tab active" data-id="saccos">SACCOs</div>
+      <div class="tab" data-id="matatus">Matatus</div>
+      <div class="tab" data-id="pool">USSD Pool</div>
+      <div class="tab" data-id="roles">User Roles</div>
+      <div class="tab" data-id="logins">Logins</div>
+    </div>
 
   <section id="saccos" class="panel active">
     <h3>Register SACCO</h3>
@@ -90,6 +91,14 @@
     <div id="msg" style="margin-top:8px;color:#135ba1"></div>
   </section>
 
+  <section id="logins" class="panel">
+    <h3>Latest Logins</h3>
+    <table>
+      <thead><tr><th>Email</th><th>Role</th><th>SACCO</th><th>Matatu</th><th>Created</th></tr></thead>
+      <tbody id="login_list"><tr><td colspan="5">Loading…</td></tr></tbody>
+    </table>
+  </section>
+
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
     const sb = createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
@@ -103,6 +112,7 @@
     };
     const scMsg = document.getElementById('sc_msg');
     const roleMsg = document.getElementById('msg');
+    const loginList = document.getElementById('login_list');
 
     document.querySelector('.tabs').addEventListener('click', e=>{
       const tab = e.target.closest('.tab'); if(!tab) return;
@@ -181,7 +191,20 @@
       }
     });
 
-    await loadS(); await loadM();
+    async function loadLogins(){
+      try{
+        const rows = await jget('/api/admin/user-roles/logins');
+        if (!Array.isArray(rows) || !rows.length){
+          loginList.innerHTML = '<tr><td colspan="5">No logins yet</td></tr>';
+          return;
+        }
+        loginList.innerHTML = rows.map(r => `<tr><td>${r.email||''}</td><td>${r.role||''}</td><td>${r.sacco_id||''}</td><td>${r.matatu_id||''}</td><td>${r.created_at||''}</td></tr>`).join('');
+      }catch(e){
+        loginList.innerHTML = `<tr><td colspan="5">${parseErr(e)}</td></tr>`;
+      }
+    }
+
+    await loadS(); await loadM(); await loadLogins();
   </script>
 </body>
 </html>

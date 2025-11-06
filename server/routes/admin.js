@@ -176,6 +176,36 @@ router.post('/user-roles/create-user', async (req,res)=>{
   }
 });
 
+router.get('/user-roles/logins', async (_req,res)=>{
+  try{
+    const { data, error } = await supabaseAdmin
+      .from('user_roles')
+      .select('user_id, role, sacco_id, matatu_id, created_at')
+      .order('created_at', { ascending:false })
+      .limit(50);
+    if (error) throw error;
+    if (!data || !data.length) return res.json([]);
+
+    const userIds = data.map(r => r.user_id).filter(Boolean);
+    let emailByUser = new Map();
+    if (userIds.length){
+      const { data: profiles, error: profError } = await supabaseAdmin
+        .from('staff_profiles')
+        .select('user_id,email')
+        .in('user_id', userIds);
+      if (profError) throw profError;
+      emailByUser = new Map((profiles||[]).map(p => [p.user_id, p.email]));
+    }
+
+    res.json(data.map(row => ({
+      ...row,
+      email: emailByUser.get(row.user_id) || null,
+    })));
+  }catch(e){
+    res.status(500).json({ error: e.message || 'Failed to load logins' });
+  }
+});
+
 // USSD Pool
 router.get('/ussd/pool/available', async (_req,res)=>{
   const { data, error } = await supabaseAdmin.from('ussd_pool').select('*').eq('status','AVAILABLE').order('base');
