@@ -79,6 +79,25 @@ async function ensureSaccoAccess(userId, requestedId) {
   return { allowed: match, ctx };
 }
 
+async function ensureMatatuAccess(userId, requestedId) {
+  const ctx = await getSaccoContext(userId);
+  if (!requestedId) return { allowed: false, ctx, matatu: null };
+  const matatu = await getMatatu(requestedId);
+  if (!matatu) return { allowed: false, ctx, matatu: null };
+
+  // Direct matatu roles must match the exact vehicle
+  if (ctx.matatu) {
+    const match = String(ctx.matatu.id) === String(requestedId);
+    return { allowed: match, ctx, matatu };
+  }
+
+  // Otherwise fall back to sacco-scoped access
+  if (ctx.saccoId && String(matatu.sacco_id) === String(ctx.saccoId)) {
+    return { allowed: true, ctx, matatu };
+  }
+  return { allowed: false, ctx, matatu };
+}
+
 router.get('/my-saccos', async (req, res) => {
   try {
     const ctx = await getSaccoContext(req.user.id);
@@ -144,6 +163,25 @@ router.get('/sacco/:id/transactions', async (req, res) => {
       query = query.eq('matatu_id', ctx.matatu.id);
     }
     const { data, error } = await query;
+    if (error) throw error;
+    res.json({ items: data || [] });
+  } catch (error) {
+    res.status(500).json({ error: error.message || 'Failed to load transactions' });
+  }
+});
+
+router.get('/matatu/:id/transactions', async (req, res) => {
+  const matatuId = req.params.id;
+  const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 200, 1), 2000);
+  try {
+    const { allowed, matatu } = await ensureMatatuAccess(req.user.id, matatuId);
+    if (!allowed) return res.status(403).json({ error: 'Forbidden' });
+    const { data, error } = await supabaseAdmin
+      .from('transactions')
+      .select('*')
+      .eq('matatu_id', matatu.id)
+      .order('created_at', { ascending: false })
+      .limit(limit);
     if (error) throw error;
     res.json({ items: data || [] });
   } catch (error) {
