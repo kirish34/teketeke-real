@@ -53,12 +53,61 @@ router.get('/saccos', async (req,res)=>{
   if (error) return res.status(500).json({ error: error.message });
   res.json({ items: data||[] });
 });
+async function ensureAuthUser(email, password){
+  const createRes = await supabaseAdmin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+  });
+  if (createRes.error) {
+    const msg = String(createRes.error.message || createRes.error);
+    if (!/already/i.test(msg) && !/exists/i.test(msg) && !/registered/i.test(msg)) {
+      throw createRes.error;
+    }
+    let page = 1;
+    while (page <= 50) {
+      const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
+      if (error) throw error;
+      if (!data?.users?.length) break;
+      const found = data.users.find(u => (u.email || '').toLowerCase() === email.toLowerCase());
+      if (found) return found.id;
+      page += 1;
+    }
+    throw new Error('Supabase user ' + email + ' exists but could not be retrieved');
+  }
+  const userId = createRes.data?.user?.id;
+  if (!userId) throw new Error('Failed to resolve created user id');
+  return userId;
+}
+
+async function upsertUserRole({ user_id, role, sacco_id = null, matatu_id = null }){
+  const { error } = await supabaseAdmin
+    .from('user_roles')
+    .upsert({ user_id, role, sacco_id, matatu_id }, { onConflict: 'user_id' });
+  if (error) throw error;
+}
+
 router.post('/register-sacco', async (req,res)=>{
   const row = { name: req.body?.name, contact_name: req.body?.contact_name, contact_phone: req.body?.contact_phone, contact_email: req.body?.contact_email, default_till: req.body?.default_till };
   if(!row.name) return res.status(400).json({error:'name required'});
+  const loginEmail = (req.body?.login_email || '').trim();
+  const loginPassword = req.body?.login_password || '';
+  if ((loginEmail && !loginPassword) || (!loginEmail && loginPassword)) {
+    return res.status(400).json({ error:'Provide both login_email and login_password or neither' });
+  }
   const { data, error } = await supabaseAdmin.from('saccos').insert(row).select().single();
   if (error) return res.status(500).json({ error: error.message });
-  res.json(data);
+  const result = { ...data };
+  if (loginEmail && loginPassword){
+    try{
+      const userId = await ensureAuthUser(loginEmail, loginPassword);
+      await upsertUserRole({ user_id: userId, role: 'SACCO', sacco_id: data.id });
+      result.created_user = { email: loginEmail, role: 'SACCO' };
+    }catch(e){
+      result.login_error = e.message || 'Failed to create sacco login';
+    }
+  }
+  res.json(result);
 });
 router.post('/update-sacco', async (req,res)=>{
   const { id, ...rest } = req.body||{};
@@ -100,6 +149,31 @@ router.delete('/delete-matatu/:id', async (req,res)=>{
   const { error } = await supabaseAdmin.from('matatus').delete().eq('id', req.params.id);
   if (error) return res.status(500).json({ error: error.message });
   res.json({ deleted: 1 });
+});
+
+router.post('/user-roles/create-user', async (req,res)=>{
+  const email = (req.body?.email || '').trim();
+  const password = req.body?.password || '';
+  const role = (req.body?.role || '').toUpperCase();
+  const saccoId = req.body?.sacco_id || null;
+  const matatuId = req.body?.matatu_id || null;
+
+  if (!email) return res.status(400).json({ error:'email required' });
+  if (!password) return res.status(400).json({ error:'password required' });
+  if (!role) return res.status(400).json({ error:'role required' });
+
+  const needsSacco = ['SACCO','SACCO_STAFF'].includes(role);
+  const needsMatatu = ['OWNER','STAFF','TAXI','BODA'].includes(role);
+  if (needsSacco && !saccoId) return res.status(400).json({ error:'sacco_id required for role ' + role });
+  if (needsMatatu && !matatuId) return res.status(400).json({ error:'matatu_id required for role ' + role });
+
+  try{
+    const userId = await ensureAuthUser(email, password);
+    await upsertUserRole({ user_id: userId, role, sacco_id: saccoId, matatu_id: matatuId });
+    res.json({ user_id: userId, role, sacco_id: saccoId, matatu_id: matatuId });
+  }catch(e){
+    res.status(500).json({ error: e.message || 'Failed to create role user' });
+  }
 });
 
 // USSD Pool

@@ -30,7 +30,18 @@
 
   <section id="saccos" class="panel active">
     <h3>Register SACCO</h3>
-    <div><input id="sc_name" placeholder="Name"> <input id="sc_phone" placeholder="Phone"> <input id="sc_email" placeholder="Email"> <button id="sc_add">Add</button></div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      <input id="sc_name" placeholder="Name">
+      <input id="sc_phone" placeholder="Phone">
+      <input id="sc_email" placeholder="Email">
+      <input id="sc_till" placeholder="Default till (optional)">
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">
+      <input id="sc_login_email" placeholder="SACCO login email (optional)">
+      <input id="sc_login_password" type="password" placeholder="Login password (optional)">
+      <button id="sc_add">Add</button>
+    </div>
+    <div id="sc_msg" style="margin-top:6px;color:#135ba1"></div>
     <table><thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>ID</th></tr></thead><tbody id="sc_list"></tbody></table>
   </section>
 
@@ -59,9 +70,11 @@
   </section>
 
   <section id="roles" class="panel">
-    <h3>Assign Role</h3>
-    <div>
-      <input id="ur_user" placeholder="user_id">
+    <h3>Create Role Login</h3>
+    <p style="margin:0 0 8px;color:#4b5563;font-size:14px">Provide email/password and link to the relevant SACCO or Matatu. SACCO/SACCO_STAFF require a sacco_id; OWNER/STAFF/TAXI/BODA require a matatu_id.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      <input id="ur_email" placeholder="Email">
+      <input id="ur_pass" type="password" placeholder="Password">
       <select id="ur_role">
         <option value="SACCO">SACCO</option>
         <option value="SACCO_STAFF">SACCO_STAFF</option>
@@ -70,9 +83,9 @@
         <option value="TAXI">TAXI</option>
         <option value="BODA">BODA</option>
       </select>
-      <input id="ur_sacco" placeholder="sacco_id (optional)">
-      <input id="ur_matatu" placeholder="matatu_id (optional)">
-      <button id="ur_set">Save</button>
+      <input id="ur_sacco" placeholder="sacco_id (if required)">
+      <input id="ur_matatu" placeholder="matatu_id (if required)">
+      <button id="ur_set">Create login</button>
     </div>
     <div id="msg" style="margin-top:8px;color:#135ba1"></div>
   </section>
@@ -83,6 +96,13 @@
     async function token(){ const { data:{ session } } = await sb.auth.getSession(); return session?.access_token; }
     async function jget(p){ const t=await token(); const r= await fetch(p, { headers:{ 'Authorization': 'Bearer '+t } }); const tx=await r.text(); if(!r.ok) throw tx; try{return JSON.parse(tx);}catch{return{};} }
     async function jpost(p,b){ const t=await token(); const r= await fetch(p, { method:'POST', headers:{ 'Authorization': 'Bearer '+t, 'Content-Type':'application/json' }, body: JSON.stringify(b||{}) }); const tx=await r.text(); if(!r.ok) throw tx; try{return JSON.parse(tx);}catch{return{};} }
+    const parseErr = (err) => {
+      if (!err) return 'Unknown error';
+      if (typeof err === 'string') { try { const obj = JSON.parse(err); return obj.error || err; } catch { return err; } }
+      return err.error || err.message || String(err);
+    };
+    const scMsg = document.getElementById('sc_msg');
+    const roleMsg = document.getElementById('msg');
 
     document.querySelector('.tabs').addEventListener('click', e=>{
       const tab = e.target.closest('.tab'); if(!tab) return;
@@ -93,27 +113,72 @@
 
     async function loadS(){ const d = await jget('/api/admin/saccos'); document.getElementById('sc_list').innerHTML = (d.items||[]).map(s=>`<tr><td>${s.name}</td><td>${s.contact_phone||''}</td><td>${s.contact_email||''}</td><td>${s.id}</td></tr>`).join(''); }
     document.getElementById('sc_add').addEventListener('click', async ()=>{
-      await jpost('/api/admin/register-sacco', { name: document.getElementById('sc_name').value, contact_phone: document.getElementById('sc_phone').value, contact_email: document.getElementById('sc_email').value });
-      await loadS();
+      scMsg.textContent = 'Saving...';
+      const payload = {
+        name: document.getElementById('sc_name').value,
+        contact_phone: document.getElementById('sc_phone').value,
+        contact_email: document.getElementById('sc_email').value,
+        default_till: document.getElementById('sc_till').value,
+        login_email: document.getElementById('sc_login_email').value,
+        login_password: document.getElementById('sc_login_password').value
+      };
+      try{
+        const res = await jpost('/api/admin/register-sacco', payload);
+        const loginMsg = res.created_user ? ` + login for ${res.created_user.email}` : '';
+        const loginErr = res.login_error ? ` (login error: ${res.login_error})` : '';
+        scMsg.textContent = `Created ${res.name}${loginMsg}${loginErr}`;
+        document.getElementById('sc_login_password').value = '';
+        await loadS();
+      }catch(err){
+        scMsg.textContent = parseErr(err);
+      }
     });
 
     async function loadM(){ const d = await jget('/api/admin/matatus'); document.getElementById('mt_list').innerHTML = (d.items||[]).map(m=>`<tr><td>${m.number_plate}</td><td>${m.vehicle_type||''}</td><td>${m.sacco_id||''}</td><td>${m.id}</td></tr>`).join(''); }
     document.getElementById('mt_add').addEventListener('click', async ()=>{
-      await jpost('/api/admin/register-matatu', { number_plate: document.getElementById('mt_plate').value.toUpperCase(), owner_name: document.getElementById('mt_owner').value, owner_phone: document.getElementById('mt_phone').value, till_number: document.getElementById('mt_till').value, vehicle_type: document.getElementById('mt_type').value, sacco_id: document.getElementById('mt_sacco').value });
-      await loadM();
+      try{
+        await jpost('/api/admin/register-matatu', { number_plate: document.getElementById('mt_plate').value.toUpperCase(), owner_name: document.getElementById('mt_owner').value, owner_phone: document.getElementById('mt_phone').value, till_number: document.getElementById('mt_till').value, vehicle_type: document.getElementById('mt_type').value, sacco_id: document.getElementById('mt_sacco').value });
+        await loadM();
+      }catch(err){
+        alert(parseErr(err));
+      }
     });
 
     document.getElementById('pl_available').addEventListener('click', async ()=>{
-      const d = await jget('/api/admin/ussd/pool/available'); document.getElementById('pl_list').innerHTML = (d.items||[]).map(x=>`<tr><td>${x.base}</td><td>${x.checksum}</td><td>*001*${x.base}${x.checksum}#</td></tr>`).join('');
+      try{
+        const d = await jget('/api/admin/ussd/pool/available');
+        document.getElementById('pl_list').innerHTML = (d.items||[]).map(x=>`<tr><td>${x.base}</td><td>${x.checksum}</td><td>*001*${x.base}${x.checksum}#</td></tr>`).join('');
+      }catch(err){
+        document.getElementById('pl_list').innerHTML = `<tr><td colspan="3">${parseErr(err)}</td></tr>`;
+      }
     });
     document.getElementById('pl_alloc').addEventListener('click', async ()=>{
-      const d = await jget('/api/admin/ussd/pool/allocated'); document.getElementById('pl_list').innerHTML = (d.items||[]).map(x=>`<tr><td colspan="3">${x.full_code} → ${x.level} ${x.matatu_id||x.sacco_id||''}</td></tr>`).join('');
+      try{
+        const d = await jget('/api/admin/ussd/pool/allocated');
+        document.getElementById('pl_list').innerHTML = (d.items||[]).map(x=>`<tr><td colspan="3">${x.full_code} -> ${x.level} ${x.matatu_id||x.sacco_id||''}</td></tr>`).join('');
+      }catch(err){
+        document.getElementById('pl_list').innerHTML = `<tr><td colspan="3">${parseErr(err)}</td></tr>`;
+      }
     });
 
     document.getElementById('ur_set').addEventListener('click', async ()=>{
-      const b = { user_id: document.getElementById('ur_user').value, role: document.getElementById('ur_role').value, sacco_id: document.getElementById('ur_sacco').value || null, matatu_id: document.getElementById('ur_matatu').value || null };
-      const r = await jpost('/api/admin/user-roles/assign', b);
-      document.getElementById('msg').textContent = 'Saved for '+(r.user_id||'');
+      roleMsg.textContent = 'Creating login...';
+      const saccoId = document.getElementById('ur_sacco').value.trim();
+      const matatuId = document.getElementById('ur_matatu').value.trim();
+      const payload = {
+        email: document.getElementById('ur_email').value.trim(),
+        password: document.getElementById('ur_pass').value,
+        role: document.getElementById('ur_role').value,
+        sacco_id: saccoId ? saccoId : null,
+        matatu_id: matatuId ? matatuId : null
+      };
+      try{
+        const result = await jpost('/api/admin/user-roles/create-user', payload);
+        roleMsg.textContent = `Created ${result.role} login (${result.user_id})`;
+        document.getElementById('ur_pass').value = '';
+      }catch(err){
+        roleMsg.textContent = parseErr(err);
+      }
     });
 
     await loadS(); await loadM();

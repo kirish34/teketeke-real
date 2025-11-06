@@ -14,6 +14,12 @@ open http://localhost:5001/public/auth/role-select.html
 Use the **Use Demo Token** button only to bypass UI auth during development.
 System Admin actions require an authenticated Supabase session for a user present in `public.staff_profiles` with role `SYSTEM_ADMIN`.
 
+To provision demo accounts for every mobile dashboard run:
+```bash
+node scripts/seed-role-users.js
+```
+This creates (or reuses) users such as `sacco.manager@example.com` with password `TekePass123!` and links them to the seeded sacco/matatu records via `public.user_roles`.
+
 ## Database
 Apply SQL in order:
 ```
@@ -38,11 +44,16 @@ supabase db push    # or psql -f supabase/migrations/000_core_schema.sql ...
 - If they are **empty**, it returns a **mock QUEUED** response for testing.
 
 ## Endpoints (server)
-- `GET /u/my-saccos` • `GET /u/sacco/:id/matatus` • `GET /u/sacco/:id/transactions?limit=...`
-- `POST /api/staff/cash` (records a transaction)
-- `GET/POST/DELETE /api/admin/*` (saccos, matatus, ussd_pool, staff, loans)
-- `POST /api/pay/stk` (+ `/api/pay/stk/callback`)
+- GET /u/me
+- GET /u/vehicles
+- GET /u/sacco/overview
+- GET /u/transactions?kind=fees|loans
+- GET /u/ussd?matatu_id=...
+- GET/POST/DELETE /api/admin/* (saccos, matatus, ussd pool, staff, loans)
+- POST /api/pay/stk (+ /api/pay/stk/callback)
 
 ## Notes
 - For production, put this server behind HTTPS and configure CORS & rate limiting.
 - To seed a **system admin**, insert a row into `staff_profiles` with your `auth.uid()` and role `SYSTEM_ADMIN`.
+
+
