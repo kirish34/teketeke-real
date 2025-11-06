@@ -48,7 +48,9 @@
 
   <div class="tabs" role="tablist" aria-label="Sections">
     <div class="tab active" data-id="saccos" role="tab" aria-selected="true">SACCOs</div>
-    <div class="tab" data-id="matatus" role="tab" aria-selected="false">Matatus (Owner/Staff/Taxi/Boda)</div>
+    <div class="tab" data-id="matatus" role="tab" aria-selected="false">Matatus (Owner/Staff)</div>
+    <div class="tab" data-id="taxis" role="tab" aria-selected="false">Taxis</div>
+    <div class="tab" data-id="bodas" role="tab" aria-selected="false">BodaBodas</div>
     <div class="tab" data-id="pool" role="tab" aria-selected="false">USSD Pool</div>
     <div class="tab" data-id="logins" role="tab" aria-selected="false">Recent Logins</div>
   </div>
@@ -93,17 +95,12 @@
   </section>
 
   <section id="matatus" class="panel" aria-labelledby="tab_matatus">
-    <h3>Register Matatu</h3>
+    <h3>Register Matatu (Owner + Staff)</h3>
     <div class="row">
       <input id="mt_plate" placeholder="KDA123A" />
       <input id="mt_owner" placeholder="Owner name" />
       <input id="mt_phone" placeholder="Owner phone" />
       <input id="mt_till" placeholder="Till number" />
-      <select id="mt_type">
-        <option value="MATATU">MATATU</option>
-        <option value="TAXI">TAXI</option>
-        <option value="BODABODA">BODABODA</option>
-      </select>
       <input id="mt_sacco" placeholder="SACCO id" />
     </div>
 
@@ -115,13 +112,7 @@
         <input id="mt_staff_email" placeholder="Staff login email" autocomplete="email" />
         <input id="mt_staff_pass" type="password" placeholder="Staff password" autocomplete="new-password" />
       </div>
-      <div class="row">
-        <input id="mt_taxi_email" placeholder="Taxi login email (if type=TAXI)" autocomplete="email" />
-        <input id="mt_taxi_pass" type="password" placeholder="Taxi password" autocomplete="new-password" />
-        <input id="mt_boda_email" placeholder="Boda login email (if type=BODABODA)" autocomplete="email" />
-        <input id="mt_boda_pass" type="password" placeholder="Boda password" autocomplete="new-password" />
-      </div>
-      <div class="hint">Creates <b>OWNER</b>, <b>STAFF</b>, <b>TAXI</b>, or <b>BODA</b> roles linked to the new matatu.</div>
+      <div class="hint">Creates <b>OWNER</b> and <b>STAFF</b> roles linked to the new matatu.</div>
     </div>
 
     <div class="section row">
@@ -132,6 +123,66 @@
     <table>
       <thead><tr><th>Plate</th><th>Type</th><th>SACCO</th><th>ID</th></tr></thead>
       <tbody id="mt_list"><tr><td colspan="4" class="muted">Loading…</td></tr></tbody>
+    </table>
+  </section>
+
+  <section id="taxis" class="panel" aria-labelledby="tab_taxis">
+    <h3>Register Taxi</h3>
+    <div class="row">
+      <input id="taxi_plate" placeholder="KTA123B" />
+      <input id="taxi_owner" placeholder="Owner name" />
+      <input id="taxi_phone" placeholder="Owner phone" />
+      <input id="taxi_till" placeholder="Till number" />
+      <input id="taxi_sacco" placeholder="SACCO id" />
+    </div>
+
+    <div class="section">
+      <h4 style="margin:8px 0 4px">Create Taxi Login (optional)</h4>
+      <div class="row">
+        <input id="taxi_email" placeholder="Taxi login email" autocomplete="email" />
+        <input id="taxi_pass" type="password" placeholder="Taxi password" autocomplete="new-password" />
+      </div>
+      <div class="hint">Creates a <b>TAXI</b> role linked to this taxi.</div>
+    </div>
+
+    <div class="section row">
+      <button id="taxi_add" class="btn">Register Taxi (+ login)</button>
+      <span id="taxi_msg" class="muted" style="align-self:center"></span>
+    </div>
+
+    <table>
+      <thead><tr><th>Plate</th><th>SACCO</th><th>ID</th></tr></thead>
+      <tbody id="taxi_list"><tr><td colspan="3" class="muted">Loading…</td></tr></tbody>
+    </table>
+  </section>
+
+  <section id="bodas" class="panel" aria-labelledby="tab_bodas">
+    <h3>Register BodaBoda</h3>
+    <div class="row">
+      <input id="boda_plate" placeholder="KDB456C" />
+      <input id="boda_owner" placeholder="Rider name" />
+      <input id="boda_phone" placeholder="Rider phone" />
+      <input id="boda_till" placeholder="Till number" />
+      <input id="boda_sacco" placeholder="SACCO id" />
+    </div>
+
+    <div class="section">
+      <h4 style="margin:8px 0 4px">Create Boda Login (optional)</h4>
+      <div class="row">
+        <input id="boda_email" placeholder="Boda login email" autocomplete="email" />
+        <input id="boda_pass" type="password" placeholder="Boda password" autocomplete="new-password" />
+      </div>
+      <div class="hint">Creates a <b>BODA</b> role linked to this ride.</div>
+    </div>
+
+    <div class="section row">
+      <button id="boda_add" class="btn">Register Boda (+ login)</button>
+      <span id="boda_msg" class="muted" style="align-self:center"></span>
+    </div>
+
+    <table>
+      <thead><tr><th>Plate</th><th>SACCO</th><th>ID</th></tr></thead>
+      <tbody id="boda_list"><tr><td colspan="3" class="muted">Loading…</td></tr></tbody>
     </table>
   </section>
 
@@ -306,65 +357,179 @@
         }
       });
 
-      async function loadMatatus(){
+      function normalizeType(row){
+        return (row?.vehicle_type || '').toString().toUpperCase();
+      }
+
+      async function loadVehicles(){
         try{
           const data = await jget('/api/admin/matatus');
-          $('mt_list').innerHTML = (data.items||[]).map(row=>`
+          const items = Array.isArray(data.items) ? data.items : [];
+
+          const matatus = items.filter(row => {
+            const t = normalizeType(row);
+            return t !== 'TAXI' && t !== 'BODABODA';
+          });
+          const taxis = items.filter(row => normalizeType(row) === 'TAXI');
+          const bodas = items.filter(row => normalizeType(row) === 'BODABODA');
+
+          $('mt_list').innerHTML = matatus.length ? matatus.map(row=>`
             <tr>
               <td>${row.number_plate||''}</td>
               <td>${row.vehicle_type||''}</td>
               <td>${row.sacco_id||''}</td>
               <td>${row.id||''}</td>
-            </tr>`).join('') || '<tr><td colspan="4" class="muted">No matatus yet</td></tr>';
+            </tr>`).join('') : '<tr><td colspan="4" class="muted">No matatus yet</td></tr>';
+
+          $('taxi_list').innerHTML = taxis.length ? taxis.map(row=>`
+            <tr>
+              <td>${row.number_plate||''}</td>
+              <td>${row.sacco_id||''}</td>
+              <td>${row.id||''}</td>
+            </tr>`).join('') : '<tr><td colspan="3" class="muted">No taxis yet</td></tr>';
+
+          $('boda_list').innerHTML = bodas.length ? bodas.map(row=>`
+            <tr>
+              <td>${row.number_plate||''}</td>
+              <td>${row.sacco_id||''}</td>
+              <td>${row.id||''}</td>
+            </tr>`).join('') : '<tr><td colspan="3" class="muted">No boda bodas yet</td></tr>';
         }catch(e){
-          $('mt_list').innerHTML = `<tr><td colspan="4" class="err">${parseErr(e)}</td></tr>`;
+          const errMatatu = `<tr><td colspan="4" class="err">${parseErr(e)}</td></tr>`;
+          const errVehicle = `<tr><td colspan="3" class="err">${parseErr(e)}</td></tr>`;
+          $('mt_list').innerHTML = errMatatu;
+          $('taxi_list').innerHTML = errVehicle;
+          $('boda_list').innerHTML = errVehicle;
         }
       }
 
-      $('mt_add').addEventListener('click', async ()=>{
-        const msg = $('mt_msg'); msg.className='muted'; msg.textContent='Saving…';
+      async function handleVehicleRegistration(cfg){
+        const msgEl = $(cfg.msgId);
+        if (!msgEl) return;
+        msgEl.className = 'muted';
+        msgEl.textContent = 'Saving...';
+
+        const plateEl = $(cfg.plateId);
+        const saccoEl = $(cfg.saccoId);
+        const ownerEl = cfg.ownerId ? $(cfg.ownerId) : null;
+        const phoneEl = cfg.phoneId ? $(cfg.phoneId) : null;
+        const tillEl = cfg.tillId ? $(cfg.tillId) : null;
+
+        const number_plate = (plateEl?.value || '').trim().toUpperCase();
+        const sacco_id = (saccoEl?.value || '').trim();
+        const owner_name = ownerEl ? ownerEl.value.trim() : '';
+        const owner_phone = phoneEl ? phoneEl.value.trim() : '';
+        const till_number = tillEl ? tillEl.value.trim() : '';
+
+        if (!number_plate){
+          msgEl.className = 'err';
+          msgEl.textContent = 'Plate required';
+          return;
+        }
+        if (!sacco_id){
+          msgEl.className = 'err';
+          msgEl.textContent = 'SACCO id required';
+          return;
+        }
+
         const payload = {
-          number_plate: ($('mt_plate').value||'').trim().toUpperCase(),
-          owner_name: $('mt_owner').value.trim() || null,
-          owner_phone: $('mt_phone').value.trim() || null,
-          till_number: $('mt_till').value.trim() || null,
-          vehicle_type: $('mt_type').value,
-          sacco_id: $('mt_sacco').value.trim() || null
+          number_plate,
+          owner_name: owner_name || null,
+          owner_phone: owner_phone || null,
+          till_number: till_number || null,
+          vehicle_type: cfg.type,
+          sacco_id
         };
-        if (!payload.number_plate){ msg.className='err'; msg.textContent='Plate required'; return; }
-        if (!payload.sacco_id){ msg.className='err'; msg.textContent='SACCO id required'; return; }
 
         try{
-          const matatu = await jpost('/api/admin/register-matatu', payload);
-          const matatuId = matatu?.id;
+          const created = await jpost('/api/admin/register-matatu', payload);
+          const vehicleId = created?.id;
           let note = '';
-          const wants = [
-            { email:$('mt_owner_email').value.trim(), password:$('mt_owner_pass').value, role:'OWNER' },
-            { email:$('mt_staff_email').value.trim(), password:$('mt_staff_pass').value, role:'STAFF' },
-          ];
-          if (payload.vehicle_type === 'TAXI'){
-            wants.push({ email:$('mt_taxi_email').value.trim(), password:$('mt_taxi_pass').value, role:'TAXI' });
-          }
-          if (payload.vehicle_type === 'BODABODA'){
-            wants.push({ email:$('mt_boda_email').value.trim(), password:$('mt_boda_pass').value, role:'BODA' });
-          }
-          for (const w of wants){
-            if (!w.email || !w.password) continue;
-            try{
-              const r = await jpost('/api/admin/user-roles/create-user', { email:w.email, password:w.password, role:w.role, matatu_id: matatuId });
-              note += ` + ${w.role.toLowerCase()} login (${r.email||w.email})`;
-            }catch(e){
-              note += ` (${w.role.toLowerCase()} login error: ${parseErr(e)})`;
+          if (vehicleId && Array.isArray(cfg.logins)){
+            for (const def of cfg.logins){
+              const emailEl = def.emailId ? $(def.emailId) : null;
+              const passEl = def.passId ? $(def.passId) : null;
+              const email = (emailEl?.value || '').trim();
+              const password = passEl?.value || '';
+              if (!email || !password) continue;
+              const body = { email, password, role: def.role };
+              if (def.link === 'sacco'){
+                body.sacco_id = sacco_id;
+              } else if (def.link !== 'none'){
+                body.matatu_id = vehicleId;
+              }
+              try{
+                const r = await jpost('/api/admin/user-roles/create-user', body);
+                note += ` + ${def.role.toLowerCase()} login (${r.email || email})`;
+              }catch(err){
+                note += ` (${def.role.toLowerCase()} login error: ${parseErr(err)})`;
+              }
             }
           }
-          msg.className='ok'; msg.textContent=`Matatu created${note}`;
-          ['mt_owner_pass','mt_staff_pass','mt_taxi_pass','mt_boda_pass'].forEach(id=>{ const el=$(id); if(el) el.value=''; });
-          await loadMatatus(); await loadLogins();
-        }catch(e){
-          msg.className='err'; msg.textContent=parseErr(e);
+          if (Array.isArray(cfg.clearIds)){
+            cfg.clearIds.forEach(id => { const el = $(id); if (el) el.value = ''; });
+          }
+          msgEl.className = 'ok';
+          msgEl.textContent = `${cfg.successLabel} created${note}`;
+          await loadVehicles();
+          await loadLogins();
+        }catch(err){
+          msgEl.className = 'err';
+          msgEl.textContent = parseErr(err);
         }
+      }
+
+      $('mt_add').addEventListener('click', () =>{
+        handleVehicleRegistration({
+          type:'MATATU',
+          plateId:'mt_plate',
+          ownerId:'mt_owner',
+          phoneId:'mt_phone',
+          tillId:'mt_till',
+          saccoId:'mt_sacco',
+          msgId:'mt_msg',
+          successLabel:'Matatu',
+          logins:[
+            { emailId:'mt_owner_email', passId:'mt_owner_pass', role:'OWNER' },
+            { emailId:'mt_staff_email', passId:'mt_staff_pass', role:'STAFF' }
+          ],
+          clearIds:['mt_owner_pass','mt_staff_pass']
+        });
       });
 
+      $('taxi_add').addEventListener('click', () =>{
+        handleVehicleRegistration({
+          type:'TAXI',
+          plateId:'taxi_plate',
+          ownerId:'taxi_owner',
+          phoneId:'taxi_phone',
+          tillId:'taxi_till',
+          saccoId:'taxi_sacco',
+          msgId:'taxi_msg',
+          successLabel:'Taxi',
+          logins:[
+            { emailId:'taxi_email', passId:'taxi_pass', role:'TAXI' }
+          ],
+          clearIds:['taxi_pass']
+        });
+      });
+
+      $('boda_add').addEventListener('click', () =>{
+        handleVehicleRegistration({
+          type:'BODABODA',
+          plateId:'boda_plate',
+          ownerId:'boda_owner',
+          phoneId:'boda_phone',
+          tillId:'boda_till',
+          saccoId:'boda_sacco',
+          msgId:'boda_msg',
+          successLabel:'Boda boda',
+          logins:[
+            { emailId:'boda_email', passId:'boda_pass', role:'BODA' }
+          ],
+          clearIds:['boda_pass']
+        });
+      });
       $('pl_available').addEventListener('click', async ()=>{
         try{
           const data = await jget('/api/admin/ussd/pool/available');
@@ -403,7 +568,7 @@
 
       try{
         await ensureSession();
-        await Promise.all([loadSaccos(), loadMatatus(), loadLogins()]);
+        await Promise.all([loadSaccos(), loadVehicles(), loadLogins()]);
       }catch(_){}
     }
     safeInit();
