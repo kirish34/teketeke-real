@@ -37,6 +37,120 @@ async function getRoleRow(userId) {
   return data || null;
 }
 
+async function getMatatu(rowMatatuId) {
+  if (!rowMatatuId) return null;
+  const { data, error } = await supabaseAdmin
+    .from('matatus')
+    .select('id,sacco_id,number_plate')
+    .eq('id', rowMatatuId)
+    .maybeSingle();
+  if (error && error.code !== PG_ROW_NOT_FOUND) throw error;
+  return data || null;
+}
+
+async function getSaccoDetails(saccoId) {
+  if (!saccoId) return null;
+  const { data, error } = await supabaseAdmin
+    .from('saccos')
+    .select('id,name,contact_name,contact_phone,contact_email,default_till')
+    .eq('id', saccoId)
+    .maybeSingle();
+  if (error && error.code !== PG_ROW_NOT_FOUND) throw error;
+  return data || null;
+}
+
+async function getSaccoContext(userId) {
+  const role = await getRoleRow(userId);
+  if (!role) return { role: null, saccoId: null, matatu: null };
+  if (role.sacco_id) {
+    return { role, saccoId: role.sacco_id, matatu: null };
+  }
+  if (role.matatu_id) {
+    const matatu = await getMatatu(role.matatu_id);
+    return { role, saccoId: matatu?.sacco_id || null, matatu };
+  }
+  return { role, saccoId: null, matatu: null };
+}
+
+async function ensureSaccoAccess(userId, requestedId) {
+  const ctx = await getSaccoContext(userId);
+  if (!ctx.saccoId) return { allowed: false, ctx };
+  const match = String(ctx.saccoId) === String(requestedId);
+  return { allowed: match, ctx };
+}
+
+router.get('/my-saccos', async (req, res) => {
+  try {
+    const ctx = await getSaccoContext(req.user.id);
+    if (!ctx.saccoId) return res.json({ items: [] });
+    const sacco = await getSaccoDetails(ctx.saccoId);
+    if (!sacco) return res.json({ items: [] });
+    res.json({
+      items: [
+        {
+          sacco_id: sacco.id,
+          name: sacco.name,
+          contact_name: sacco.contact_name,
+          contact_phone: sacco.contact_phone,
+          contact_email: sacco.contact_email,
+          default_till: sacco.default_till,
+          role: ctx.role?.role || null,
+          via: ctx.matatu ? 'matatu' : 'direct',
+          matatu_id: ctx.matatu?.id || null,
+          matatu_plate: ctx.matatu?.number_plate || null,
+        },
+      ],
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message || 'Failed to load saccos' });
+  }
+});
+
+router.get('/sacco/:id/matatus', async (req, res) => {
+  const saccoId = req.params.id;
+  try {
+    const { allowed, ctx } = await ensureSaccoAccess(req.user.id, saccoId);
+    if (!allowed) return res.status(403).json({ error: 'Forbidden' });
+    let query = supabaseAdmin
+      .from('matatus')
+      .select('*')
+      .eq('sacco_id', saccoId)
+      .order('number_plate', { ascending: true });
+    if (ctx.role?.matatu_id && ctx.matatu?.id) {
+      query = query.eq('id', ctx.matatu.id);
+    }
+    const { data, error } = await query;
+    if (error) throw error;
+    res.json({ items: data || [] });
+  } catch (error) {
+    res.status(500).json({ error: error.message || 'Failed to load matatus' });
+  }
+});
+
+router.get('/sacco/:id/transactions', async (req, res) => {
+  const saccoId = req.params.id;
+  const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 200, 1), 2000);
+  try {
+    const { allowed, ctx } = await ensureSaccoAccess(req.user.id, saccoId);
+    if (!allowed) return res.status(403).json({ error: 'Forbidden' });
+    let query = supabaseAdmin
+      .from('transactions')
+      .select('*')
+      .eq('sacco_id', saccoId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    if (ctx.role?.matatu_id && ctx.matatu?.id) {
+      // Matatu-scoped roles only see their vehicle's records
+      query = query.eq('matatu_id', ctx.matatu.id);
+    }
+    const { data, error } = await query;
+    if (error) throw error;
+    res.json({ items: data || [] });
+  } catch (error) {
+    res.status(500).json({ error: error.message || 'Failed to load transactions' });
+  }
+});
+
 router.get('/me', async (req, res) => {
   try {
     const role = await getRoleRow(req.user.id);
