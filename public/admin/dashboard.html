@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>System Admin — TekeTeke</title>
+  <script src="/public/js/app-config.js"></script>
+  <style>
+    body{font-family:system-ui,Arial;background:#f6f7fb;margin:0;padding:14px;color:#0b0f19}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap}
+    .tab{padding:8px 10px;background:#1976d2;color:#fff;border-radius:8px;cursor:pointer}
+    .tab.active{background:#135ba1}
+    .panel{display:none;background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:12px;box-shadow:0 6px 18px rgba(0,0,0,.06);margin-top:10px}
+    .panel.active{display:block}
+    input,select,button{padding:8px;border:1px solid #e5e7eb;border-radius:8px}
+    button{background:#1976d2;color:#fff;border-color:#1976d2;font-weight:700;cursor:pointer}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{border:1px solid #e5e7eb;padding:8px;text-align:left}
+    th{background:#1976d2;color:#fff}
+  </style>
+</head>
+<body>
+  <h2>System Admin</h2>
+  <div class="tabs">
+    <div class="tab active" data-id="saccos">SACCOs</div>
+    <div class="tab" data-id="matatus">Matatus</div>
+    <div class="tab" data-id="pool">USSD Pool</div>
+    <div class="tab" data-id="roles">User Roles</div>
+  </div>
+
+  <section id="saccos" class="panel active">
+    <h3>Register SACCO</h3>
+    <div><input id="sc_name" placeholder="Name"> <input id="sc_phone" placeholder="Phone"> <input id="sc_email" placeholder="Email"> <button id="sc_add">Add</button></div>
+    <table><thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>ID</th></tr></thead><tbody id="sc_list"></tbody></table>
+  </section>
+
+  <section id="matatus" class="panel">
+    <h3>Register Matatu</h3>
+    <div>
+      <input id="mt_plate" placeholder="KDA123A">
+      <input id="mt_owner" placeholder="Owner">
+      <input id="mt_phone" placeholder="Owner phone">
+      <input id="mt_till" placeholder="Till">
+      <select id="mt_type">
+        <option value="MATATU">MATATU</option>
+        <option value="TAXI">TAXI</option>
+        <option value="BODABODA">BODABODA</option>
+      </select>
+      <input id="mt_sacco" placeholder="SACCO id">
+      <button id="mt_add">Add</button>
+    </div>
+    <table><thead><tr><th>Plate</th><th>Type</th><th>SACCO</th><th>ID</th></tr></thead><tbody id="mt_list"></tbody></table>
+  </section>
+
+  <section id="pool" class="panel">
+    <h3>USSD Pool</h3>
+    <div><button id="pl_available">Load free</button> <button id="pl_alloc">Load allocated</button></div>
+    <table><thead><tr><th>Base</th><th>Checksum</th><th>Code</th></tr></thead><tbody id="pl_list"></tbody></table>
+  </section>
+
+  <section id="roles" class="panel">
+    <h3>Assign Role</h3>
+    <div>
+      <input id="ur_user" placeholder="user_id">
+      <select id="ur_role">
+        <option value="SACCO">SACCO</option>
+        <option value="SACCO_STAFF">SACCO_STAFF</option>
+        <option value="OWNER">OWNER</option>
+        <option value="STAFF">STAFF</option>
+        <option value="TAXI">TAXI</option>
+        <option value="BODA">BODA</option>
+      </select>
+      <input id="ur_sacco" placeholder="sacco_id (optional)">
+      <input id="ur_matatu" placeholder="matatu_id (optional)">
+      <button id="ur_set">Save</button>
+    </div>
+    <div id="msg" style="margin-top:8px;color:#135ba1"></div>
+  </section>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+    const sb = createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+    async function token(){ const { data:{ session } } = await sb.auth.getSession(); return session?.access_token; }
+    async function jget(p){ const t=await token(); const r= await fetch(p, { headers:{ 'Authorization': 'Bearer '+t } }); const tx=await r.text(); if(!r.ok) throw tx; try{return JSON.parse(tx);}catch{return{};} }
+    async function jpost(p,b){ const t=await token(); const r= await fetch(p, { method:'POST', headers:{ 'Authorization': 'Bearer '+t, 'Content-Type':'application/json' }, body: JSON.stringify(b||{}) }); const tx=await r.text(); if(!r.ok) throw tx; try{return JSON.parse(tx);}catch{return{};} }
+
+    document.querySelector('.tabs').addEventListener('click', e=>{
+      const tab = e.target.closest('.tab'); if(!tab) return;
+      document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t===tab));
+      document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+      document.getElementById(tab.dataset.id).classList.add('active');
+    });
+
+    async function loadS(){ const d = await jget('/api/admin/saccos'); document.getElementById('sc_list').innerHTML = (d.items||[]).map(s=>`<tr><td>${s.name}</td><td>${s.contact_phone||''}</td><td>${s.contact_email||''}</td><td>${s.id}</td></tr>`).join(''); }
+    document.getElementById('sc_add').addEventListener('click', async ()=>{
+      await jpost('/api/admin/register-sacco', { name: document.getElementById('sc_name').value, contact_phone: document.getElementById('sc_phone').value, contact_email: document.getElementById('sc_email').value });
+      await loadS();
+    });
+
+    async function loadM(){ const d = await jget('/api/admin/matatus'); document.getElementById('mt_list').innerHTML = (d.items||[]).map(m=>`<tr><td>${m.number_plate}</td><td>${m.vehicle_type||''}</td><td>${m.sacco_id||''}</td><td>${m.id}</td></tr>`).join(''); }
+    document.getElementById('mt_add').addEventListener('click', async ()=>{
+      await jpost('/api/admin/register-matatu', { number_plate: document.getElementById('mt_plate').value.toUpperCase(), owner_name: document.getElementById('mt_owner').value, owner_phone: document.getElementById('mt_phone').value, till_number: document.getElementById('mt_till').value, vehicle_type: document.getElementById('mt_type').value, sacco_id: document.getElementById('mt_sacco').value });
+      await loadM();
+    });
+
+    document.getElementById('pl_available').addEventListener('click', async ()=>{
+      const d = await jget('/api/admin/ussd/pool/available'); document.getElementById('pl_list').innerHTML = (d.items||[]).map(x=>`<tr><td>${x.base}</td><td>${x.checksum}</td><td>*001*${x.base}${x.checksum}#</td></tr>`).join('');
+    });
+    document.getElementById('pl_alloc').addEventListener('click', async ()=>{
+      const d = await jget('/api/admin/ussd/pool/allocated'); document.getElementById('pl_list').innerHTML = (d.items||[]).map(x=>`<tr><td colspan="3">${x.full_code} → ${x.level} ${x.matatu_id||x.sacco_id||''}</td></tr>`).join('');
+    });
+
+    document.getElementById('ur_set').addEventListener('click', async ()=>{
+      const b = { user_id: document.getElementById('ur_user').value, role: document.getElementById('ur_role').value, sacco_id: document.getElementById('ur_sacco').value || null, matatu_id: document.getElementById('ur_matatu').value || null };
+      const r = await jpost('/api/admin/user-roles/assign', b);
+      document.getElementById('msg').textContent = 'Saved for '+(r.user_id||'');
+    });
+
+    await loadS(); await loadM();
+  </script>
+</body>
+</html>

@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TekeTeke Go</title>
+  <meta name="theme-color" content="#1976d2" />
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon-192.png">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <link rel="stylesheet" href="./styles.css">
+  <!-- Uses same config as dashboards -->
+  <script src="/public/js/app-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo"></span>
+      <strong>TekeTeke Go</strong>
+    </div>
+    <div class="right row">
+      <span id="netBadge" class="pill">online</span>
+      <button id="installBtn" class="btn ghost" hidden>Install</button>
+      <button id="logoutBtn" class="btn">Logout</button>
+    </div>
+  </header>
+
+  <main id="app" class="wrap">
+    <nav class="tabs" role="tablist" aria-label="App sections">
+      <button class="tab active" data-panel="home" aria-selected="true">Home</button>
+      <button class="tab" data-panel="pay">Pay</button>
+      <button class="tab" data-panel="tx">Transactions</button>
+      <button class="tab" data-panel="loans">Loans</button>
+      <button class="tab" data-panel="profile">Profile</button>
+    </nav>
+
+    <!-- Panels -->
+    <section id="panel-home" class="panel active">
+      <h2>Today</h2>
+      <div id="homeSummary" class="card">
+        <div class="row"><span>Status</span><span id="statusToday" class="pill">…</span></div>
+        <div class="grid g2" style="margin-top:6px">
+          <div>
+            <div class="k">Amount Due</div>
+            <div class="v" id="amountDue">—</div>
+          </div>
+          <div>
+            <div class="k">Last Payment</div>
+            <div class="v" id="lastPayment">—</div>
+          </div>
+        </div>
+        <div class="row" style="margin-top:10px;gap:8px">
+          <button class="btn ok" id="homePayBtn">Pay Daily Fee</button>
+          <button class="btn ghost" id="ussdBtn">Open USSD</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <h3 style="margin:0 0 6px">Vehicles</h3>
+        <ul id="vehicleList" class="list"></ul>
+      </div>
+    </section>
+
+    <section id="panel-pay" class="panel">
+      <h2>Pay / Confirm</h2>
+      <div class="card">
+        <label class="field">Amount (KES)
+          <input id="payAmount" type="number" placeholder="e.g. 200" inputmode="numeric">
+        </label>
+        <div class="row" style="margin-top:8px;gap:8px">
+          <button id="payButton" class="btn ok">Pay Now (STK)</button>
+          <button id="verifyButton" class="btn ghost">Verify Today</button>
+        </div>
+        <div id="payMsg" class="muted" aria-live="polite" style="margin-top:8px;min-height:20px"></div>
+      </div>
+    </section>
+
+    <section id="panel-tx" class="panel">
+      <div class="row">
+        <h2 style="margin:0">Transactions</h2>
+        <div class="right row">
+          <input id="txFrom" type="date">
+          <input id="txTo" type="date">
+          <select id="txType">
+            <option value="">All</option>
+            <option value="fee">Fees</option>
+            <option value="loan">Loans</option>
+          </select>
+          <button id="txReload" class="btn ghost">Reload</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Ref</th></tr></thead>
+          <tbody id="txList"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="panel-loans" class="panel">
+      <h2>Loans</h2>
+      <div class="card">
+        <div class="grid g3">
+          <div><div class="k">Outstanding</div><div class="v" id="loanOutstanding">—</div></div>
+          <div><div class="k">Next Due</div><div class="v" id="loanNextDue">—</div></div>
+          <div><div class="k">Date</div><div class="v" id="loanNextDate">—</div></div>
+        </div>
+        <div class="row" style="margin-top:8px;gap:8px">
+          <input id="loanPayAmount" type="number" placeholder="Repay amount (KES)" inputmode="numeric">
+          <button id="loanPayBtn" class="btn ok">Repay</button>
+        </div>
+        <div id="loanMsg" class="muted" style="margin-top:8px;min-height:20px"></div>
+      </div>
+    </section>
+
+    <section id="panel-profile" class="panel">
+      <h2>Profile</h2>
+      <div class="card">
+        <div class="grid g2">
+          <div><div class="k">User</div><div class="v" id="pfUser">—</div></div>
+          <div><div class="k">Role</div><div class="v" id="pfRole">—</div></div>
+          <div><div class="k">SACCO</div><div class="v" id="pfSacco">—</div></div>
+          <div><div class="k">Vehicles</div><div class="v" id="pfVehicles">—</div></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script src="./app.js" type="module"></script>
+</body>
+</html>
