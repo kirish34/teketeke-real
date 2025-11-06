@@ -139,6 +139,7 @@
         scMsg.textContent = `Created ${res.name}${loginMsg}${loginErr}`;
         document.getElementById('sc_login_password').value = '';
         await loadS();
+        await loadLogins();
       }catch(err){
         scMsg.textContent = parseErr(err);
       }
@@ -186,6 +187,7 @@
         const result = await jpost('/api/admin/user-roles/create-user', payload);
         roleMsg.textContent = `Created ${result.role} login (${result.user_id})`;
         document.getElementById('ur_pass').value = '';
+        await loadLogins();
       }catch(err){
         roleMsg.textContent = parseErr(err);
       }

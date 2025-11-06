@@ -186,21 +186,18 @@ router.get('/user-roles/logins', async (_req,res)=>{
     if (error) throw error;
     if (!data || !data.length) return res.json([]);
 
-    const userIds = data.map(r => r.user_id).filter(Boolean);
-    let emailByUser = new Map();
-    if (userIds.length){
-      const { data: profiles, error: profError } = await supabaseAdmin
-        .from('staff_profiles')
-        .select('user_id,email')
-        .in('user_id', userIds);
-      if (profError) throw profError;
-      emailByUser = new Map((profiles||[]).map(p => [p.user_id, p.email]));
-    }
+    const enriched = await Promise.all(data.map(async (row) => {
+      let email = null;
+      if (row.user_id){
+        try{
+          const { data: userData, error: userErr } = await supabaseAdmin.auth.admin.getUserById(row.user_id);
+          if (!userErr) email = userData?.user?.email || null;
+        }catch(_){ /* ignore */ }
+      }
+      return { ...row, email };
+    }));
 
-    res.json(data.map(row => ({
-      ...row,
-      email: emailByUser.get(row.user_id) || null,
-    })));
+    res.json(enriched);
   }catch(e){
     res.status(500).json({ error: e.message || 'Failed to load logins' });
   }
