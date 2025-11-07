@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
@@ -48,10 +48,19 @@
     .note{margin-top:8px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;border-radius:8px;padding:8px 10px}
     .table-wrap{max-height:360px;overflow:auto;border:1px solid var(--border);border-radius:10px;background:#fff}
     #log{background:#0b1020;color:#cfe3ff;border-radius:8px;padding:10px;max-height:200px;overflow:auto}
+    .chooser-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:20px;z-index:30}
+    .chooser-overlay.show{display:flex}
+    .chooser-card{background:#fff;border-radius:12px;box-shadow:0 24px 70px rgba(15,23,42,.28);padding:20px;max-width:520px;width:100%;display:flex;flex-direction:column;gap:12px}
+    .chooser-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .chooser-list{display:flex;flex-direction:column;gap:10px;max-height:60vh;overflow:auto}
+    .chooser-item{display:flex;justify-content:space-between;align-items:flex-start;padding:12px;border:1px solid var(--border);border-radius:10px;background:#f8fbff;cursor:pointer;text-align:left}
+    .chooser-item strong{font-size:16px;color:var(--ink)}
+    .chooser-item.active{border-color:var(--brand);background:#e6f0ff}
+    .chooser-meta{font-size:13px;color:var(--muted)}
   </style>
 
   <!-- App bootstrap (unchanged paths) -->
-  <script>
+<script>
     // Safe shims so preview won't break if your global guards exist
     window.ensureAuthOrRoot = window.ensureAuthOrRoot || function(){};
     window.protect = window.protect || function(){};
@@ -61,6 +70,15 @@
 </head>
 <body>
   <div class="wrap">
+    <div id="matatuChooser" class="chooser-overlay" aria-hidden="true">
+      <div class="chooser-card">
+        <div class="chooser-head">
+          <h3 style="margin:0">Select Matatu</h3>
+          <button id="chooserClose" class="btn ghost" type="button">Close</button>
+        </div>
+        <div id="chooserList" class="chooser-list"></div>
+      </div>
+    </div>
     <div class="top">
       <div class="top-left">
         <h2 style="margin:0">Matatu Owner Dashboard</h2>
@@ -72,6 +90,7 @@
         <a href="/public/auth/role-select.html">Role Select</a> ·
         <a href="#" id="logoutLink">Logout</a>
       </span>
+      <button id="switchMatatu" class="btn ghost" type="button">Switch Matatu</button>
     </div>
 
     <script>
@@ -354,6 +373,110 @@
     // shared state
     let MATATU_ID = '';
     let MATATU_CTX = null;
+    const MY_VEHICLES = [];
+    const chooser = document.getElementById('matatuChooser');
+    const chooserList = document.getElementById('chooserList');
+
+    function closeChooser(){
+      if(!chooser) return;
+      chooser.classList.remove('show');
+      chooser.setAttribute('aria-hidden','true');
+    }
+    function openChooser(){
+      if(!chooser) return;
+      chooser.classList.add('show');
+      chooser.setAttribute('aria-hidden','false');
+    }
+    function renderChooser(){
+      if(!chooserList) return;
+      chooserList.innerHTML = MY_VEHICLES.map(v=>{
+        const plate = (v.number_plate||'').toUpperCase();
+        const meta = [v.vehicle_type||'', v.sacco_id||''].filter(Boolean).join(' • ');
+        const active = String(v.id) === String(MATATU_ID);
+        return `<button type="button" class="chooser-item${active?' active':''}" data-id="${v.id}">
+          <div>
+            <strong>${plate || v.id}</strong>
+            <div class="chooser-meta">${meta||'No details'}</div>
+          </div>
+          <span class="chooser-meta">${active ? 'Current' : 'Select'}</span>
+        </button>`;
+      }).join('');
+    }
+
+    async function loadMyMatatus(opts={}){
+      const auto = opts.autoSelect !== false;
+      try{
+        const data = await jget('/u/vehicles');
+        MY_VEHICLES.length = 0;
+        (data.items||[]).forEach(v=>{
+          const copy = { ...v };
+          if (copy.number_plate) copy.number_plate = copy.number_plate.toUpperCase();
+          MY_VEHICLES.push(copy);
+        });
+        if (!MY_VEHICLES.length){
+          log('? No matatu assigned to this owner');
+          return;
+        }
+        renderChooser();
+        if (auto){
+          if (MY_VEHICLES.length === 1){
+            applyMatatu(MY_VEHICLES[0], { announce:true });
+          } else {
+            openChooser();
+          }
+        }
+      }catch(e){
+        log('? Failed to load matatus', { error:String(e) });
+      }
+    }
+
+    function applyMatatu(mat, opts={}){
+      if(!mat || !mat.id){
+        alert('Matatu not found');
+        return;
+      }
+      MATATU_ID = mat.id;
+      MATATU_CTX = mat;
+      if (!opts.skipClose) closeChooser();
+      fillOverview(mat); fillVehicle(mat);
+      const plate = (mat.number_plate||'').toUpperCase();
+      const label = MATATU_ID ? `? ${plate || MATATU_ID} (${MATATU_ID})` : (plate || MATATU_ID);
+      ['ov_found','mt_found','st_found','tx_found'].forEach(id=>{
+        const el = $(id); if(el) el.textContent = label || 'Selected';
+      });
+      ['ov_plate','mt_plate','st_plate','tx_plate'].forEach(id=>{
+        const el = $(id); if(el && plate) el.value = plate;
+      });
+      if (opts.load !== false){
+        $('st_reload')?.click();
+        $('tx_reload')?.click();
+      }
+      renderChooser();
+      log('? Selected matatu', { id: MATATU_ID, plate });
+    }
+
+    document.getElementById('switchMatatu')?.addEventListener('click', async ()=>{
+      if(!MY_VEHICLES.length){
+        await loadMyMatatus({ autoSelect:false });
+      }else{
+        renderChooser();
+      }
+      if(MY_VEHICLES.length > 1){
+        openChooser();
+      }else if (MY_VEHICLES.length === 1){
+        applyMatatu(MY_VEHICLES[0], { skipClose:true });
+        log('Only one matatu available; reused selection');
+      }else{
+        alert('No matatu assigned to this account.');
+      }
+    });
+    document.getElementById('chooserClose')?.addEventListener('click', closeChooser);
+    chooser?.addEventListener('click', (e)=>{ if (e.target === chooser) closeChooser(); });
+    chooserList?.addEventListener('click', (e)=>{
+      const btn = e.target.closest('button[data-id]'); if(!btn) return;
+      const choice = MY_VEHICLES.find(v => String(v.id) === btn.dataset.id);
+      if (choice) applyMatatu(choice);
+    });
 
     // lookup
     async function lookupMatatuByPlate(plate){
@@ -381,11 +504,8 @@
       try{
         const plate = $('ov_plate').value.trim().toUpperCase(); if(!plate) return alert('Enter plate');
         const r = await lookupMatatuByPlate(plate);
-        MATATU_ID = r.id || '';
-        MATATU_CTX = r || null;
-        $('ov_found').textContent = MATATU_ID ? `✅ ${r.number_plate} (${r.id})` : 'Not found';
-        if (MATATU_ID){ fillOverview(r); fillVehicle(r); }
-      }catch(e){ alert(e.message||e); log('❌ Overview find failed',{error:String(e)}); }
+        applyMatatu(r, { skipClose:true });
+      }catch(e){ alert(e.message||e); log('? Overview find failed',{error:String(e)}); }
     };
     $('ov_refresh').onclick = ()=>{ if(MATATU_CTX){ fillOverview(MATATU_CTX); fillVehicle(MATATU_CTX); }};
 
@@ -394,11 +514,8 @@
       try{
         const plate = $('mt_plate').value.trim().toUpperCase(); if(!plate) return alert('Enter plate');
         const r = await lookupMatatuByPlate(plate);
-        MATATU_ID = r.id || '';
-        MATATU_CTX = r || null;
-        $('mt_found').textContent = MATATU_ID ? `✅ ${r.number_plate} (${r.id})` : 'Not found';
-        if (MATATU_ID){ fillOverview(r); fillVehicle(r); }
-      }catch(e){ alert(e.message||e); log('❌ Vehicle find failed',{error:String(e)}); }
+        applyMatatu(r, { skipClose:true });
+      }catch(e){ alert(e.message||e); log('? Vehicle find failed',{error:String(e)}); }
     };
 
     // ================= STAFF =================
@@ -420,9 +537,9 @@
         if (!confirm('Remove staff ('+uid+')?')) return;
         try{
           await jrpc('owner_remove_staff', { p_matatu: MATATU_ID, p_user: uid });
-          log('🗑️ Removed staff '+uid);
+          log('??? Removed staff '+uid);
           $('st_reload').click();
-        }catch(err){ alert(err.message||err); log('❌ Remove failed', { error: String(err) }); }
+        }catch(err){ alert(err.message||err); log('? Remove failed', { error: String(err) }); }
       };
     }
 
@@ -440,18 +557,16 @@
         }
       }
       renderStaff(rows);
-      log('📄 Staff listed', rows);
+      log('?? Staff listed', rows);
     }
 
     $('st_find').onclick = async ()=>{
       try{
         const plate = $('st_plate').value.trim().toUpperCase(); if(!plate) return alert('Enter plate');
         const r = await lookupMatatuByPlate(plate);
-        MATATU_ID = r.id || '';
-        MATATU_CTX = r || null;
-        $('st_found').textContent = MATATU_ID ? `✅ ${r.number_plate} (${r.id})` : 'Not found';
-        if (MATATU_ID){ fillOverview(r); fillVehicle(r); $('st_reload').click(); }
-      }catch(e){ alert(e.message||e); log('❌ Staff find failed',{error:String(e)}); }
+        applyMatatu(r, { skipClose:true, load:false });
+        $('st_reload')?.click();
+      }catch(e){ alert(e.message||e); log('? Staff find failed',{error:String(e)}); }
     };
     $('st_reload').onclick = loadStaff;
 
@@ -463,9 +578,9 @@
         if (!email) return alert('Enter email');
         await jrpc('owner_add_staff_by_email', { p_matatu: MATATU_ID, p_email: email, p_role: role });
         $('st_email').value='';
-        log('✅ Added staff by email', { email, role });
+        log('? Added staff by email', { email, role });
         await loadStaff();
-      }catch(e){ alert(e.message||e); log('❌ Add staff failed', { error: String(e) }); }
+      }catch(e){ alert(e.message||e); log('? Add staff failed', { error: String(e) }); }
     };
 
     $('st_export').onclick = ()=> exportTableToCSV('matatu-staff.csv', 'st_tbody');
@@ -491,28 +606,29 @@
           const d2 = await jget('/api/owner/transactions?matatu_id='+encodeURIComponent(MATATU_ID));
           rows = d2.items || d2 || [];
         }catch(__){
-          log('ℹ️ No transactions endpoint available; showing empty list.');
+          log('?? No transactions endpoint available; showing empty list.');
         }
       }
       renderTx(rows);
-      log('💸 Tx listed', rows);
+      log('?? Tx listed', rows);
     }
 
     $('tx_find').onclick = async ()=>{
       try{
         const plate = $('tx_plate').value.trim().toUpperCase(); if(!plate) return alert('Enter plate');
         const r = await lookupMatatuByPlate(plate);
-        MATATU_ID = r.id || '';
-        MATATU_CTX = r || null;
-        $('tx_found').textContent = MATATU_ID ? `✅ ${r.number_plate} (${r.id})` : 'Not found';
-        if (MATATU_ID){ fillOverview(r); fillVehicle(r); $('tx_reload').click(); }
-      }catch(e){ alert(e.message||e); log('❌ Tx find failed',{error:String(e)}); }
+        applyMatatu(r, { skipClose:true, load:false });
+        $('tx_reload')?.click();
+      }catch(e){ alert(e.message||e); log('? Tx find failed',{error:String(e)}); }
     };
     $('tx_reload').onclick = loadTx;
     $('tx_export').onclick = ()=> exportTableToCSV('matatu-transactions.csv', 'tx_tbody');
 
     // init: idle until user selects a plate
-    log('Ready. Use Overview/Staff/Transactions to select your matatu by plate.');
+    log('Ready. Loading assigned matatus...');
+    loadMyMatatus();
   </script>
 </body>
 </html>
+
+
