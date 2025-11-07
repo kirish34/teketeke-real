@@ -4,6 +4,7 @@
   <meta charset="utf-8"/>
   <title>TekeTeke — SACCO Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <script src="/public/js/app-config.js"></script>
 
   <!-- Charts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -40,11 +41,30 @@
     .form-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:10px 0}
     .form-grid-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:10px 0}
     .w-2{grid-column:span 2}
+    .top-meta{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start;margin-bottom:10px}
+    .top-left{display:flex;flex-direction:column;gap:6px;min-width:220px}
+    .hello-block{display:flex;flex-direction:column;gap:2px}
+    .hello-block .hello{font-weight:600;font-size:16px;color:var(--text)}
+    .hello-block .time{font-size:13px;color:var(--muted)}
+    .top-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .pill{background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;padding:4px 10px;border-radius:999px;font-size:12px}
   </style>
 </head>
 <body>
 
-  <a class="back" href="/public/auth/role-select.html">&larr; Back</a>
+  <div class="top-meta">
+    <div class="top-left">
+      <a class="back" href="/public/auth/role-select.html">&larr; Back</a>
+      <div class="hello-block">
+        <div class="hello" id="welcomeLine">Hello!</div>
+        <div class="time" id="dateTimeLine">--</div>
+      </div>
+    </div>
+    <div class="top-actions">
+      <span id="auth_state" class="pill">Checking sign-in…</span>
+      <button id="logoutBtn" class="ghost">Logout</button>
+    </div>
+  </div>
   <h2 id="saccoHeadline">SACCO Dashboard</h2>
 
   <div class="bar">
@@ -187,6 +207,72 @@
     const adminTok = () => '';
     const fmtKES = n => Number(n||0).toLocaleString('en-KE',{minimumFractionDigits:2,maximumFractionDigits:2});
 
+    let supaClient = null;
+
+    async function ensureSupabase(){
+      if (window.TT && typeof window.TT.getSupabase === 'function'){
+        try{ return await window.TT.getSupabase(); }catch(_){ /* ignore */ }
+      }
+      if (supaClient) return supaClient;
+      try{
+        const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+        const url = window.SUPABASE_URL || '';
+        const anon = window.SUPABASE_ANON_KEY || '';
+        if (!url || !anon) return null;
+        supaClient = createClient(url, anon);
+        return supaClient;
+      }catch(err){
+        console.warn('[sacco] failed to init supabase', err);
+        return null;
+      }
+    }
+
+    function friendlyName(user){
+      if(!user) return 'SACCO Admin';
+      const meta = user.user_metadata || {};
+      const email = user.email || '';
+      return meta.full_name || meta.name || meta.display_name || meta.displayName || (email ? email.split('@')[0] : 'SACCO Admin');
+    }
+
+    function startClock(){
+      const el = $('dateTimeLine');
+      if(!el) return;
+      const tick = ()=>{ el.textContent = new Date().toLocaleString(); };
+      tick();
+      setInterval(tick, 1000);
+    }
+    startClock();
+
+    async function setupSessionUi(){
+      const pill = $('auth_state');
+      const welcome = $('welcomeLine');
+      try{
+        const supa = await ensureSupabase();
+        if(!supa){
+          if (pill) pill.textContent = 'Sign-in unavailable';
+          return;
+        }
+        const { data:{ session } } = await supa.auth.getSession();
+        const user = session?.user || null;
+        if (pill) pill.textContent = user?.email ? `Signed in as ${user.email}` : 'Not signed in';
+        if (welcome) welcome.textContent = `Hello, ${friendlyName(user)}`;
+        const btn = $('logoutBtn');
+        if (btn && !btn.dataset.bound){
+          btn.dataset.bound = '1';
+          btn.addEventListener('click', async ()=>{
+            btn.disabled = true;
+            try{ await supa.auth.signOut(); }catch(_){}
+            ['auth_token','tt_root_token','tt_admin_token'].forEach(k=>localStorage.removeItem(k));
+            location.href = '/public/auth/login.html';
+          });
+        }
+      }catch(err){
+        console.warn('[sacco] session ui error', err);
+        if (pill) pill.textContent = 'Sign-in error';
+      }
+    }
+    setupSessionUi();
+
     async function parse(res){
       const t = await res.text();
       let j = {};
@@ -236,12 +322,14 @@
     const defaultHeadline = 'SACCO Dashboard';
     function updateHeadlineFor(id){
       if(!headlineEl) return;
-      if(!id){
+      const label = id ? (saccoNames.get(id) || id) : '';
+      const trimmed = (label || '').trim();
+      if(!trimmed){
         headlineEl.textContent = defaultHeadline;
         return;
       }
-      const label = saccoNames.get(id) || id;
-      headlineEl.textContent = `${label} SACCO Dashboard`;
+      const endsWithSacco = /\bsacco\b$/i.test(trimmed);
+      headlineEl.textContent = endsWithSacco ? `${trimmed} Dashboard` : `${trimmed} SACCO Dashboard`;
     }
 
     async function loadSaccos(){
