@@ -189,6 +189,25 @@ router.get('/matatu/:id/transactions', async (req, res) => {
   }
 });
 
+router.get('/matatu/by-plate', async (req,res)=>{
+  const plate = (req.query.plate || '').trim().toUpperCase();
+  if (!plate) return res.status(400).json({ error:'plate required' });
+  try{
+    const { data: matatu, error } = await supabaseAdmin
+      .from('matatus')
+      .select('*')
+      .eq('number_plate', plate)
+      .maybeSingle();
+    if (error && error.code !== PG_ROW_NOT_FOUND) throw error;
+    if (!matatu) return res.status(404).json({ error:'Matatu not found' });
+    const { allowed } = await ensureMatatuAccess(req.user.id, matatu.id);
+    if (!allowed) return res.status(403).json({ error:'Forbidden' });
+    res.json(matatu);
+  }catch(e){
+    res.status(500).json({ error: e.message || 'Failed to lookup matatu' });
+  }
+});
+
 router.get('/me', async (req, res) => {
   try {
     const role = await getRoleRow(req.user.id);
@@ -292,6 +311,97 @@ router.get('/transactions', async (req, res) => {
     res.json({ data: data || [] });
   } catch (error) {
     res.status(500).json({ error: error.message || 'Failed to load transactions' });
+  }
+});
+
+router.get('/sacco/:id/staff', async (req,res)=>{
+  const saccoId = req.params.id;
+  if (!saccoId) return res.status(400).json({ error:'sacco_id required' });
+  try{
+    const { allowed } = await ensureSaccoAccess(req.user.id, saccoId);
+    if (!allowed) return res.status(403).json({ error:'Forbidden' });
+    const { data, error } = await supabaseAdmin
+      .from('staff_profiles')
+      .select('*')
+      .eq('sacco_id', saccoId)
+      .order('created_at', { ascending:false });
+    if (error) throw error;
+    res.json({ items: data || [] });
+  }catch(e){
+    res.status(500).json({ error: e.message || 'Failed to load staff' });
+  }
+});
+
+router.post('/sacco/:id/staff', async (req,res)=>{
+  const saccoId = req.params.id;
+  if (!saccoId) return res.status(400).json({ error:'sacco_id required' });
+  try{
+    const { allowed } = await ensureSaccoAccess(req.user.id, saccoId);
+    if (!allowed) return res.status(403).json({ error:'Forbidden' });
+    const row = {
+      sacco_id: saccoId,
+      name: (req.body?.name || '').trim(),
+      phone: (req.body?.phone || '').trim() || null,
+      email: (req.body?.email || '').trim() || null,
+      role: req.body?.role || 'SACCO_STAFF',
+      user_id: req.body?.user_id || null
+    };
+    if (!row.name) return res.status(400).json({ error:'name required' });
+    const { data, error } = await supabaseAdmin
+      .from('staff_profiles')
+      .insert(row)
+      .select()
+      .single();
+    if (error) throw error;
+    res.json(data);
+  }catch(e){
+    res.status(500).json({ error: e.message || 'Failed to create staff' });
+  }
+});
+
+router.get('/sacco/:id/loans', async (req,res)=>{
+  const saccoId = req.params.id;
+  if (!saccoId) return res.status(400).json({ error:'sacco_id required' });
+  try{
+    const { allowed } = await ensureSaccoAccess(req.user.id, saccoId);
+    if (!allowed) return res.status(403).json({ error:'Forbidden' });
+    const { data, error } = await supabaseAdmin
+      .from('loans')
+      .select('*')
+      .eq('sacco_id', saccoId)
+      .order('created_at', { ascending:false });
+    if (error) throw error;
+    res.json({ items: data || [] });
+  }catch(e){
+    res.status(500).json({ error: e.message || 'Failed to load loans' });
+  }
+});
+
+router.post('/sacco/:id/loans', async (req,res)=>{
+  const saccoId = req.params.id;
+  if (!saccoId) return res.status(400).json({ error:'sacco_id required' });
+  try{
+    const { allowed } = await ensureSaccoAccess(req.user.id, saccoId);
+    if (!allowed) return res.status(403).json({ error:'Forbidden' });
+    const row = {
+      sacco_id: saccoId,
+      matatu_id: req.body?.matatu_id || null,
+      borrower_name: (req.body?.borrower_name || '').trim(),
+      principal_kes: Number(req.body?.principal_kes || 0),
+      interest_rate_pct: Number(req.body?.interest_rate_pct || 0),
+      term_months: Number(req.body?.term_months || 0),
+      status: req.body?.status || 'ACTIVE'
+    };
+    if (!row.borrower_name) return res.status(400).json({ error:'borrower_name required' });
+    const { data, error } = await supabaseAdmin
+      .from('loans')
+      .insert(row)
+      .select()
+      .single();
+    if (error) throw error;
+    res.json(data);
+  }catch(e){
+    res.status(500).json({ error: e.message || 'Failed to create loan' });
   }
 });
 

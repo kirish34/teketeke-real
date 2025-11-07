@@ -357,7 +357,7 @@
 
     // lookup
     async function lookupMatatuByPlate(plate){
-      return jget('/api/lookup/matatu?plate='+encodeURIComponent(plate));
+      return jget('/u/matatu/by-plate?plate='+encodeURIComponent(plate));
     }
 
     // populate overview/vehicle cards

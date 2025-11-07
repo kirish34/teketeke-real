@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TekeTeke â€” Boda Boda Console</title>
+  <title>TekeTeke - Boda Boda Console</title>
   <script src="/public/js/app-config.js"></script>
   <script src="/public/js/api.js"></script>
   <style>
@@ -80,21 +80,21 @@
       <h2>Status</h2>
       <div class="row">
         <div>
-          <div class="pill" id="authState">Checking sessionâ€¦</div>
-          <div class="hint" id="whoamiHint">â€”</div>
+        <div class="pill" id="authState">Checking session...</div>
+        <div class="hint" id="whoamiHint">-</div>
         </div>
       </div>
     </section>
 
     <section>
-      <h2>Todayâ€™s Totals</h2>
+      <h2>Today's Totals</h2>
       <div class="kpis">
-        <div class="kpi"><div class="v" id="kpiTill">â€”</div><div class="l">Till (Mâ€‘Pesa) Today</div></div>
-        <div class="kpi"><div class="v" id="kpiCash">â€”</div><div class="l">Cash Today</div></div>
-        <div class="kpi"><div class="v" id="kpiExp">â€”</div><div class="l">Expenses Today</div></div>
-        <div class="kpi"><div class="v" id="kpiNet">â€”</div><div class="l">Net Today</div></div>
+        <div class="kpi"><div class="v" id="kpiTill">-</div><div class="l">Till (M-Pesa) Today</div></div>
+        <div class="kpi"><div class="v" id="kpiCash">-</div><div class="l">Cash Today</div></div>
+        <div class="kpi"><div class="v" id="kpiExp">-</div><div class="l">Expenses Today</div></div>
+        <div class="kpi"><div class="v" id="kpiNet">-</div><div class="l">Net Today</div></div>
       </div>
-      <div class="hint" id="sumHint">Refreshingâ€¦</div>
+      <div class="hint" id="sumHint">Refreshing...</div>
     </section>
 
     <section>
@@ -106,7 +106,7 @@
           <label for="payerName">Payer Name</label>
           <input id="payerName" type="text" placeholder="optional" />
           <label for="payerPhone">Phone</label>
-          <input id="payerPhone" type="tel" inputmode="numeric" placeholder="07xxâ€¦ (optional)" />
+          <input id="payerPhone" type="tel" inputmode="numeric" placeholder="07xx (optional)" />
           <label for="cashNotes">Notes</label>
           <textarea id="cashNotes" placeholder="optional"></textarea>
           <button id="btnCash">Collect Cash</button>
@@ -219,7 +219,7 @@
 
     async function loadWhoAmI() {
       try {
-        const me = await authFetch('/api/me');
+        const me = await authFetch('/u/me');
         $('whoamiHint').textContent = me?.email ? `Hello, ${me.email}` : 'Ready';
       } catch (e) {
         $('whoamiHint').textContent = 'Could not load user (login first)';

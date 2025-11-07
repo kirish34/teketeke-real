@@ -282,11 +282,6 @@
     async function jget(path){
       return parse(await fetch(path,{ headers:{ Accept:'application/json' }}));
     }
-    async function jadmin(method, path, body){
-      const headers = { 'Content-Type':'application/json', Accept:'application/json' };
-      const res = await fetch(path,{ method, headers, body: body ? JSON.stringify(body) : undefined });
-      return parse(res);
-    }
 
     // Tabs (delegated, with aria)
     (function setupTabs(){
@@ -454,13 +449,17 @@
     // Staff
     async function loadStaff(){
       if(!currentSacco) return;
-      const res = await jadmin('GET', `/api/admin/staff?sacco_id=${encodeURIComponent(currentSacco)}`);
-      const T=$('staffTbody'); T.innerHTML='';
-      (res.items||[]).forEach(s=>{
-        const tr=document.createElement('tr');
-        tr.innerHTML = `<td>${s.name||''}</td><td>${s.phone||''}</td><td>${s.email||''}</td><td>${s.role||''}</td><td class="mono">${s.id}</td>`;
-        T.appendChild(tr);
-      });
+      try{
+        const res = await jget(`/u/sacco/${currentSacco}/staff`);
+        const T=$('staffTbody'); T.innerHTML='';
+        (res.items||[]).forEach(s=>{
+          const tr=document.createElement('tr');
+          tr.innerHTML = `<td>${s.name||''}</td><td>${s.phone||''}</td><td>${s.email||''}</td><td>${s.role||''}</td><td class="mono">${s.id}</td>`;
+          T.appendChild(tr);
+        });
+      }catch(e){
+        $('staffTbody').innerHTML = `<tr><td colspan="5" class="err">${parseErr(e)}</td></tr>`;
+      }
     }
     $('stAdd').onclick = async ()=>{
       if(!currentSacco) return alert('Pick a SACCO first');
@@ -472,7 +471,11 @@
         role:  $('stRole').value
       };
       try{
-        await jadmin('POST','/api/admin/staff', body);
+        await parse(await fetch(`/u/sacco/${currentSacco}/staff`,{
+          method:'POST',
+          headers:{ 'Content-Type':'application/json', Accept:'application/json' },
+          body: JSON.stringify(body)
+        }));
         $('stName').value = $('stPhone').value = $('stEmail').value = '';
         await loadStaff();
         alert('Staff added');
@@ -482,16 +485,20 @@
     // Loans
     async function loadLoans(){
       if(!currentSacco) return;
-      const res = await jadmin('GET', `/api/admin/loans?sacco_id=${encodeURIComponent(currentSacco)}`);
-      const T=$('loanTbody'); T.innerHTML='';
-      (res.items||[]).forEach(l=>{
-        const tr=document.createElement('tr');
-        tr.innerHTML =
-          `<td>${l.borrower_name||''}</td><td>${(l.matatu_id||'')}</td><td>${fmtKES(l.principal_kes||0)}</td>`+
-          `<td>${l.interest_rate_pct||0}</td><td>${l.term_months||0}</td><td>${l.status||''}</td>`+
-          `<td class="mono">${l.id}</td>`;
-        T.appendChild(tr);
-      });
+      try{
+        const res = await jget(`/u/sacco/${currentSacco}/loans`);
+        const T=$('loanTbody'); T.innerHTML='';
+        (res.items||[]).forEach(l=>{
+          const tr=document.createElement('tr');
+          tr.innerHTML =
+            `<td>${l.borrower_name||''}</td><td>${(l.matatu_id||'')}</td><td>${fmtKES(l.principal_kes||0)}</td>`+
+            `<td>${l.interest_rate_pct||0}</td><td>${l.term_months||0}</td><td>${l.status||''}</td>`+
+            `<td class="mono">${l.id}</td>`;
+          T.appendChild(tr);
+        });
+      }catch(e){
+        $('loanTbody').innerHTML = `<tr><td colspan="7" class="err">${parseErr(e)}</td></tr>`;
+      }
     }
     $('lnAdd').onclick = async ()=>{
       if(!currentSacco) return alert('Pick a SACCO first');
@@ -504,7 +511,11 @@
         term_months:   Number($('lnTerm').value||0)
       };
       try{
-        await jadmin('POST','/api/admin/loans', body);
+        await parse(await fetch(`/u/sacco/${currentSacco}/loans`,{
+          method:'POST',
+          headers:{ 'Content-Type':'application/json', Accept:'application/json' },
+          body: JSON.stringify(body)
+        }));
         $('lnBorrower').value = $('lnPrincipal').value = $('lnRate').value = $('lnTerm').value = '';
         $('lnMatatu').value = '';
         await loadLoans();

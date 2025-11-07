@@ -308,6 +308,7 @@
     $('autoAmt').textContent = fmtKES(auto);
     out.textContent = JSON.stringify({source: usedMatatuApi? 'matatu':'sacco', matched: fareTx.length, auto_kes: auto}, null, 2);
     renderTripsTable();
+    updateTotalsPanel();
   }
 
   // manual trip actions
