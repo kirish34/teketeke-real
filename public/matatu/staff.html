@@ -359,7 +359,7 @@
     const delta = input - previous;
     try{
       if (delta > 0){
-        await jpost('/api/staff/cash', { sacco_id:SACCO_ID, matatu_id:MATATU_ID, kind:'FARE', amount:delta, payer_name:'Trip Cash Total', payer_phone:'' });
+        await jpost('/api/staff/cash', { sacco_id:SACCO_ID, matatu_id:MATATU_ID, kind:'CASH', amount:delta, payer_name:'Trip Cash Total', payer_phone:'' });
       }
       CURRENT_TRIP.manual_kes = input;
       putTrip(CURRENT_TRIP);
@@ -404,8 +404,8 @@
       const amt = Number(amtEl?.value || 0);
       if(!(amt>0)) return toast('Enter amount');
       if(msgEl){ msgEl.textContent = 'Saving...'; msgEl.className='muted'; }
-      try{
-        await jpost('/api/staff/cash', { sacco_id:SACCO_ID, matatu_id:MATATU_ID, kind:'FARE', amount:amt, payer_name:(noteEl?.value.trim()||'Manual cash entry'), payer_phone:'' });
+        try{
+          await jpost('/api/staff/cash', { sacco_id:SACCO_ID, matatu_id:MATATU_ID, kind:'CASH', amount:amt, payer_name:(noteEl?.value.trim()||'Manual cash entry'), payer_phone:'' });
         if(amtEl) amtEl.value='';
         if(noteEl) noteEl.value='';
         if(msgEl){ msgEl.textContent='Saved'; msgEl.className='ok'; }
