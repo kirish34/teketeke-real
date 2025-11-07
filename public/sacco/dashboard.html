@@ -5,6 +5,7 @@
   <title>TekeTeke — SACCO Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <script src="/public/js/app-config.js"></script>
+  <script src="/public/js/api.js"></script>
 
   <!-- Charts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -556,39 +557,5 @@
   })();
   </script>
 
-  <!-- Auth pill (needs app-config/api) -->
-  <script src="/public/js/app-config.js"></script>
-  <script src="/public/js/api.js"></script>
-  <script>
-  (async()=>{
-    try{
-      const bar=document.createElement('div');
-      bar.style.cssText='position:fixed;top:10px;left:10px;z-index:10;display:flex;gap:8px;align-items:center';
-      const pill=document.createElement('span');
-      pill.id='auth_state';
-      pill.style.cssText='background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;padding:4px 10px;border-radius:999px;font-size:12px;max-width:40vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
-      pill.textContent='Checking sign-in…';
-      const btn=document.createElement('button');
-      btn.textContent='Logout';
-      btn.style.cssText='padding:6px 10px;border-radius:6px;border:1px solid #cfe3ff;background:#0b5cab;color:#fff;cursor:pointer';
-      bar.appendChild(pill); bar.appendChild(btn);
-      document.body.appendChild(bar);
-
-      if(window.TT && window.TT.getSupabase){
-        const supa=await window.TT.getSupabase();
-        const {data:{session}}=await supa.auth.getSession();
-        pill.textContent = session?.user?.email ? ('Signed in as '+session.user.email) : 'Not signed in';
-        btn.addEventListener('click', async ()=>{
-          try{ await supa.auth.signOut(); }catch(_){}
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('tt_root_token');
-          localStorage.removeItem('tt_admin_token');
-          location.reload();
-        }, {passive:true});
-      }
-    }catch(_){}
-  })();
-  </script>
 </body>
 </html>
-
