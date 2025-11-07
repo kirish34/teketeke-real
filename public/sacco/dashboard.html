@@ -204,8 +204,6 @@
     const $ = id => document.getElementById(id);
     const isoDate = d => new Date(d).toISOString().slice(0,10);
     const today = isoDate(new Date());
-    const bearer = () => localStorage.getItem('auth_token') || '';
-    const adminTok = () => '';
     const fmtKES = n => Number(n||0).toLocaleString('en-KE',{minimumFractionDigits:2,maximumFractionDigits:2});
 
     let supaClient = null;
@@ -282,15 +280,11 @@
       return j;
     }
     async function jget(path){
-      const headers = {};
-      const tok = bearer();
-      if (tok) headers.Authorization = 'Bearer ' + tok;
-      return parse(await fetch(path,{headers}));
+      return parse(await fetch(path,{ headers:{ Accept:'application/json' }}));
     }
     async function jadmin(method, path, body){
-      // Admin-only endpoints retained for staff/loans. No USSD calls here anymore.
-      const headers = {'Content-Type':'application/json'};
-      const res = await fetch(path,{method,headers,body: body? JSON.stringify(body): undefined});
+      const headers = { 'Content-Type':'application/json', Accept:'application/json' };
+      const res = await fetch(path,{ method, headers, body: body ? JSON.stringify(body) : undefined });
       return parse(res);
     }
 
