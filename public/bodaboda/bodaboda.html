@@ -158,166 +158,189 @@
   </div>
 
   <script>
-    // â€”â€”â€” utils â€”â€”â€”
-    const $ = (id)=>document.getElementById(id);
-    const fmt = (n)=> new Intl.NumberFormat('en-KE',{maximumFractionDigits:0}).format(Number(n||0));
-    const friendlyName = (user)=>{
-      if(!user) return 'rider';
+    const $ = (id) => document.getElementById(id);
+    const fmt = (n) => new Intl.NumberFormat('en-KE', { maximumFractionDigits: 0 }).format(Number(n || 0));
+    const friendlyName = (user) => {
+      if (!user) return 'rider';
       const meta = user.user_metadata || {};
       const email = user.email || '';
       return meta.full_name || meta.name || meta.display_name || meta.displayName || (email ? email.split('@')[0] : 'rider');
     };
-    function startCornerClock(){
+    const isSameDay = (date, ref = new Date()) => date.toDateString() === ref.toDateString();
+
+    function startCornerClock() {
       const el = $('dateTimeLine');
-      if(!el) return;
-      const update = ()=>{ el.textContent = new Date().toLocaleString(); };
+      if (!el) return;
+      const update = () => { el.textContent = new Date().toLocaleString(); };
       update();
       setInterval(update, 1000);
     }
     startCornerClock();
 
-    // Supabase/TT session â†’ Authorization header (if your backend expects Bearer). Falls back to cookie auth.
-    async function getAuthHeader(){
-      try{
-        if (window.TT && window.TT.getSupabase){
+    async function getAuthHeader() {
+      try {
+        if (window.TT && window.TT.getSupabase) {
           const supa = await window.TT.getSupabase();
-          const { data:{ session } } = await supa.auth.getSession();
-          if (session?.access_token) return { Authorization: 'Bearer ' + session.access_token };
+          const { data: { session } } = await supa.auth.getSession();
+          if (session?.access_token) return { Authorization: `Bearer ${session.access_token}` };
         }
-      }catch(_){}
+      } catch (_) { /* ignore */ }
       return {};
     }
 
-    async function authFetch(url, opts={}){
+    async function authFetch(url, opts = {}) {
       const hdr = await getAuthHeader();
-      const res = await fetch(url, { ...opts, headers: { 'Content-Type':'application/json', ...(opts.headers||{}), ...hdr } });
-      if(!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-      const ct = res.headers.get('content-type')||'';
+      const res = await fetch(url, { ...opts, headers: { 'Content-Type': 'application/json', ...(opts.headers || {}), ...hdr } });
+      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+      const ct = res.headers.get('content-type') || '';
       return ct.includes('application/json') ? res.json() : res.text();
     }
 
-    // â€”â€”â€” session indicators â€”â€”â€”
-    async function setAuthState(){
+    async function setAuthState() {
       const pill = $('authState');
-      try{
-        if (window.TT && window.TT.getSupabase){
+      try {
+        if (window.TT && window.TT.getSupabase) {
           const supa = await window.TT.getSupabase();
-          const { data:{ session } } = await supa.auth.getSession();
-          if(session){
+          const { data: { session } } = await supa.auth.getSession();
+          if (session) {
             pill.textContent = 'Session: OK'; pill.classList.add('ok');
             const welcome = $('welcomeLine');
             if (welcome) welcome.textContent = `Hello, ${friendlyName(session.user)}`;
           } else {
             pill.textContent = 'Session: missing'; pill.classList.add('warn');
           }
-        }else{
+        } else {
           pill.textContent = 'Session: unknown'; pill.classList.add('warn');
         }
-      }catch(_){ pill.textContent = 'Session: unknown'; pill.classList.add('warn'); }
+      } catch (_) {
+        pill.textContent = 'Session: unknown'; pill.classList.add('warn');
+      }
     }
 
-    async function loadWhoAmI(){
-      try{
+    async function loadWhoAmI() {
+      try {
         const me = await authFetch('/api/me');
         $('whoamiHint').textContent = me?.email ? `Hello, ${me.email}` : 'Ready';
-      }catch(e){ $('whoamiHint').textContent = 'Could not load user (login first)'; }
+      } catch (e) {
+        $('whoamiHint').textContent = 'Could not load user (login first)';
+      }
     }
 
-    // â€”â€”â€” summary â€”â€”â€”
-    async function refreshSummary(){
-      $('sumHint').textContent = 'Refreshingâ€¦';
-      try{
-        const today = new Date().toISOString().slice(0,10);
-        const s = await authFetch(`/api/boda/summary?date=${today}`);
-        const sum = s?.summary || s || {};
+    async function refreshSummary() {
+      $('sumHint').textContent = 'Refreshing...';
+      try {
+        const today = new Date().toISOString().slice(0, 10);
+        const res = await authFetch(`/api/boda/summary?date=${today}`);
+        const sum = res?.summary || res || {};
         const till = Number(sum.till_today || sum.till || 0);
         const cash = Number(sum.cash_today || sum.cash || 0);
-        const exp  = Number(sum.expenses_today || sum.expenses || 0);
+        const exp = Number(sum.expenses_today || sum.expenses || 0);
         $('kpiTill').textContent = fmt(till);
         $('kpiCash').textContent = fmt(cash);
-        $('kpiExp').textContent  = fmt(exp);
-        $('kpiNet').textContent  = fmt(till + cash - exp);
+        $('kpiExp').textContent = fmt(exp);
+        $('kpiNet').textContent = fmt(till + cash - exp);
         $('sumHint').textContent = '';
-      }catch(e){ $('sumHint').textContent = 'No summary yet'; }
+      } catch (_) {
+        $('sumHint').textContent = 'No summary yet';
+      }
     }
 
-    // â€”â€”â€” lists â€”â€”â€”
-    async function refreshCash(){
-      try{
-        const r = await authFetch('/api/boda/cash?limit=20');
-        const rows = Array.isArray(r?.items)? r.items : (Array.isArray(r)? r : []);
-        const tb = $('cashBody'); tb.innerHTML = '';
-        rows.forEach(x=>{
-          const tr = document.createElement('tr');
-          const t = x.created_at || x.time || x.ts;
-          tr.innerHTML = `<td>${t? new Date(t).toLocaleTimeString(): 'â€”'}</td>`+
-                          `<td>${x.payer_name||''}</td>`+
-                          `<td>${x.phone||''}</td>`+
-                          `<td>${fmt(x.amount||0)}</td>`+
-                          `<td>${x.notes||''}</td>`;
-          tb.appendChild(tr);
-        });
-      }catch(e){ /* ignore */ }
+    function filterToday(rows) {
+      const today = new Date();
+      return rows.filter(row => {
+        const stamp = row.created_at || row.time || row.timestamp;
+        if (!stamp) return false;
+        return isSameDay(new Date(stamp), today);
+      });
     }
 
-    async function refreshExpenses(){
-      try{
-        const r = await authFetch('/api/boda/expenses?limit=20');
-        const rows = Array.isArray(r?.items)? r.items : (Array.isArray(r)? r : []);
-        const tb = $('expBody'); tb.innerHTML = '';
-        rows.forEach(x=>{
-          const tr = document.createElement('tr');
-          const t = x.created_at || x.time || x.ts;
-          tr.innerHTML = `<td>${t? new Date(t).toLocaleTimeString(): 'â€”'}</td>`+
-                          `<td>${x.category||x.cat||'â€”'}</td>`+
-                          `<td>${fmt(x.amount||0)}</td>`+
-                          `<td>${x.notes||''}</td>`;
-          tb.appendChild(tr);
-        });
-      }catch(e){ /* ignore */ }
+    function renderTableRows(rows, tbody, builder, emptyMessage, colSpan) {
+      if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="${colSpan}" class="hint">${emptyMessage}</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = rows.map(builder).join('');
     }
 
-    // â€”â€”â€” actions â€”â€”â€”
-    async function collectCash(){
-      const amount = Number(($('cashAmount').value||'').trim());
-      const payer_name = ($('payerName').value||'').trim();
-      const phone = ($('payerPhone').value||'').trim();
-      const notes = ($('cashNotes').value||'').trim();
-      const out = $('cashMsg'); out.textContent = 'Savingâ€¦'; out.className = 'hint';
-      try{
-        if(!(amount > 0)) throw new Error('Enter amount');
-        await authFetch('/api/boda/cash', { method:'POST', body: JSON.stringify({ amount, payer_name, phone, notes }) });
-        out.textContent = 'Saved âœ“'; out.className = 'success';
-        $('cashAmount').value = ''; $('payerName').value=''; $('payerPhone').value=''; $('cashNotes').value='';
+    async function refreshCash() {
+      try {
+        const res = await authFetch('/api/boda/cash?limit=200');
+        const rows = filterToday(Array.isArray(res?.items) ? res.items : (Array.isArray(res) ? res : []));
+        renderTableRows(rows, $('cashBody'), (x) => {
+          const t = x.created_at || x.time || x.timestamp;
+          return `<tr>
+            <td>${t ? new Date(t).toLocaleTimeString() : '--'}</td>
+            <td>${x.payer_name || ''}</td>
+            <td>${x.phone || ''}</td>
+            <td>${fmt(x.amount || 0)}</td>
+            <td>${x.notes || ''}</td>
+          </tr>`;
+        }, 'No cash entries today', 5);
+      } catch (_) {
+        $('cashBody').innerHTML = '<tr><td colspan="5" class="error">Unable to load cash</td></tr>';
+      }
+    }
+
+    async function refreshExpenses() {
+      try {
+        const res = await authFetch('/api/boda/expenses?limit=200');
+        const rows = filterToday(Array.isArray(res?.items) ? res.items : (Array.isArray(res) ? res : []));
+        renderTableRows(rows, $('expBody'), (x) => {
+          const t = x.created_at || x.time || x.timestamp;
+          return `<tr>
+            <td>${t ? new Date(t).toLocaleTimeString() : '--'}</td>
+            <td>${x.category || x.cat || '-'}</td>
+            <td>${fmt(x.amount || 0)}</td>
+            <td>${x.notes || ''}</td>
+          </tr>`;
+        }, 'No expenses today', 4);
+      } catch (_) {
+        $('expBody').innerHTML = '<tr><td colspan="4" class="error">Unable to load expenses</td></tr>';
+      }
+    }
+
+    async function collectCash() {
+      const amount = Number(($('cashAmount').value || '').trim());
+      const payer_name = ($('payerName').value || '').trim();
+      const phone = ($('payerPhone').value || '').trim();
+      const notes = ($('cashNotes').value || '').trim();
+      const out = $('cashMsg'); out.textContent = 'Saving...'; out.className = 'hint';
+      try {
+        if (!(amount > 0)) throw new Error('Enter amount');
+        await authFetch('/api/boda/cash', { method: 'POST', body: JSON.stringify({ amount, payer_name, phone, notes }) });
+        out.textContent = 'Saved!'; out.className = 'success';
+        $('cashAmount').value = ''; $('payerName').value = ''; $('payerPhone').value = ''; $('cashNotes').value = '';
         refreshSummary(); refreshCash();
-      }catch(err){ out.textContent = `Error: ${err.message||err}`; out.className = 'error'; }
+      } catch (err) {
+        out.textContent = `Error: ${err.message || err}`; out.className = 'error';
+      }
     }
 
-    async function saveExpense(){
+    async function saveExpense() {
       const category = $('expCat').value;
-      const amount = Number(($('expAmount').value||'').trim());
-      const notes = ($('expNotes').value||'').trim();
-      const out = $('expMsg'); out.textContent = 'Savingâ€¦'; out.className = 'hint';
-      try{
-        if(!(amount > 0)) throw new Error('Enter amount');
-        await authFetch('/api/boda/expenses', { method:'POST', body: JSON.stringify({ category, amount, notes }) });
-        out.textContent = 'Saved âœ“'; out.className = 'success';
-        $('expAmount').value=''; $('expNotes').value='';
+      const amount = Number(($('expAmount').value || '').trim());
+      const notes = ($('expNotes').value || '').trim();
+      const out = $('expMsg'); out.textContent = 'Saving...'; out.className = 'hint';
+      try {
+        if (!(amount > 0)) throw new Error('Enter amount');
+        await authFetch('/api/boda/expenses', { method: 'POST', body: JSON.stringify({ category, amount, notes }) });
+        out.textContent = 'Saved!'; out.className = 'success';
+        $('expAmount').value = ''; $('expNotes').value = '';
         refreshSummary(); refreshExpenses();
-      }catch(err){ out.textContent = `Error: ${err.message||err}`; out.className = 'error'; }
+      } catch (err) {
+        out.textContent = `Error: ${err.message || err}`; out.className = 'error';
+      }
     }
 
-    // â€”â€”â€” init â€”â€”â€”
-    (function main(){
+    (function init() {
       setAuthState();
       loadWhoAmI();
       refreshSummary(); refreshCash(); refreshExpenses();
       $('btnCash').addEventListener('click', collectCash);
       $('btnExpense').addEventListener('click', saveExpense);
-      setInterval(()=>{ refreshSummary(); }, 30000);
+      setInterval(refreshSummary, 30000);
     })();
   </script>
-
   <script>
     // Auth banner + logout using Supabase session
     (async function(){

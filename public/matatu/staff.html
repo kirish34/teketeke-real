@@ -39,6 +39,10 @@
     .corner-info{display:flex;flex-direction:column;align-items:flex-start;margin-bottom:10px}
     .corner-info .hello{font-size:16px;font-weight:600;color:var(--ink)}
     .corner-info .time{font-size:13px;color:var(--muted)}
+    .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+    .stat{background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px}
+    .stat-label{font-size:12px;color:var(--muted)}
+    .stat-value{font-size:18px;font-weight:600;color:var(--ink)}
   </style>
 </head>
 <body>
@@ -67,6 +71,7 @@
   <div class="tabs" role="tablist" aria-label="Conductor Sections">
     <div class="tab active" data-panel="p_trips" role="tab" aria-selected="true">Trips</div>
     <div class="tab" data-panel="p_tx" role="tab">Transactions</div>
+    <div class="tab" data-panel="p_totals" role="tab">Totals</div>
   </div>
 
   <!-- Trips Panel -->
@@ -91,12 +96,10 @@
         <div class="right"><button id="refreshAuto" class="ghost">Refresh Auto</button> <button id="endTrip" class="bad" style="background:#b91c1c">End Trip</button></div>
       </div>
 
-      <h4 style="margin-top:12px">Manual Cash for this Trip</h4>
+      <h4 style="margin-top:12px">Trip Cash Total</h4>
       <div class="row">
-        <input id="manAmt" type="number" placeholder="Amount (KES)" class="amount"/>
-        <input id="manName" placeholder="Payer name"/>
-        <input id="manPhone" placeholder="07XXXXXXXX"/>
-        <button id="postManual">Record Manual Cash</button>
+        <input id="manAmt" type="number" placeholder="Full trip cash (KES)" class="amount"/>
+        <button id="recordTripCash">Save Trip Cash</button>
       </div>
       <pre id="tripOut" class="mono" style="margin-top:8px"></pre>
     </div>
@@ -105,7 +108,7 @@
       <h3>Today’s Trips</h3>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Started</th><th>Ended</th><th>Route</th><th>Auto (KES)</th><th>Manual (KES)</th><th>Total</th><th>Actions</th><th>ID</th></tr></thead>
+          <thead><tr><th>Started</th><th>Ended</th><th>Route</th><th>Auto (KES)</th><th>Manual (KES)</th><th>Total</th><th>ID</th></tr></thead>
           <tbody id="tripsTbody"></tbody>
         </table>
       </div>
@@ -120,6 +123,43 @@
         <thead><tr><th>Time</th><th>MSISDN</th><th>Kind</th><th>Amount</th><th>Status</th><th>ID</th></tr></thead>
         <tbody id="txTbody"></tbody>
       </table>
+    </div>
+  </section>
+
+  <section id="p_totals" class="panel">
+    <div class="card">
+      <h3 style="margin-top:0">Current Trip Totals</h3>
+      <div class="stat-grid">
+        <div class="stat">
+          <div class="stat-label">Mpesa (Auto)</div>
+          <div class="stat-value" id="tot_trip_auto">0.00</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Manual Cash</div>
+          <div class="stat-value" id="tot_trip_manual">0.00</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Trip Total</div>
+          <div class="stat-value" id="tot_trip_total">0.00</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Today&rsquo;s Collections</h3>
+      <div class="stat-grid">
+        <div class="stat">
+          <div class="stat-label">Mpesa (Auto)</div>
+          <div class="stat-value" id="tot_day_auto">0.00</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Manual Cash</div>
+          <div class="stat-value" id="tot_day_manual">0.00</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Daily Total</div>
+          <div class="stat-value" id="tot_day_total">0.00</div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -183,6 +223,7 @@
       updateAutoAmount();
     }
     renderTripsTable();
+    updateTotalsPanel();
     loadTransactions();
   }
 
@@ -207,40 +248,44 @@
     saveLocalTrips(list);
     return obj;
   }
+  function getTodayTrips(){
+    return loadLocalTrips().filter(t=> isToday(t.started_at));
+  }
+  function updateTotalsPanel(){
+    const tripAutoEl = $('tot_trip_auto');
+    if (tripAutoEl){
+      const auto = CURRENT_TRIP ? Number(CURRENT_TRIP.auto_kes||0) : 0;
+      const manual = CURRENT_TRIP ? Number(CURRENT_TRIP.manual_kes||0) : 0;
+      tripAutoEl.textContent = fmtKES(auto);
+      $('tot_trip_manual').textContent = fmtKES(manual);
+      $('tot_trip_total').textContent = fmtKES(auto + manual);
+    }
+    const todayTrips = getTodayTrips();
+    const dayAuto = todayTrips.reduce((sum,t)=>sum + Number(t.auto_kes||0),0);
+    const dayManual = todayTrips.reduce((sum,t)=>sum + Number(t.manual_kes||0),0);
+    const dayAutoEl = $('tot_day_auto');
+    if(dayAutoEl){
+      dayAutoEl.textContent = fmtKES(dayAuto);
+      $('tot_day_manual').textContent = fmtKES(dayManual);
+      $('tot_day_total').textContent = fmtKES(dayAuto + dayManual);
+    }
+  }
   function renderTripsTable(){
     const T = $('tripsTbody'); T.innerHTML='';
     const list = loadLocalTrips().filter(t=> isToday(t.started_at));
     list.forEach(t=>{
       const tr=document.createElement('tr');
       tr.innerHTML = `<td>${new Date(t.started_at).toLocaleTimeString()}</td>`+
-        `<td>${t.ended_at? new Date(t.ended_at).toLocaleTimeString():'—'}</td>`+
+        `<td>${t.ended_at? new Date(t.ended_at).toLocaleTimeString():'-'}</td>`+
         `<td>${t.route||''}</td>`+
         `<td class='mono'>${fmtKES(t.auto_kes||0)}</td>`+
         `<td class='mono'>${fmtKES(t.manual_kes||0)}</td>`+
         `<td class='mono'>${fmtKES((t.auto_kes||0)+(t.manual_kes||0))}</td>`+
-        `<td><button class="small" data-act="addcash" data-id="${t.id}">Add Cash</button></td>`+
         `<td class='mono'>${t.id}</td>`;
       T.appendChild(tr);
     });
+    updateTotalsPanel();
   }
-
-  // Quick add-cash per trip (inline action)
-  document.getElementById('tripsTbody')?.addEventListener('click', async (e)=>{
-    const b = e.target.closest('button'); if(!b) return;
-    if (b.dataset.act==='addcash'){
-      const tripId = b.dataset.id;
-      const amtStr = prompt('Enter cash amount (KES) for this trip:');
-      const amt = Number(amtStr||0); if(!amt) return;
-      try{
-        await jpost('/api/staff/cash', { sacco_id:SACCO_ID, matatu_id:MATATU_ID, kind:'FARE', amount:amt, payer_name:'Conductor Manual', payer_phone:'' });
-        const list = loadLocalTrips();
-        const t = list.find(x=>x.id===tripId);
-        if(t){ t.manual_kes = (t.manual_kes||0) + amt; saveLocalTrips(list); if(CURRENT_TRIP && CURRENT_TRIP.id===tripId){ CURRENT_TRIP = t; const el=$('manualAmt'); if(el) el.textContent = fmtKES(t.manual_kes||0); } }
-        toast('Manual cash recorded');
-        renderTripsTable();
-      }catch(err){ toast(err.message||String(err)); }
-    }
-  });
 
   async function updateAutoAmount(){
     const out = $('tripOut'); out.textContent='';
@@ -278,6 +323,7 @@
     $('tripRouteShow').textContent = route||'-';
     $('manualAmt').textContent = fmtKES(0);
     $('tripMsg').textContent = 'Trip started';
+    updateTotalsPanel();
     updateAutoAmount();
   });
 
@@ -288,22 +334,32 @@
     $('activeTripCard').style.display='none';
     toast('Trip ended');
     renderTripsTable();
+    updateTotalsPanel();
   });
 
   $('refreshAuto').addEventListener('click', updateAutoAmount);
 
-  $('postManual').addEventListener('click', async ()=>{
+  $('recordTripCash').addEventListener('click', async ()=>{
     if(!CURRENT_TRIP) return toast('Start a trip first');
-    const amt = Number($('manAmt').value||0); if(!amt) return toast('Enter amount');
-    const body = {sacco_id:SACCO_ID, matatu_id:MATATU_ID, kind:'FARE', amount:amt, payer_name: $('manName').value.trim()||'Conductor Manual', payer_phone: $('manPhone').value.trim()||''};
+    const input = Number($('manAmt').value||0);
+    if(!(input>0)) return toast('Enter amount');
+    const previous = Number(CURRENT_TRIP.manual_kes||0);
+    const delta = input - previous;
     try{
-      const r = await jpost('/api/staff/cash', body);
-      CURRENT_TRIP.manual_kes = (CURRENT_TRIP.manual_kes||0) + amt;
-      putTrip(CURRENT_TRIP); $('manAmt').value=''; $('manualAmt').textContent = fmtKES(CURRENT_TRIP.manual_kes||0);
-      $('tripOut').textContent = JSON.stringify(r,null,2);
-      toast('Manual cash recorded');
+      if (delta > 0){
+        await jpost('/api/staff/cash', { sacco_id:SACCO_ID, matatu_id:MATATU_ID, kind:'FARE', amount:delta, payer_name:'Trip Cash Total', payer_phone:'' });
+      }
+      CURRENT_TRIP.manual_kes = input;
+      putTrip(CURRENT_TRIP);
+      $('manAmt').value='';
+      $('manualAmt').textContent = fmtKES(input);
+      $('tripOut').textContent = delta>0 ? `Synced ${fmtKES(delta)} to cash ledger` : 'Updated trip cash locally';
+      toast('Trip cash saved');
       renderTripsTable();
-    }catch(e){ $('tripOut').textContent = e.message; toast(e.message); }
+    }catch(e){
+      $('tripOut').textContent = e.message;
+      toast(e.message);
+    }
   });
 
   async function loadTransactions(){
@@ -334,6 +390,7 @@
       renderTripsTable();
       if(MATATU_ID && getActiveTrip()){ $('activeTripCard').style.display='block'; updateAutoAmount(); }
       await loadTransactions();
+      updateTotalsPanel();
     }catch(e){ console.error(e); toast(e.message); }
   })();
 

@@ -277,6 +277,19 @@
         window._toastTimer = setTimeout(()=>{ t.className=''; }, 2200);
       };
 
+      function clearInputs(ids){
+        if (!Array.isArray(ids)) return;
+        ids.forEach(id => {
+          const el = $(id);
+          if (!el) return;
+          if (el.tagName === 'SELECT'){
+            el.selectedIndex = 0;
+          }else if ('value' in el){
+            el.value = '';
+          }
+        });
+      }
+
       async function ensureSession(){
         const { data:{ session } } = await sb.auth.getSession();
         if (!session?.access_token) {
@@ -445,7 +458,7 @@
             }
           }
           msg.className='ok'; msg.textContent=`SACCO created${note}`;
-          $('sc_login_password').value=''; $('sc_staff_password').value='';
+          clearInputs(['sc_name','sc_contact_name','sc_phone','sc_email','sc_till','sc_login_email','sc_login_password','sc_staff_email','sc_staff_password']);
           await loadSaccos(); await loadLogins();
         }catch(e){
           msg.className='err'; msg.textContent=parseErr(e);
@@ -580,7 +593,8 @@
             }
           }
           if (Array.isArray(cfg.clearIds)){
-            cfg.clearIds.forEach(id => { const el = $(id); if (el) el.value = ''; });
+            clearInputs(cfg.clearIds);
+            if (cfg.clearIds.includes('mt_sacco')) refreshMatatuSaccoMeta();
           }
           msgEl.className = 'ok';
           msgEl.textContent = `${cfg.successLabel} created${note}`;
@@ -611,7 +625,7 @@
             { emailId:'mt_owner_email', passId:'mt_owner_pass', role:'OWNER' },
             { emailId:'mt_staff_email', passId:'mt_staff_pass', role:'STAFF' }
           ],
-          clearIds:['mt_owner_pass','mt_staff_pass']
+          clearIds:['mt_plate','mt_owner','mt_phone','mt_till','mt_sacco','mt_owner_email','mt_owner_pass','mt_staff_email','mt_staff_pass']
         });
       });
 
@@ -629,7 +643,7 @@
           logins:[
             { emailId:'taxi_email', passId:'taxi_pass', role:'TAXI' }
           ],
-          clearIds:['taxi_pass']
+          clearIds:['taxi_plate','taxi_owner','taxi_phone','taxi_till','taxi_sacco','taxi_email','taxi_pass']
         });
       });
 
@@ -647,7 +661,7 @@
           logins:[
             { emailId:'boda_email', passId:'boda_pass', role:'BODA' }
           ],
-          clearIds:['boda_pass']
+          clearIds:['boda_plate','boda_owner','boda_phone','boda_till','boda_sacco','boda_email','boda_pass']
         });
       });
       $('pl_available').addEventListener('click', async ()=>{
