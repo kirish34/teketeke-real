@@ -71,6 +71,7 @@
   <div class="tabs" role="tablist" aria-label="Conductor Sections">
     <div class="tab active" data-panel="p_trips" role="tab" aria-selected="true">Trips</div>
     <div class="tab" data-panel="p_tx" role="tab">Transactions</div>
+    <div class="tab" data-panel="p_manual" role="tab">Manual Cash</div>
     <div class="tab" data-panel="p_totals" role="tab">Totals</div>
   </div>
 
@@ -79,8 +80,6 @@
     <div class="card">
       <h3>Start New Trip</h3>
       <div class="row">
-        <input id="tripRoute" placeholder="Route / Destination" class="w-2"/>
-        <input id="tripFare" type="number" placeholder="Expected Fare (KES)" class="amount"/>
         <button id="startTrip">Start Trip</button>
         <span class="muted right" id="tripMsg"></span>
       </div>
@@ -123,6 +122,19 @@
         <thead><tr><th>Time</th><th>MSISDN</th><th>Kind</th><th>Amount</th><th>Status</th><th>ID</th></tr></thead>
         <tbody id="txTbody"></tbody>
       </table>
+    </div>
+  </section>
+
+  <section id="p_manual" class="panel">
+    <div class="card">
+      <h3 style="margin-top:0">Manual Cash Collection</h3>
+      <div class="row">
+        <input id="manualTabAmount" type="number" placeholder="Amount (KES)" class="amount"/>
+        <input id="manualTabNote" placeholder="Note (optional)"/>
+        <button id="manualTabSave">Record Cash</button>
+        <span class="muted" id="manualTabMsg"></span>
+      </div>
+      <p class="note">Records cash directly against the current matatu without affecting trip states.</p>
     </div>
   </section>
 
@@ -315,13 +327,12 @@
   $('startTrip').addEventListener('click', ()=>{
     if(!MATATU_ID) return toast('Pick a matatu');
     if(getActiveTrip()) return toast('A trip is already active');
-    const route = $('tripRoute').value.trim();
-    const fare = Number($('tripFare').value||0);
-    const trip = { id: `TRIP_${Date.now()}`, matatu_id: MATATU_ID, route, expected_fare: fare, started_at: new Date().toISOString(), auto_kes:0, manual_kes:0 };
+    const route = `Trip ${new Date().toLocaleTimeString()}`;
+    const trip = { id: `TRIP_${Date.now()}`, matatu_id: MATATU_ID, route, expected_fare: 0, started_at: new Date().toISOString(), auto_kes:0, manual_kes:0 };
     putTrip(trip); CURRENT_TRIP = trip;
     $('activeTripCard').style.display='block';
     $('tripStarted').textContent = new Date(trip.started_at).toLocaleString();
-    $('tripRouteShow').textContent = route||'-';
+    $('tripRouteShow').textContent = route;
     $('manualAmt').textContent = fmtKES(0);
     $('tripMsg').textContent = 'Trip started';
     updateTotalsPanel();
@@ -380,6 +391,30 @@
         `<td>${tx.status||''}</td>`+
         `<td class='mono'>${tx.id}</td>`;
       T.appendChild(tr);
+    });
+  }
+
+  const manualTabBtn = document.getElementById('manualTabSave');
+  if (manualTabBtn){
+    manualTabBtn.addEventListener('click', async ()=>{
+      if(!MATATU_ID) return toast('Pick a matatu first');
+      const amtEl = $('manualTabAmount');
+      const noteEl = $('manualTabNote');
+      const msgEl = $('manualTabMsg');
+      const amt = Number(amtEl?.value || 0);
+      if(!(amt>0)) return toast('Enter amount');
+      if(msgEl){ msgEl.textContent = 'Saving...'; msgEl.className='muted'; }
+      try{
+        await jpost('/api/staff/cash', { sacco_id:SACCO_ID, matatu_id:MATATU_ID, kind:'FARE', amount:amt, payer_name:(noteEl?.value.trim()||'Manual cash entry'), payer_phone:'' });
+        if(amtEl) amtEl.value='';
+        if(noteEl) noteEl.value='';
+        if(msgEl){ msgEl.textContent='Saved'; msgEl.className='ok'; }
+        renderTripsTable();
+        toast('Manual cash recorded');
+      }catch(err){
+        if(msgEl){ msgEl.textContent = err.message||String(err); msgEl.className='err'; }
+        toast(err.message||err);
+      }
     });
   }
 
