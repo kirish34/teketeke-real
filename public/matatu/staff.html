@@ -36,9 +36,16 @@
     .amount{width:130px}
     .w-2{min-width:220px}
       button.small{padding:6px 8px;font-size:12px}
+    .corner-info{display:flex;flex-direction:column;align-items:flex-start;margin-bottom:10px}
+    .corner-info .hello{font-size:16px;font-weight:600;color:var(--ink)}
+    .corner-info .time{font-size:13px;color:var(--muted)}
   </style>
 </head>
 <body>
+  <div class="corner-info">
+    <div class="hello" id="welcomeLine">Hello!</div>
+    <div class="time" id="dateTimeLine">--</div>
+  </div>
   <div class="row" style="justify-content:space-between; align-items:center; margin-bottom:8px">
     <a href="/public/auth/role-select.html">← Back</a>
     <div class="row" style="gap:8px">
@@ -343,6 +350,21 @@
 </script>
 
 <script>
+const friendlyName = (user)=>{
+  if(!user) return 'Matatu Staff';
+  const meta = user.user_metadata || {};
+  const email = user.email || '';
+  return meta.full_name || meta.name || meta.display_name || meta.displayName || (email ? email.split('@')[0] : 'Matatu Staff');
+};
+function startCornerClock(){
+  const el = document.getElementById('dateTimeLine');
+  if(!el) return;
+  const update = ()=>{ el.textContent = new Date().toLocaleString(); };
+  update();
+  setInterval(update, 1000);
+}
+startCornerClock();
+
 // Auth pill
 (async function(){
   try{
@@ -351,6 +373,8 @@
       const {data:{session}} = await supa.auth.getSession();
       const el = document.getElementById('auth_state');
       if(el) el.textContent = session?.user?.email ? (`Signed in as ${session.user.email}`) : 'Not signed in';
+      const welcome = document.getElementById('welcomeLine');
+      if (welcome) welcome.textContent = `Hello, ${friendlyName(session?.user)}`;
       const b = document.getElementById('logoutBtn');
       b?.addEventListener('click', async ()=>{ try{ await supa.auth.signOut(); }catch(_){} localStorage.removeItem('auth_token'); localStorage.removeItem('tt_root_token'); localStorage.removeItem('tt_admin_token'); location.reload(); }, {passive:true});
     }

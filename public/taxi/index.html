@@ -59,9 +59,16 @@
     .hint{color:var(--muted);font-size:12px;font-weight:800}
     .error{color:var(--err);font-weight:900;margin-top:8px}
     .success{color:var(--ok);font-weight:900;margin-top:8px}
+    .corner-meta{display:flex;flex-direction:column;align-items:flex-start;margin-bottom:10px}
+    .corner-meta .hello{font-size:16px;font-weight:900;color:var(--ink)}
+    .corner-meta .time{font-size:13px;font-weight:800;color:var(--muted)}
   </style>
 </head>
 <body>
+  <div class="corner-meta">
+    <div class="hello" id="welcomeLine">Hello!</div>
+    <div class="time" id="dateTimeLine">--</div>
+  </div>
   <header>
     <div class="brand">
       <h1>Taxi Console</h1>
@@ -164,6 +171,27 @@
   </section>
 
   <script>
+    function friendlyName(user){
+      if(!user) return 'Taxi Owner';
+      const meta = user.user_metadata || {};
+      const email = user.email || '';
+      return meta.full_name || meta.name || meta.display_name || meta.displayName || (email ? email.split('@')[0] : 'Taxi Owner');
+    }
+    function setWelcome(user){
+      const el = document.getElementById('welcomeLine');
+      if(!el) return;
+      const name = friendlyName(user);
+      el.textContent = `Hello, ${name}`;
+    }
+    function startClock(){
+      const el = document.getElementById('dateTimeLine');
+      if(!el) return;
+      const update = ()=>{ el.textContent = new Date().toLocaleString(); };
+      update();
+      setInterval(update, 1000);
+    }
+    startClock();
+
     // ---------- Auth header (no manual token UI) ----------
     async function getAuthHeader(){
       try{
@@ -283,6 +311,7 @@
           const { data:{ session } } = await supa.auth.getSession();
           const el = document.getElementById('auth_state');
           if(el) el.textContent = session?.user?.email ? (`Signed in as ${session.user.email}`) : 'Not signed in';
+          setWelcome(session?.user);
           const b=document.getElementById('logoutBtn');
           b?.addEventListener('click', async ()=>{ try{ await supa.auth.signOut(); }catch(_){} localStorage.removeItem('auth_token'); localStorage.removeItem('tt_root_token'); localStorage.removeItem('tt_admin_token'); location.reload(); }, {passive:true});
           setSessionState(session?.user? 'Session: OK' : 'Session: missing', session?.user? 'ok':'warn');

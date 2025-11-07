@@ -1,8 +1,8 @@
-<!doctype html>
+ï»¿<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
-  <title>TekeTeke — SACCO Dashboard</title>
+  <title>TekeTeke â€” SACCO Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
 
   <!-- Charts -->
@@ -44,8 +44,8 @@
 </head>
 <body>
 
-  <a class="back" href="/public/auth/role-select.html">? Back</a>
-  <h2>SACCO Dashboard</h2>
+  <a class="back" href="/public/auth/role-select.html">&larr; Back</a>
+  <h2 id="saccoHeadline">SACCO Dashboard</h2>
 
   <div class="bar">
     <label>SACCO <select id="saccoSelect"></select></label>
@@ -67,7 +67,7 @@
   <!-- Matatus -->
   <section id="p_matatus" class="panel active">
     <div class="row">
-      <input id="matatuSearch" placeholder="Search plate…"/>
+      <input id="matatuSearch" placeholder="Search plateâ€¦"/>
       <button class="ghost" id="reloadMatatus">Reload</button>
       <span class="right k" id="matatuCount"></span>
     </div>
@@ -162,7 +162,7 @@
       <h3>Create Loan</h3>
       <div class="form-grid">
         <input id="lnBorrower" placeholder="Borrower name"/>
-        <select id="lnMatatu" class="w-2"><option value="">— optional — Matatu</option></select>
+        <select id="lnMatatu" class="w-2"><option value="">â€” optional â€” Matatu</option></select>
         <input id="lnPrincipal" type="number" placeholder="Principal (KES)"/>
         <input id="lnRate" type="number" placeholder="Interest % p.a"/>
         <input id="lnTerm" type="number" placeholder="Term (months)"/>
@@ -231,22 +231,40 @@
 
     let currentSacco = null;
     let matatuMap = new Map();
+    const saccoNames = new Map();
+    const headlineEl = document.getElementById('saccoHeadline');
+    const defaultHeadline = 'SACCO Dashboard';
+    function updateHeadlineFor(id){
+      if(!headlineEl) return;
+      if(!id){
+        headlineEl.textContent = defaultHeadline;
+        return;
+      }
+      const label = saccoNames.get(id) || id;
+      headlineEl.textContent = `${label} SACCO Dashboard`;
+    }
 
     async function loadSaccos(){
       const sel = $('saccoSelect');
-      sel.innerHTML = '<option value="">— choose —</option>';
+      sel.innerHTML = '<option value="">- choose -</option>';
       const res = await jget('/u/my-saccos');
       const items = res.items || [];
+      saccoNames.clear();
       items.forEach(s=>{
         const o=document.createElement('option');
         o.value=s.sacco_id;
         o.textContent=s.name||s.sacco_id;
         sel.appendChild(o);
+        saccoNames.set(s.sacco_id, s.name || s.sacco_id);
       });
       $('statusMsg').textContent = `${items.length} SACCO(s)`;
       if(items.length){
         sel.value = items[0].sacco_id;
         currentSacco = sel.value;
+        updateHeadlineFor(currentSacco);
+      } else {
+        currentSacco = null;
+        updateHeadlineFor(null);
       }
     }
 
@@ -269,7 +287,7 @@
 
       // loans matatu select
       const sel = $('lnMatatu');
-      sel.innerHTML = '<option value="">— optional — Matatu</option>';
+      sel.innerHTML = '<option value="">â€” optional â€” Matatu</option>';
       (data.items||[]).forEach(m=>{
         const o=document.createElement('option');
         o.value=m.id; o.textContent=m.number_plate;
@@ -414,6 +432,7 @@
     // Events
     $('saccoSelect').onchange = async ()=>{
       currentSacco = $('saccoSelect').value || null;
+      updateHeadlineFor(currentSacco);
       await Promise.all([ loadMatatus(), loadTxAndTotals(), loadStaff(), loadLoans() ]);
     };
     $('applyRange').onclick = ()=> loadTxAndTotals();
@@ -460,7 +479,7 @@
       const pill=document.createElement('span');
       pill.id='auth_state';
       pill.style.cssText='background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;padding:4px 10px;border-radius:999px;font-size:12px;max-width:40vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
-      pill.textContent='Checking sign-in…';
+      pill.textContent='Checking sign-inâ€¦';
       const btn=document.createElement('button');
       btn.textContent='Logout';
       btn.style.cssText='padding:6px 10px;border-radius:6px;border:1px solid #cfe3ff;background:#0b5cab;color:#fff;cursor:pointer';
@@ -484,3 +503,4 @@
   </script>
 </body>
 </html>
+

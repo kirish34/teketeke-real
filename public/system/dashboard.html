@@ -37,6 +37,10 @@
     .row{display:flex;flex-wrap:wrap;gap:8px}
     .hint{font-size:12px;color:#6b7280;margin-top:4px}
     .section{margin-top:10px}
+    .stacked{display:flex;flex-direction:column;gap:6px}
+    .stacked .item{padding:6px 0;border-bottom:1px solid var(--border);font-size:13px}
+    .stacked .item:last-child{border-bottom:none}
+    .sacco-matatu-list{font-size:13px}
   </style>
 </head>
 <body>
@@ -101,7 +105,16 @@
       <input id="mt_owner" placeholder="Owner name" />
       <input id="mt_phone" placeholder="Owner phone" />
       <input id="mt_till" placeholder="Till number" />
-      <input id="mt_sacco" placeholder="SACCO id" />
+      <select id="mt_sacco">
+        <option value="">Select SACCO</option>
+      </select>
+    </div>
+
+    <div class="hint" id="mt_sacco_hint">Select a SACCO to link this matatu.</div>
+
+    <div class="section">
+      <h4 style="margin:8px 0 4px">Matatus already registered in this SACCO</h4>
+      <div id="mt_existing_list" class="sacco-matatu-list muted">Select a SACCO to see matatus registered under it.</div>
     </div>
 
     <div class="section">
@@ -121,8 +134,8 @@
     </div>
 
     <table>
-      <thead><tr><th>Plate</th><th>Type</th><th>SACCO</th><th>ID</th></tr></thead>
-      <tbody id="mt_list"><tr><td colspan="4" class="muted">Loading…</td></tr></tbody>
+      <thead><tr><th>Plate</th><th>Owner</th><th>Type</th><th>SACCO</th><th>ID</th></tr></thead>
+      <tbody id="mt_list"><tr><td colspan="5" class="muted">Loading…</td></tr></tbody>
     </table>
   </section>
 
@@ -133,8 +146,9 @@
       <input id="taxi_owner" placeholder="Owner name" />
       <input id="taxi_phone" placeholder="Owner phone" />
       <input id="taxi_till" placeholder="Till number" />
-      <input id="taxi_sacco" placeholder="SACCO id" />
+      <input id="taxi_sacco" placeholder="SACCO id (optional)" />
     </div>
+    <div class="hint">Leave SACCO empty if this taxi is not registered under one.</div>
 
     <div class="section">
       <h4 style="margin:8px 0 4px">Create Taxi Login (optional)</h4>
@@ -163,8 +177,9 @@
       <input id="boda_owner" placeholder="Rider name" />
       <input id="boda_phone" placeholder="Rider phone" />
       <input id="boda_till" placeholder="Till number" />
-      <input id="boda_sacco" placeholder="SACCO id" />
+      <input id="boda_sacco" placeholder="SACCO id (optional)" />
     </div>
+    <div class="hint">SACCO linkage is optional for boda bodas.</div>
 
     <div class="section">
       <h4 style="margin:8px 0 4px">Create Boda Login (optional)</h4>
@@ -241,6 +256,7 @@
       const sb = createClient(window.SUPABASE_URL || '', window.SUPABASE_ANON_KEY || '');
       const $ = (id)=>document.getElementById(id);
       const badge = $('sess_badge');
+      const state = { saccos: [], vehicles: [], vehiclesLoaded: false };
 
       const parseErr = (err) => {
         if (!err) return 'Unknown error';
@@ -292,6 +308,77 @@
         try { return JSON.parse(tx); } catch { return {}; }
       }
 
+      function saccoLabel(id){
+        if (!id) return '';
+        const sacco = state.saccos.find(s => s.id === id);
+        if (!sacco) return id;
+        return sacco.name ? `${sacco.name} (${sacco.id})` : sacco.id;
+      }
+
+      function populateMatatuSaccoSelect(){
+        const select = $('mt_sacco');
+        if (!select) return;
+        const current = select.value;
+        const options = ['<option value=\"\">Select SACCO</option>'];
+        state.saccos.forEach(row => {
+          const label = row.name ? `${row.name} (${row.id})` : row.id;
+          options.push(`<option value=\"${row.id}\">${label}</option>`);
+        });
+        select.innerHTML = options.join('');
+        if (current && state.saccos.some(row => row.id === current)){
+          select.value = current;
+        }
+        refreshMatatuSaccoMeta();
+      }
+
+      function refreshMatatuSaccoMeta(){
+        const hint = $('mt_sacco_hint');
+        const select = $('mt_sacco');
+        const saccoId = select ? select.value : '';
+        if (hint){
+          if (!saccoId){
+            hint.textContent = 'Select a SACCO to link this matatu.';
+          }else{
+            const sacco = state.saccos.find(s => s.id === saccoId);
+            const base = sacco ? `${sacco.name || 'Unnamed SACCO'} - ID ${sacco.id}` : saccoId;
+            const till = sacco?.default_till ? ` - Default till ${sacco.default_till}` : '';
+            hint.textContent = base + till;
+          }
+        }
+        renderExistingMatatuList(saccoId);
+      }
+
+      function renderExistingMatatuList(saccoId){
+        const list = $('mt_existing_list');
+        if (!list) return;
+        if (!saccoId){
+          list.classList.remove('stacked');
+          list.classList.add('muted');
+          list.textContent = 'Select a SACCO to see matatus registered under it.';
+          return;
+        }
+        if (!state.vehiclesLoaded){
+          list.classList.remove('stacked');
+          list.classList.add('muted');
+          list.textContent = 'Matatu register is still loading...';
+          return;
+        }
+        const matatus = (state.vehicles||[]).filter(row => row.sacco_id === saccoId && !['TAXI','BODABODA'].includes(normalizeType(row)));
+        if (!matatus.length){
+          list.classList.remove('stacked');
+          list.classList.add('muted');
+          list.textContent = 'No matatus registered for this SACCO yet.';
+          return;
+        }
+        list.classList.add('stacked');
+        list.classList.remove('muted');
+        list.innerHTML = matatus.map(row => {
+          const owner = row.owner_name || 'Owner not set';
+          const phone = row.owner_phone ? ` | ${row.owner_phone}` : '';
+          return `<div class=\"item\"><strong>${owner}</strong> - ${row.number_plate || ''} (ID: ${row.id || ''})${phone}</div>`;
+        }).join('');
+      }
+
       $('logout_btn').addEventListener('click', async ()=>{
         await sb.auth.signOut();
         localStorage.removeItem('auth_token');
@@ -302,15 +389,22 @@
       async function loadSaccos(){
         try{
           const data = await jget('/api/admin/saccos');
-          $('sc_list').innerHTML = (data.items||[]).map(row=>`
+          const rows = Array.isArray(data.items) ? data.items : [];
+          state.saccos = rows;
+          $('sc_list').innerHTML = rows.length ? rows.map(row=>`
             <tr>
               <td>${row.name||''}</td>
               <td>${row.contact_name||''}</td>
               <td>${row.contact_phone||''}</td>
               <td>${row.contact_email||''}</td>
               <td>${row.id||''}</td>
-            </tr>`).join('') || '<tr><td colspan="5" class="muted">No SACCOs yet</td></tr>';
+            </tr>`).join('') : '<tr><td colspan="5" class="muted">No SACCOs yet</td></tr>';
+          populateMatatuSaccoSelect();
+          if (state.vehiclesLoaded) renderVehicleTables();
         }catch(e){
+          state.saccos = [];
+          populateMatatuSaccoSelect();
+          if (state.vehiclesLoaded) renderVehicleTables();
           $('sc_list').innerHTML = `<tr><td colspan="5" class="err">${parseErr(e)}</td></tr>`;
         }
       }
@@ -361,45 +455,61 @@
         return (row?.vehicle_type || '').toString().toUpperCase();
       }
 
+      function renderVehicleTables(){
+        const items = Array.isArray(state.vehicles) ? state.vehicles : [];
+
+        const matatus = items.filter(row => {
+          const t = normalizeType(row);
+          return t !== 'TAXI' && t !== 'BODABODA';
+        });
+        const taxis = items.filter(row => normalizeType(row) === 'TAXI');
+        const bodas = items.filter(row => normalizeType(row) === 'BODABODA');
+
+        $('mt_list').innerHTML = matatus.length ? matatus.map(row=>`
+          <tr>
+            <td>${row.number_plate||''}</td>
+            <td>${row.owner_name||''}</td>
+            <td>${row.vehicle_type||''}</td>
+            <td>${saccoLabel(row.sacco_id) || 'N/A'}</td>
+            <td>${row.id||''}</td>
+          </tr>`).join('') : '<tr><td colspan="5" class="muted">No matatus yet</td></tr>';
+
+        $('taxi_list').innerHTML = taxis.length ? taxis.map(row=>`
+          <tr>
+            <td>${row.number_plate||''}</td>
+            <td>${saccoLabel(row.sacco_id) || 'N/A'}</td>
+            <td>${row.id||''}</td>
+          </tr>`).join('') : '<tr><td colspan="3" class="muted">No taxis yet</td></tr>';
+
+        $('boda_list').innerHTML = bodas.length ? bodas.map(row=>`
+          <tr>
+            <td>${row.number_plate||''}</td>
+            <td>${saccoLabel(row.sacco_id) || 'N/A'}</td>
+            <td>${row.id||''}</td>
+          </tr>`).join('') : '<tr><td colspan="3" class="muted">No boda bodas yet</td></tr>';
+      }
+
       async function loadVehicles(){
         try{
           const data = await jget('/api/admin/matatus');
-          const items = Array.isArray(data.items) ? data.items : [];
-
-          const matatus = items.filter(row => {
-            const t = normalizeType(row);
-            return t !== 'TAXI' && t !== 'BODABODA';
-          });
-          const taxis = items.filter(row => normalizeType(row) === 'TAXI');
-          const bodas = items.filter(row => normalizeType(row) === 'BODABODA');
-
-          $('mt_list').innerHTML = matatus.length ? matatus.map(row=>`
-            <tr>
-              <td>${row.number_plate||''}</td>
-              <td>${row.vehicle_type||''}</td>
-              <td>${row.sacco_id||''}</td>
-              <td>${row.id||''}</td>
-            </tr>`).join('') : '<tr><td colspan="4" class="muted">No matatus yet</td></tr>';
-
-          $('taxi_list').innerHTML = taxis.length ? taxis.map(row=>`
-            <tr>
-              <td>${row.number_plate||''}</td>
-              <td>${row.sacco_id||''}</td>
-              <td>${row.id||''}</td>
-            </tr>`).join('') : '<tr><td colspan="3" class="muted">No taxis yet</td></tr>';
-
-          $('boda_list').innerHTML = bodas.length ? bodas.map(row=>`
-            <tr>
-              <td>${row.number_plate||''}</td>
-              <td>${row.sacco_id||''}</td>
-              <td>${row.id||''}</td>
-            </tr>`).join('') : '<tr><td colspan="3" class="muted">No boda bodas yet</td></tr>';
+          state.vehicles = Array.isArray(data.items) ? data.items : [];
+          state.vehiclesLoaded = true;
+          renderVehicleTables();
+          refreshMatatuSaccoMeta();
         }catch(e){
-          const errMatatu = `<tr><td colspan="4" class="err">${parseErr(e)}</td></tr>`;
+          state.vehicles = [];
+          state.vehiclesLoaded = false;
+          const errMatatu = `<tr><td colspan="5" class="err">${parseErr(e)}</td></tr>`;
           const errVehicle = `<tr><td colspan="3" class="err">${parseErr(e)}</td></tr>`;
           $('mt_list').innerHTML = errMatatu;
           $('taxi_list').innerHTML = errVehicle;
           $('boda_list').innerHTML = errVehicle;
+          const list = $('mt_existing_list');
+          if (list){
+            list.classList.remove('stacked');
+            list.classList.add('muted');
+            list.textContent = `Failed to load matatus: ${parseErr(e)}`;
+          }
         }
       }
 
@@ -416,7 +526,9 @@
         const tillEl = cfg.tillId ? $(cfg.tillId) : null;
 
         const number_plate = (plateEl?.value || '').trim().toUpperCase();
-        const sacco_id = (saccoEl?.value || '').trim();
+        const saccoValue = (saccoEl?.value || '').trim();
+        const sacco_id = saccoValue || null;
+        const requireSacco = cfg.requireSacco !== false;
         const owner_name = ownerEl ? ownerEl.value.trim() : '';
         const owner_phone = phoneEl ? phoneEl.value.trim() : '';
         const till_number = tillEl ? tillEl.value.trim() : '';
@@ -426,7 +538,7 @@
           msgEl.textContent = 'Plate required';
           return;
         }
-        if (!sacco_id){
+        if (requireSacco && !sacco_id){
           msgEl.className = 'err';
           msgEl.textContent = 'SACCO id required';
           return;
@@ -479,6 +591,11 @@
         }
       }
 
+      const mtSaccoSelect = $('mt_sacco');
+      if (mtSaccoSelect){
+        mtSaccoSelect.addEventListener('change', refreshMatatuSaccoMeta);
+      }
+
       $('mt_add').addEventListener('click', () =>{
         handleVehicleRegistration({
           type:'MATATU',
@@ -507,6 +624,7 @@
           saccoId:'taxi_sacco',
           msgId:'taxi_msg',
           successLabel:'Taxi',
+          requireSacco:false,
           logins:[
             { emailId:'taxi_email', passId:'taxi_pass', role:'TAXI' }
           ],
@@ -524,6 +642,7 @@
           saccoId:'boda_sacco',
           msgId:'boda_msg',
           successLabel:'Boda boda',
+          requireSacco:false,
           logins:[
             { emailId:'boda_email', passId:'boda_pass', role:'BODA' }
           ],

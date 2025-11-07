@@ -94,7 +94,7 @@
         <option value="TAXI">TAXI</option>
         <option value="BODABODA">BODABODA</option>
       </select>
-      <input id="mt_sacco" placeholder="SACCO id"/>
+      <input id="mt_sacco" placeholder="SACCO id (optional for TAXI/BODABODA)"/>
     </div>
     <div class="section">
       <h4 style="margin:8px 0 4px">Create Associated Logins (optional)</h4>
@@ -236,8 +236,11 @@
       $('mt_add').addEventListener('click', async ()=>{
         const msg=$('mt_msg'); msg.className='muted'; msg.textContent='Saving…';
         try{
-          const payload={ number_plate:($('mt_plate').value||'').trim().toUpperCase(), owner_name:$('mt_owner').value.trim()||null, owner_phone:$('mt_phone').value.trim()||null, till_number:$('mt_till').value.trim()||null, vehicle_type:$('mt_type').value, sacco_id:$('mt_sacco').value.trim()||null };
-          if(!payload.number_plate) throw new Error('Plate required'); if(!payload.sacco_id) throw new Error('SACCO id required');
+          const vehicleType=$('mt_type').value||'MATATU';
+          const saccoValue=$('mt_sacco').value.trim();
+          const payload={ number_plate:($('mt_plate').value||'').trim().toUpperCase(), owner_name:$('mt_owner').value.trim()||null, owner_phone:$('mt_phone').value.trim()||null, till_number:$('mt_till').value.trim()||null, vehicle_type:vehicleType, sacco_id:(saccoValue||null) };
+          const needsSacco=vehicleType!=='TAXI'&&vehicleType!=='BODABODA';
+          if(!payload.number_plate) throw new Error('Plate required'); if(needsSacco&&!payload.sacco_id) throw new Error('SACCO id required for MATATU');
           const res=await jpost('/api/admin/register-matatu', payload); const matatuId=res?.id; if(!matatuId) throw new Error('Matatu created but id missing');
           let notes=''; const wants=[];
           const oE=$('mt_owner_email').value.trim(), oP=$('mt_owner_pass').value; if(oE&&oP) wants.push({role:'OWNER',email:oE,password:oP});

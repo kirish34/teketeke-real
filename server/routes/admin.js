@@ -131,8 +131,21 @@ router.get('/matatus', async (req,res)=>{
   res.json({ items: data||[] });
 });
 router.post('/register-matatu', async (req,res)=>{
-  const row = { sacco_id: req.body?.sacco_id, number_plate: (req.body?.number_plate||'').toUpperCase(), owner_name: req.body?.owner_name, owner_phone: req.body?.owner_phone, vehicle_type: req.body?.vehicle_type, tlb_number: req.body?.tlb_number, till_number: req.body?.till_number };
-  if(!row.sacco_id || !row.number_plate) return res.status(400).json({error:'sacco_id and number_plate required'});
+  const vehicleType = (req.body?.vehicle_type || 'MATATU').toString().toUpperCase();
+  const saccoRaw = req.body?.sacco_id;
+  const saccoId = typeof saccoRaw === 'string' ? saccoRaw.trim() : saccoRaw;
+  const row = {
+    sacco_id: saccoId || null,
+    number_plate: (req.body?.number_plate||'').toUpperCase(),
+    owner_name: req.body?.owner_name,
+    owner_phone: req.body?.owner_phone,
+    vehicle_type: vehicleType,
+    tlb_number: req.body?.tlb_number,
+    till_number: req.body?.till_number
+  };
+  if(!row.number_plate) return res.status(400).json({error:'number_plate required'});
+  const needsSacco = vehicleType !== 'TAXI' && vehicleType !== 'BODABODA';
+  if (needsSacco && !row.sacco_id) return res.status(400).json({error:`sacco_id required for ${vehicleType}`});
   const { data, error } = await supabaseAdmin.from('matatus').insert(row).select().single();
   if (error) return res.status(500).json({ error: error.message });
   res.json(data);

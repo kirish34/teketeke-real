@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+ï»¿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TekeTeke — Boda Boda Console</title>
+  <title>TekeTeke â€” Boda Boda Console</title>
   <script src="/public/js/app-config.js"></script>
   <script src="/public/js/api.js"></script>
   <style>
@@ -24,7 +24,9 @@
 
     header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
     h1{margin:0;font-size:24px;letter-spacing:.2px;color:var(--sky);font-weight:900}
-    .date{font-weight:800;color:var(--muted)}
+    .brand-stack{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+    .brand-stack .hello{font-weight:900;color:#0f172a;font-size:16px}
+    .brand-stack .time{font-weight:800;color:var(--muted);font-size:13px}
     a.link{color:var(--sky);text-decoration:none;font-weight:900}
 
     section{background:var(--card);margin-top:14px;padding:14px;border-radius:14px;border:1px solid var(--border);box-shadow:0 6px 16px rgba(2,132,199,.07)}
@@ -63,10 +65,13 @@
 <body>
   <div class="wrap">
     <header>
-      <h1>Boda Boda Console</h1>
+      <div class="brand-stack">
+        <h1>Boda Boda Console</h1>
+        <div class="hello" id="welcomeLine">Hello, Rider</div>
+        <div class="time" id="dateTimeLine">--</div>
+      </div>
       <div class="row" style="gap:10px;align-items:center;justify-content:flex-end">
-        <div class="date" id="today"></div>
-        <span id="auth_state" class="pill" style="max-width:40vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Checking sign‑in…</span>
+        <span id="auth_state" class="pill" style="max-width:40vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Checking sign-in.</span>
         <button id="logoutBtn" class="link" style="border:1px solid var(--border);background:var(--sky);color:#fff;border-radius:10px;padding:8px 12px;cursor:pointer">Logout</button>
       </div>
     </header>
@@ -75,21 +80,21 @@
       <h2>Status</h2>
       <div class="row">
         <div>
-          <div class="pill" id="authState">Checking session…</div>
-          <div class="hint" id="whoamiHint">—</div>
+          <div class="pill" id="authState">Checking sessionâ€¦</div>
+          <div class="hint" id="whoamiHint">â€”</div>
         </div>
       </div>
     </section>
 
     <section>
-      <h2>Today’s Totals</h2>
+      <h2>Todayâ€™s Totals</h2>
       <div class="kpis">
-        <div class="kpi"><div class="v" id="kpiTill">—</div><div class="l">Till (M‑Pesa) Today</div></div>
-        <div class="kpi"><div class="v" id="kpiCash">—</div><div class="l">Cash Today</div></div>
-        <div class="kpi"><div class="v" id="kpiExp">—</div><div class="l">Expenses Today</div></div>
-        <div class="kpi"><div class="v" id="kpiNet">—</div><div class="l">Net Today</div></div>
+        <div class="kpi"><div class="v" id="kpiTill">â€”</div><div class="l">Till (Mâ€‘Pesa) Today</div></div>
+        <div class="kpi"><div class="v" id="kpiCash">â€”</div><div class="l">Cash Today</div></div>
+        <div class="kpi"><div class="v" id="kpiExp">â€”</div><div class="l">Expenses Today</div></div>
+        <div class="kpi"><div class="v" id="kpiNet">â€”</div><div class="l">Net Today</div></div>
       </div>
-      <div class="hint" id="sumHint">Refreshing…</div>
+      <div class="hint" id="sumHint">Refreshingâ€¦</div>
     </section>
 
     <section>
@@ -101,7 +106,7 @@
           <label for="payerName">Payer Name</label>
           <input id="payerName" type="text" placeholder="optional" />
           <label for="payerPhone">Phone</label>
-          <input id="payerPhone" type="tel" inputmode="numeric" placeholder="07xx… (optional)" />
+          <input id="payerPhone" type="tel" inputmode="numeric" placeholder="07xxâ€¦ (optional)" />
           <label for="cashNotes">Notes</label>
           <textarea id="cashNotes" placeholder="optional"></textarea>
           <button id="btnCash">Collect Cash</button>
@@ -153,12 +158,25 @@
   </div>
 
   <script>
-    // ——— utils ———
+    // â€”â€”â€” utils â€”â€”â€”
     const $ = (id)=>document.getElementById(id);
     const fmt = (n)=> new Intl.NumberFormat('en-KE',{maximumFractionDigits:0}).format(Number(n||0));
-    $('today').textContent = new Date().toLocaleDateString();
+    const friendlyName = (user)=>{
+      if(!user) return 'rider';
+      const meta = user.user_metadata || {};
+      const email = user.email || '';
+      return meta.full_name || meta.name || meta.display_name || meta.displayName || (email ? email.split('@')[0] : 'rider');
+    };
+    function startCornerClock(){
+      const el = $('dateTimeLine');
+      if(!el) return;
+      const update = ()=>{ el.textContent = new Date().toLocaleString(); };
+      update();
+      setInterval(update, 1000);
+    }
+    startCornerClock();
 
-    // Supabase/TT session → Authorization header (if your backend expects Bearer). Falls back to cookie auth.
+    // Supabase/TT session â†’ Authorization header (if your backend expects Bearer). Falls back to cookie auth.
     async function getAuthHeader(){
       try{
         if (window.TT && window.TT.getSupabase){
@@ -178,15 +196,20 @@
       return ct.includes('application/json') ? res.json() : res.text();
     }
 
-    // ——— session indicators ———
+    // â€”â€”â€” session indicators â€”â€”â€”
     async function setAuthState(){
       const pill = $('authState');
       try{
         if (window.TT && window.TT.getSupabase){
           const supa = await window.TT.getSupabase();
           const { data:{ session } } = await supa.auth.getSession();
-          if(session){ pill.textContent = 'Session: OK'; pill.classList.add('ok'); }
-          else { pill.textContent = 'Session: missing'; pill.classList.add('warn'); }
+          if(session){
+            pill.textContent = 'Session: OK'; pill.classList.add('ok');
+            const welcome = $('welcomeLine');
+            if (welcome) welcome.textContent = `Hello, ${friendlyName(session.user)}`;
+          } else {
+            pill.textContent = 'Session: missing'; pill.classList.add('warn');
+          }
         }else{
           pill.textContent = 'Session: unknown'; pill.classList.add('warn');
         }
@@ -200,9 +223,9 @@
       }catch(e){ $('whoamiHint').textContent = 'Could not load user (login first)'; }
     }
 
-    // ——— summary ———
+    // â€”â€”â€” summary â€”â€”â€”
     async function refreshSummary(){
-      $('sumHint').textContent = 'Refreshing…';
+      $('sumHint').textContent = 'Refreshingâ€¦';
       try{
         const today = new Date().toISOString().slice(0,10);
         const s = await authFetch(`/api/boda/summary?date=${today}`);
@@ -218,7 +241,7 @@
       }catch(e){ $('sumHint').textContent = 'No summary yet'; }
     }
 
-    // ——— lists ———
+    // â€”â€”â€” lists â€”â€”â€”
     async function refreshCash(){
       try{
         const r = await authFetch('/api/boda/cash?limit=20');
@@ -227,7 +250,7 @@
         rows.forEach(x=>{
           const tr = document.createElement('tr');
           const t = x.created_at || x.time || x.ts;
-          tr.innerHTML = `<td>${t? new Date(t).toLocaleTimeString(): '—'}</td>`+
+          tr.innerHTML = `<td>${t? new Date(t).toLocaleTimeString(): 'â€”'}</td>`+
                           `<td>${x.payer_name||''}</td>`+
                           `<td>${x.phone||''}</td>`+
                           `<td>${fmt(x.amount||0)}</td>`+
@@ -245,8 +268,8 @@
         rows.forEach(x=>{
           const tr = document.createElement('tr');
           const t = x.created_at || x.time || x.ts;
-          tr.innerHTML = `<td>${t? new Date(t).toLocaleTimeString(): '—'}</td>`+
-                          `<td>${x.category||x.cat||'—'}</td>`+
+          tr.innerHTML = `<td>${t? new Date(t).toLocaleTimeString(): 'â€”'}</td>`+
+                          `<td>${x.category||x.cat||'â€”'}</td>`+
                           `<td>${fmt(x.amount||0)}</td>`+
                           `<td>${x.notes||''}</td>`;
           tb.appendChild(tr);
@@ -254,17 +277,17 @@
       }catch(e){ /* ignore */ }
     }
 
-    // ——— actions ———
+    // â€”â€”â€” actions â€”â€”â€”
     async function collectCash(){
       const amount = Number(($('cashAmount').value||'').trim());
       const payer_name = ($('payerName').value||'').trim();
       const phone = ($('payerPhone').value||'').trim();
       const notes = ($('cashNotes').value||'').trim();
-      const out = $('cashMsg'); out.textContent = 'Saving…'; out.className = 'hint';
+      const out = $('cashMsg'); out.textContent = 'Savingâ€¦'; out.className = 'hint';
       try{
         if(!(amount > 0)) throw new Error('Enter amount');
         await authFetch('/api/boda/cash', { method:'POST', body: JSON.stringify({ amount, payer_name, phone, notes }) });
-        out.textContent = 'Saved ✓'; out.className = 'success';
+        out.textContent = 'Saved âœ“'; out.className = 'success';
         $('cashAmount').value = ''; $('payerName').value=''; $('payerPhone').value=''; $('cashNotes').value='';
         refreshSummary(); refreshCash();
       }catch(err){ out.textContent = `Error: ${err.message||err}`; out.className = 'error'; }
@@ -274,17 +297,17 @@
       const category = $('expCat').value;
       const amount = Number(($('expAmount').value||'').trim());
       const notes = ($('expNotes').value||'').trim();
-      const out = $('expMsg'); out.textContent = 'Saving…'; out.className = 'hint';
+      const out = $('expMsg'); out.textContent = 'Savingâ€¦'; out.className = 'hint';
       try{
         if(!(amount > 0)) throw new Error('Enter amount');
         await authFetch('/api/boda/expenses', { method:'POST', body: JSON.stringify({ category, amount, notes }) });
-        out.textContent = 'Saved ✓'; out.className = 'success';
+        out.textContent = 'Saved âœ“'; out.className = 'success';
         $('expAmount').value=''; $('expNotes').value='';
         refreshSummary(); refreshExpenses();
       }catch(err){ out.textContent = `Error: ${err.message||err}`; out.className = 'error'; }
     }
 
-    // ——— init ———
+    // â€”â€”â€” init â€”â€”â€”
     (function main(){
       setAuthState();
       loadWhoAmI();
@@ -304,6 +327,8 @@
           const {data:{session}} = await supa.auth.getSession();
           const el = document.getElementById('auth_state');
           if(el) el.textContent = session?.user?.email ? (`Signed in as ${session.user.email}`) : 'Not signed in';
+          const welcome = document.getElementById('welcomeLine');
+          if (welcome) welcome.textContent = `Hello, ${friendlyName(session?.user)}`;
           const b = document.getElementById('logoutBtn');
           b?.addEventListener('click', async ()=>{
             try{ await supa.auth.signOut(); }catch(_){ }
@@ -317,3 +342,4 @@
   </script>
 </body>
 </html>
+
