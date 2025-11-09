@@ -20,6 +20,15 @@ node scripts/seed-role-users.js
 ```
 This creates (or reuses) users such as `sacco.manager@example.com` with password `TekePass123!` and links them to the seeded sacco/matatu records via `public.user_roles`.
 
+## Front-end entry points
+- **Role chooser:** `/public/auth/role-select.html` (links to every dashboard + the ops console).
+- **Mobile PWA:** `/public/mobile/index.html` &rarr; offline queue, STK launch, transaction history and profile (installs from the browser). Works with `/api/pay/stk` and `/u/*` routes.
+- **Ops console (system admin):** `/public/ops/index.html` &rarr; manage SACCOs, vehicles, USSD pool, and recent logins via `/api/admin/*`.
+- **Legacy dashboards:** `/public/system/dashboard.html`, `/public/sacco/*`, `/public/matatu/*`, etc. remain available for parity testing.
+- **Native shell:** `/mobile-shell` contains a Capacitor wrapper that emits Android (and optional iOS) binaries. Run `npm run role:<slug>` inside that folder (e.g., `role:taxi`, `role:bodaboda`, `role:matatu-staff`) to sync assets and build a role-specific APK such as “TekeTeke Go Taxi”.
+- **Dashboard download cards:** Each applicable dashboard (matatu crew/staff, owner, sacco staff, taxi, boda) surfaces a “Download APK” CTA that links to `/downloads/teketeke-go-<role>.apk`. Replace those files with your signed builds when you publish new versions.
+- **Download landing page:** `/public/downloads/index.html` lists the APKs currently available. When you copy signed builds into `public/downloads/` and redeploy on Vercel, that page (and all CTA buttons) immediately point to the fresh binaries.
+
 ## Database
 Apply SQL in order:
 ```
@@ -55,5 +64,6 @@ supabase db push    # or psql -f supabase/migrations/000_core_schema.sql ...
 ## Notes
 - For production, put this server behind HTTPS and configure CORS & rate limiting.
 - To seed a **system admin**, insert a row into `staff_profiles` with your `auth.uid()` and role `SYSTEM_ADMIN`.
+- When generating APKs, copy the resulting files (e.g., `mobile-shell/android/app/build/outputs/apk/release/app-release.apk`) into `public/downloads/` using the naming convention above before pushing to Vercel so the download buttons stay current.
 
 

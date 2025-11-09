@@ -6,6 +6,7 @@
   <title>TekeTeke - Boda Boda Console</title>
   <script src="/public/js/app-config.js"></script>
   <script src="/public/js/api.js"></script>
+  <script src="/public/js/role-guard.js"></script>
   <style>
     :root{
       --sky:#0ea5e9; /* sky blue */
@@ -80,11 +81,21 @@
       <h2>Status</h2>
       <div class="row">
         <div>
-        <div class="pill" id="authState">Checking session...</div>
-        <div class="hint" id="whoamiHint">-</div>
+          <div class="pill" id="authState">Checking session...</div>
+          <div class="hint" id="whoamiHint">-</div>
         </div>
       </div>
     </section>
+
+    <div class="card" style="background:#e0f2fe;border:1px dashed #60a5fa">
+      <div class="row" style="align-items:center;gap:12px">
+        <div style="flex:1">
+          <h3 style="margin:0 0 4px;color:#0f172a">Install the Boda Boda app</h3>
+          <p class="hint" style="margin:0">Offline-first Android build tailored for riders.</p>
+        </div>
+        <a class="btn" href="/downloads/teketeke-go-boda.apk" download>Download APK</a>
+      </div>
+    </div>
 
     <section>
       <h2>Today's Totals</h2>
@@ -158,6 +169,12 @@
   </div>
 
   <script>
+  (async function(){
+    try{
+      await requireRole('BODA', { statusEl: 'authState', roleLabel: 'BodaBoda' });
+    }catch(_){
+      return;
+    }
     const $ = (id) => document.getElementById(id);
     const fmt = (n) => new Intl.NumberFormat('en-KE', { maximumFractionDigits: 0 }).format(Number(n || 0));
     const friendlyName = (user) => {
@@ -340,6 +357,7 @@
       $('btnExpense').addEventListener('click', saveExpense);
       setInterval(refreshSummary, 30000);
     })();
+  })();
   </script>
   <script>
     // Auth banner + logout using Supabase session

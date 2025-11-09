@@ -6,6 +6,7 @@
   <title>TekeTeke — Taxi Console</title>
   <script src="/public/js/app-config.js"></script>
   <script src="/public/js/api.js"></script>
+  <script src="/public/js/role-guard.js"></script>
   <style>
     :root{
       --sky:#0ea5e9;        /* sky blue */
@@ -100,6 +101,16 @@
       </div>
     </div>
   </section>
+
+  <div class="card" style="background:#ebf5ff;border:1px dashed #60a5fa">
+    <div class="row" style="align-items:center;gap:12px">
+      <div style="flex:1">
+        <h3 style="margin:0 0 4px;color:#0f172a">Taxi Android app</h3>
+        <p class="hint" style="margin:0">Download the offline-ready taxi app for faster field access.</p>
+      </div>
+      <a class="btn" href="/downloads/teketeke-go-taxi.apk" download>Download APK</a>
+    </div>
+  </div>
 
   <section>
     <h2>Today</h2>
@@ -304,6 +315,11 @@
 
     // --- Init ---
     (async function main(){
+      try{
+        await requireRole('TAXI', { statusEl: 'sessionState', roleLabel: 'Taxi' });
+      }catch(_){
+        return;
+      }
       try{
         // Session pill (top-right)
         if(window.TT && window.TT.getSupabase){

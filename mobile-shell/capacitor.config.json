@@ -1,0 +1,9 @@
+﻿{
+    "appId":  "com.teketeke.driver",
+    "appName":  "TekeTeke Go Driver",
+    "webDir":  "web",
+    "bundledWebRuntime":  false,
+    "server":  {
+                   "androidScheme":  "https"
+               }
+}

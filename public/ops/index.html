@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>TekeTeke Ops Console</title>
+  <link rel="stylesheet" href="./ops.css">
+  <script src="/public/js/app-config.js"></script>
+  <script src="/public/js/api.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      Ops Console
+      <span id="auth_state" class="badge">Checking session…</span>
+    </div>
+    <div class="right">
+      <a class="link" href="/public/auth/role-select.html">Role Select</a>
+      <button id="opsRefresh" class="btn ghost">Refresh</button>
+      <button id="opsLogout" class="btn ghost">Logout</button>
+    </div>
+  </header>
+
+  <main>
+    <nav class="tabbar" role="tablist">
+      <button class="tab active" data-panel="overview">Overview</button>
+      <button class="tab" data-panel="saccos">SACCOs</button>
+      <button class="tab" data-panel="matatus">Matatus</button>
+      <button class="tab" data-panel="ussd">USSD Pool</button>
+      <button class="tab" data-panel="logins">Logins</button>
+    </nav>
+
+    <section id="panel-overview" class="panel active">
+      <div class="card">
+        <h2>Platform snapshot</h2>
+        <div class="grid metrics">
+          <div class="metric"><div class="k">SACCOs</div><div class="v" id="ov_saccos">0</div></div>
+          <div class="metric"><div class="k">Matatus</div><div class="v" id="ov_matatus">0</div></div>
+          <div class="metric"><div class="k">Cashiers</div><div class="v" id="ov_staff">0</div></div>
+          <div class="metric"><div class="k">Tx today</div><div class="v" id="ov_tx">0</div></div>
+          <div class="metric"><div class="k">USSD available</div><div class="v" id="ov_pool_avail">0</div></div>
+          <div class="metric"><div class="k">USSD total</div><div class="v" id="ov_pool_total">0</div></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="panel-saccos" class="panel">
+      <div class="card">
+        <h2>Register SACCO</h2>
+        <form id="saccoForm" class="grid g2">
+          <label class="field">Name<input name="name" required placeholder="Sacco name"></label>
+          <label class="field">Default till<input name="default_till" placeholder="600XXX"></label>
+          <label class="field">Contact name<input name="contact_name" placeholder="Jane Doe"></label>
+          <label class="field">Contact phone<input name="contact_phone" placeholder="+2547..."></label>
+          <label class="field">Contact email<input name="contact_email" type="email" placeholder="ops@example.com"></label>
+          <label class="field">Admin login (optional)<input name="login_email" type="email" placeholder="admin@example.com"></label>
+          <label class="field">Admin password<input name="login_password" type="password" placeholder="StrongPass!"></label>
+          <div class="field" style="align-self:flex-end">
+            <button class="btn" type="submit">Create SACCO</button>
+            <div id="saccoMsg" class="status muted"></div>
+          </div>
+        </form>
+      </div>
+      <div class="card">
+        <div class="flex" style="justify-content:space-between;align-items:center">
+          <h2>SACCO list</h2>
+          <input id="saccoFilter" placeholder="Search by name" style="max-width:240px">
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Name</th><th>Contact</th><th>Phone</th><th>Email</th><th>Till</th><th>ID</th></tr></thead>
+            <tbody id="saccoTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="panel-matatus" class="panel">
+      <div class="card">
+        <h2>Register vehicle</h2>
+        <form id="matatuForm" class="grid g2">
+          <label class="field">SACCO<select name="sacco_id" id="matatuSacco"><option value="">-- optional for taxi/boda --</option></select></label>
+          <label class="field">Plate<input name="number_plate" placeholder="KDA 123A" required></label>
+          <label class="field">Vehicle type
+            <select name="vehicle_type">
+              <option value="MATATU">Matatu</option>
+              <option value="TAXI">Taxi</option>
+              <option value="BODABODA">BodaBoda</option>
+            </select>
+          </label>
+          <label class="field">Owner name<input name="owner_name" placeholder="Owner"></label>
+          <label class="field">Owner phone<input name="owner_phone" placeholder="+2547..."></label>
+          <label class="field">TLB number<input name="tlb_number" placeholder="TLB"></label>
+          <label class="field">Till number<input name="till_number" placeholder="Paybill/Till"></label>
+          <div class="field" style="align-self:flex-end">
+            <button class="btn" type="submit">Create vehicle</button>
+            <div id="matatuMsg" class="status muted"></div>
+          </div>
+        </form>
+      </div>
+      <div class="card">
+        <div class="flex" style="justify-content:space-between;align-items:center">
+          <h2>Vehicles</h2>
+          <select id="matatuFilter"><option value="">All SACCOS</option></select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Plate</th><th>Type</th><th>SACCO</th><th>Owner</th><th>Phone</th><th>Till</th></tr></thead>
+            <tbody id="matatuTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="panel-ussd" class="panel">
+      <div class="card">
+        <h2>Assign next USSD code</h2>
+        <form id="ussdForm" class="grid g2">
+          <label class="field">Prefix<input name="prefix" placeholder="*001*" value="*001*"></label>
+          <label class="field">Level
+            <select name="level">
+              <option value="MATATU">Matatu</option>
+              <option value="SACCO">SACCO</option>
+            </select>
+          </label>
+          <label class="field">Matatu ID<input name="matatu_id" placeholder="optional"></label>
+          <label class="field">SACCO ID<input name="sacco_id" placeholder="optional"></label>
+          <div class="field" style="align-self:flex-end">
+            <button class="btn" type="submit">Assign code</button>
+            <div id="ussdMsg" class="status muted"></div>
+          </div>
+        </form>
+      </div>
+      <div class="card">
+        <h3>Available codes</h3>
+        <ul id="ussdAvail" class="list"></ul>
+      </div>
+      <div class="card">
+        <h3>Recent allocations</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Code</th><th>Status</th><th>Level</th><th>Linked ID</th><th>Updated</th></tr></thead>
+            <tbody id="ussdAlloc"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="panel-logins" class="panel">
+      <div class="card">
+        <h2>Recent role logins</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Email</th><th>Role</th><th>Sacco</th><th>Matatu</th><th>Assigned</th></tr></thead>
+            <tbody id="loginTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="globalMsg" class="muted"></div>
+  <script type="module" src="./ops.js"></script>
+</body>
+</html>

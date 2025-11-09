@@ -1,238 +1,503 @@
-// TekeTeke Go — PWA shell
-import {} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+import {
+  ensureAuth,
+  authFetch,
+  getToken,
+  mountServiceWorker,
+  toast,
+  el,
+  fmtMoney,
+  fmtDate,
+  onNetChange,
+  signOut
+} from './shared/core.js';
 
-// Build Supabase client using the same config as dashboards
-const sb = window.supabase?.createClient(window.SUPABASE_URL || '', window.SUPABASE_ANON_KEY || '');
+const $ = el;
+const NEXT_URL = '/public/mobile/index.html';
+const QKEY = 'ttgo_queue_v2';
 
-// --- utilities ---
-const $ = (id) => document.getElementById(id);
-const toast = (t) => { const el = $('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(window._tt_to); window._tt_to = setTimeout(()=> el.classList.remove('show'), 2200); };
-const esc = (v)=> String(v ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
+const state = {
+  me: null,
+  sacco: null,
+  overview: null,
+  vehicles: [],
+  transactions: { fees: [], loans: [] },
+  loans: [],
+  queue: []
+};
+
+await ensureAuth({ next: NEXT_URL });
+mountServiceWorker('/public/mobile/sw.js');
+
+await initApp().catch((err) => {
+  console.error(err);
+  toast(err.message || 'Failed to load', 'err');
+});
+
+async function initApp(){
+  bindUI();
+  initTxRange();
+  state.queue = readQueue();
+  renderQueue();
+  setNetBadge();
+  await refreshAll();
+  processQueue();
+}
+
+function bindUI(){
+  const tabs = document.querySelectorAll('.tab');
+  tabs.forEach(tab => tab.addEventListener('click', () => switchPanel(tab.dataset.panel)));
+
+  $('#homePayBtn')?.addEventListener('click', () => switchPanel('pay'));
+  $('#refreshAll')?.addEventListener('click', () => refreshAll(true));
+  $('#txReload')?.addEventListener('click', () => refreshTransactions(true));
+  $('#verifyButton')?.addEventListener('click', () => refreshTransactions(true));
+
+  $('#payButton')?.addEventListener('click', () => handlePayment('SACCO_FEE'));
+  $('#loanPayBtn')?.addEventListener('click', () => handlePayment('LOAN_REPAY'));
+  $('#ussdBtn')?.addEventListener('click', openSelectedUSSD);
+
+  $('#payVehicle')?.addEventListener('change', updatePayCodeHint);
+
+  $('#logoutBtn')?.addEventListener('click', async () => {
+    await signOut().catch(()=>{});
+    localStorage.removeItem(QKEY);
+    location.href = '/public/auth/login.html';
+  });
+
+  let deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    deferredPrompt = event;
+    const btn = $('#installBtn');
+    if (btn) btn.hidden = false;
+  });
+  $('#installBtn')?.addEventListener('click', async ()=>{
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice.catch(()=>{});
+    deferredPrompt = null;
+    $('#installBtn').hidden = true;
+  });
+
+  onNetChange(() => {
+    setNetBadge();
+    if (navigator.onLine) processQueue();
+  });
+}
+
+function initTxRange(){
+  const to = new Date();
+  const from = new Date();
+  from.setDate(to.getDate() - 7);
+  if ($('#txFrom')) $('#txFrom').value = toISO(from);
+  if ($('#txTo')) $('#txTo').value = toISO(to);
+}
+
+function toISO(date){
+  return date.toISOString().slice(0,10);
+}
+
+function switchPanel(id){
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.panel === id));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === `panel-${id}`));
+}
+
+async function refreshAll(showToast = false){
+  setStatus('Refreshing…');
+  await fetchProfile();
+  await fetchVehicles();
+  await Promise.all([fetchOverview(), fetchTransactions(), fetchLoans()]);
+  renderSummary();
+  renderVehicles();
+  renderTransactionsTable();
+  renderLoans();
+  renderProfile();
+  setStatus('Updated just now');
+  if (showToast) toast('Data refreshed', 'ok');
+}
+
+async function fetchProfile(){
+  const [me, saccoRes] = await Promise.all([
+    authFetch('/u/me'),
+    authFetch('/u/my-saccos').catch(()=>({ items: [] }))
+  ]);
+  state.me = me || null;
+  state.sacco = saccoRes?.items?.[0] || null;
+}
+
+async function fetchVehicles(){
+  const res = await authFetch('/u/vehicles');
+  const vehicles = Array.isArray(res) ? res : (res?.items || []);
+  state.vehicles = await Promise.all(vehicles.map(async (vehicle) => {
+    try{
+      const ussd = await authFetch(`/u/ussd?matatu_id=${vehicle.id}`);
+      return { ...vehicle, ussd_code: ussd?.ussd_code || null };
+    }catch{
+      return { ...vehicle, ussd_code: null };
+    }
+  }));
+}
+
+async function fetchOverview(){
+  if (!state.me?.sacco_id){
+    state.overview = null;
+    return;
+  }
+  try{
+    state.overview = await authFetch('/u/sacco/overview');
+  }catch(e){
+    console.warn('overview failed', e);
+    state.overview = null;
+  }
+}
+
+async function fetchTransactions(){
+  const [fees, loans] = await Promise.all([
+    authFetch('/u/transactions?kind=fees'),
+    authFetch('/u/transactions?kind=loans')
+  ]);
+  state.transactions.fees = normalizeRows(fees);
+  state.transactions.loans = normalizeRows(loans);
+}
+
+async function fetchLoans(){
+  if (!state.sacco?.sacco_id){
+    state.loans = [];
+    return;
+  }
+  const rows = await authFetch(`/u/sacco/${state.sacco.sacco_id}/loans`);
+  state.loans = Array.isArray(rows) ? rows : (rows?.items || []);
+}
+
+function normalizeRows(payload){
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.items)) return payload.items;
+  return [];
+}
+
+function relevantFees(){
+  const list = state.transactions.fees || [];
+  if (state.me?.matatu_id){
+    return list.filter(tx => String(tx.matatu_id) === String(state.me.matatu_id));
+  }
+  if (state.sacco?.sacco_id){
+    return list.filter(tx => String(tx.sacco_id) === String(state.sacco.sacco_id));
+  }
+  return list;
+}
+
+function renderSummary(){
+  const fees = relevantFees();
+  const todayTx = fees.find(isTodayTx) || null;
+  const lastTx = fees[0] || null;
+
+  const statusEl = $('#statusToday');
+  if (statusEl){
+    statusEl.textContent = todayTx ? 'PAID' : 'UNPAID';
+    statusEl.classList.toggle('good', Boolean(todayTx));
+    statusEl.classList.toggle('bad', !todayTx);
+  }
+
+  $('#amountDue').textContent = state.sacco?.default_till
+    ? `Pay via ${state.sacco.default_till}`
+    : 'Ask your SACCO admin';
+
+  $('#lastPayment').textContent = lastTx
+    ? `${fmtMoney(lastTx.amount || lastTx.fare_amount_kes || lastTx.principal_kes || 0)} · ${fmtDate(lastTx.created_at || lastTx.date)}`
+    : 'No records yet';
+
+  $('#metricVehicles').textContent = state.vehicles.length || 0;
+  $('#metricFeesToday').textContent = fmtMoney(state.overview?.fees_today ?? sumToday(fees));
+  $('#metricLoansToday').textContent = fmtMoney(state.overview?.loans_today ?? sumToday(state.transactions.loans));
+  $('#metricQueue').textContent = state.queue.length || 0;
+}
+
+function sumToday(list){
+  return (list || []).filter(isTodayTx).reduce((sum, row) => sum + Number(row.amount || row.fare_amount_kes || 0), 0);
+}
+
+function renderVehicles(){
+  const listEl = $('#vehicleList');
+  if (listEl){
+    if (!state.vehicles.length){
+      listEl.innerHTML = '<li>No vehicles linked to this login.</li>';
+    }else{
+      listEl.innerHTML = state.vehicles.map(v => (
+        `<li><strong>${v.number_plate || v.plate}</strong> · ${v.vehicle_type || 'Vehicle'} · <span class="mono">${v.ussd_code || 'USSD pending'}</span></li>`
+      )).join('');
+    }
+  }
+
+  const select = $('#payVehicle');
+  if (select){
+    if (!state.vehicles.length){
+      select.innerHTML = '<option value="">No vehicle</option>';
+      select.disabled = true;
+    }else{
+      select.disabled = false;
+      select.innerHTML = state.vehicles
+        .map(v => `<option value="${v.id}">${v.number_plate || v.plate || v.id}</option>`)
+        .join('');
+      if (!Array.from(select.options).some(opt => opt.value === String(state.me?.matatu_id))){
+        select.value = state.me?.matatu_id || select.options[0].value;
+      }else{
+        select.value = String(state.me?.matatu_id);
+      }
+    }
+    updatePayCodeHint();
+  }
+}
+
+function renderTransactionsTable(){
+  const tbody = $('#txList');
+  if (!tbody) return;
+  const kindFilter = $('#txType')?.value || 'fees';
+  const from = parseDate($('#txFrom')?.value);
+  const to = parseDate($('#txTo')?.value);
+
+  let dataset = [];
+  if (kindFilter === 'loans') dataset = state.transactions.loans;
+  else if (kindFilter === 'fees') dataset = relevantFees();
+  else dataset = [...relevantFees(), ...state.transactions.loans];
+
+  const filtered = dataset.filter(row => isWithinRange(row?.created_at || row?.date, from, to));
+  if (!filtered.length){
+    tbody.innerHTML = '<tr><td colspan="4">No transactions in this range.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = filtered.map(tx => `
+    <tr>
+      <td>${fmtDate(tx.created_at || tx.date)}</td>
+      <td>${tx.kind || tx.type || 'N/A'}</td>
+      <td>${fmtMoney(tx.amount || tx.fare_amount_kes || tx.principal_kes || 0)}</td>
+      <td class="mono">${tx.external_id || tx.checkout_request_id || tx.ref || '—'}</td>
+    </tr>
+  `).join('');
+}
+
+function renderLoans(){
+  $('#loanOutstanding').textContent = fmtMoney(state.loans.reduce((sum, loan) => sum + Number(loan.principal_kes || 0), 0));
+  $('#loanNextDue').textContent = String(state.loans.filter(l => l.status === 'ACTIVE').length || 0) + ' active';
+  const next = state.loans.find(l => l.next_due_date) || null;
+  $('#loanNextDate').textContent = next ? fmtDate(next.next_due_date) : '--';
+
+  const tbody = $('#loanTbody');
+  if (tbody){
+    if (!state.loans.length){
+      tbody.innerHTML = '<tr><td colspan="6">No loans recorded for this SACCO.</td></tr>';
+    }else{
+      tbody.innerHTML = state.loans.map(loan => `
+        <tr>
+          <td>${loan.borrower_name || '—'}</td>
+          <td>${loan.matatu_id || '—'}</td>
+          <td>${fmtMoney(loan.principal_kes || 0)}</td>
+          <td>${loan.interest_rate_pct || 0}%</td>
+          <td>${loan.term_months || 0}m</td>
+          <td>${loan.status || 'UNKNOWN'}</td>
+        </tr>
+      `).join('');
+    }
+  }
+}
+
+function renderProfile(){
+  $('#pfUser').textContent = state.me?.email || '—';
+  $('#pfRole').textContent = state.sacco?.role || state.me?.role || '—';
+  $('#pfSacco').textContent = state.sacco?.name || '—';
+  $('#pfVehicles').textContent = state.vehicles.map(v => v.number_plate || v.plate).join(', ') || '—';
+}
+
+function setStatus(text){
+  const target = $('#statusMsg');
+  if (target) target.textContent = text;
+}
+
+function parseDate(value){
+  if (!value) return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function isWithinRange(iso, from, to){
+  if (!iso) return true;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return true;
+  if (from && date < from) return false;
+  if (to){
+    const end = new Date(to);
+    end.setHours(23,59,59,999);
+    if (date > end) return false;
+  }
+  return true;
+}
+
+function isTodayTx(tx){
+  if (!tx) return false;
+  const date = new Date(tx.created_at || tx.date);
+  if (Number.isNaN(date.getTime())) return false;
+  const now = new Date();
+  return date.toDateString() === now.toDateString();
+}
 
 function setNetBadge(){
-  const b = $('netBadge');
-  b.textContent = navigator.onLine ? 'online' : 'offline';
-  b.style.background = navigator.onLine ? '#dcfce7' : '#fee2e2';
-  b.style.color = navigator.onLine ? '#065f46' : '#991b1b';
+  const badge = $('#netBadge');
+  if (!badge) return;
+  const online = navigator.onLine;
+  badge.textContent = online ? 'online' : 'offline';
+  badge.classList.toggle('good', online);
+  badge.classList.toggle('bad', !online);
 }
-window.addEventListener('online', setNetBadge);
-window.addEventListener('offline', setNetBadge);
 
-// --- auth helpers ---
-async function getToken(){
-  try { const { data:{ session } } = await sb.auth.getSession(); return session?.access_token || null; } catch { return null; }
+function updatePayCodeHint(){
+  const select = $('#payVehicle');
+  const vehicle = state.vehicles.find(v => String(v.id) === (select?.value || ''));
+  $('#payCode').textContent = vehicle?.ussd_code || state.sacco?.default_till || '—';
 }
-function redirectToLogin(){
-  location.href = '/public/auth/login.html?next=' + encodeURIComponent('/public/mobile/index.html');
+
+async function handlePayment(kind){
+  const amountInput = kind === 'LOAN_REPAY' ? $('#loanPayAmount') : $('#payAmount');
+  const phoneInput = $('#payPhone');
+  const messageEl = kind === 'LOAN_REPAY' ? $('#loanMsg') : $('#payMsg');
+
+  const amount = Number((amountInput?.value || '').trim());
+  const phone = (phoneInput?.value || '').trim();
+  if (!amount || amount <= 0){
+    messageEl.textContent = 'Enter a valid amount.';
+    return;
+  }
+  if (!phone){
+    messageEl.textContent = 'Enter the phone number for the STK prompt.';
+    return;
+  }
+
+  const vehicle = state.vehicles.find(v => String(v.id) === ($('#payVehicle')?.value || '')) || state.vehicles[0] || {};
+  const payload = {
+    amount,
+    phone,
+    vehicle_id: vehicle?.id || null,
+    code: vehicle?.ussd_code || state.sacco?.default_till || 'TEKETEKE',
+    kind,
+    client_request_id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now())
+  };
+
+  messageEl.textContent = navigator.onLine ? 'Sending STK prompt…' : 'Offline. Saving to queue…';
+  try{
+    const result = await postOrQueue(payload);
+    if (result.queued){
+      messageEl.textContent = 'Queued for later. Will send once online.';
+      return;
+    }
+    messageEl.textContent = result.status || 'QUEUED';
+    toast('STK prompt sent', 'ok');
+    await refreshTransactions();
+  }catch(e){
+    messageEl.textContent = e.message || 'Failed to send';
+    toast(e.message || 'Payment failed', 'err');
+  }
 }
-async function authHeaders(){
-  const h = { 'Content-Type': 'application/json' };
-  const tok = await getToken();
-  if (!tok) { redirectToLogin(); throw new Error('Not signed in'); }
-  h['Authorization'] = 'Bearer ' + tok;
-  return h;
+
+async function refreshTransactions(showToast = false){
+  await fetchTransactions();
+  renderSummary();
+  renderTransactionsTable();
+  if (showToast) toast('Transactions refreshed', 'ok');
 }
-async function handleResponse(r){
-  if (r.status === 401) { redirectToLogin(); throw new Error('Unauthorized'); }
-  const text = await r.text();
-  if (!r.ok){
-    let msg = r.statusText || 'Request failed';
+
+function openSelectedUSSD(){
+  const vehicle = state.vehicles.find(v => String(v.id) === ($('#payVehicle')?.value || '')) || state.vehicles[0];
+  const code = vehicle?.ussd_code || state.sacco?.default_till;
+  if (!code){
+    toast('No USSD code assigned yet', 'warn');
+    return;
+  }
+  window.location.href = `tel:${encodeURIComponent(code)}`;
+}
+
+function readQueue(){
+  try{
+    return JSON.parse(localStorage.getItem(QKEY) || '[]');
+  }catch{
+    return [];
+  }
+}
+
+function writeQueue(items){
+  state.queue = items;
+  try{ localStorage.setItem(QKEY, JSON.stringify(items)); }catch{}
+  renderQueue();
+}
+
+function enqueue(payload){
+  const entry = { payload, created_at: Date.now() };
+  const list = readQueue();
+  list.push(entry);
+  writeQueue(list);
+}
+
+async function postOrQueue(payload){
+  if (!navigator.onLine){
+    enqueue(payload);
+    toast('Saved offline. Will sync later.', 'warn');
+    return { queued: true };
+  }
+  return sendPayment(payload);
+}
+
+async function sendPayment(payload){
+  const headers = { 'Content-Type':'application/json' };
+  const token = await getToken().catch(()=>null);
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+  const res = await fetch('/api/pay/stk', {
+    method:'POST',
+    headers,
+    body: JSON.stringify(payload)
+  });
+  const text = await res.text();
+  if (!res.ok){
+    let msg = 'Request failed';
     try{
       const j = text ? JSON.parse(text) : null;
-      if (j && (j.error || j.message)) msg = j.error || j.message; else if (text) msg = text;
-    }catch{ if (text) msg = text; }
+      msg = j?.error || j?.message || text || msg;
+    }catch{
+      msg = text || msg;
+    }
     throw new Error(msg);
   }
-  try { return text ? JSON.parse(text) : {}; } catch { return {}; }
-}
-async function authedFetch(path, options={}){
-  const r = await fetch(path, { ...options, headers: { ...(options.headers||{}), ...(await authHeaders()) }});
-  return handleResponse(r);
+  try{ return text ? JSON.parse(text) : {}; }catch{ return {}; }
 }
 
-// --- offline write queue (simple localStorage) ---
-const QKEY = 'ttgo_queue_v1';
-function readQ(){ try{ return JSON.parse(localStorage.getItem(QKEY)||'[]'); }catch{ return []; } }
-function writeQ(arr){ try{ localStorage.setItem(QKEY, JSON.stringify(arr)); }catch{} }
 async function processQueue(){
   if (!navigator.onLine) return;
-  let q = readQ();
-  if (!q.length) return;
-  const next = q[0];
+  const queue = readQueue();
+  if (!queue.length) return;
+  const [next, ...rest] = queue;
   try{
-    const r = await fetch(next.url, { method:'POST', headers: next.headers||{}, body: JSON.stringify(next.body||{}) });
-    await handleResponse(r);
-    q.shift(); writeQ(q);
-    setTimeout(processQueue, 50);
+    await sendPayment(next.payload);
+    toast('Queued payment sent', 'ok');
+    writeQueue(rest);
+    setTimeout(processQueue, 400);
   }catch(e){
-    // keep it for later
-  }
-}
-window.addEventListener('online', processQueue);
-
-async function postOrQueue(url, body){
-  const headers = await authHeaders();
-  if (navigator.onLine){
-    const r = await fetch(url, { method:'POST', headers, body: JSON.stringify(body||{}) });
-    return handleResponse(r);
-  } else {
-    const q = readQ();
-    q.push({ url, body, headers });
-    writeQ(q);
-    toast('Queued to sync when online');
-    return { queued:true };
+    console.warn('queue send failed', e);
   }
 }
 
-// --- UI: tabs ---
-(function tabs(){
-  const tabs = document.querySelectorAll('.tab');
-  tabs.forEach(t => t.addEventListener('click', () => {
-    tabs.forEach(x => x.classList.remove('active'));
-    t.classList.add('active');
-    const p = t.dataset.panel;
-    document.querySelectorAll('.panel').forEach(el => el.classList.remove('active'));
-    $('panel-' + p).classList.add('active');
-  }));
-})();
+function renderQueue(){
+  const badge = $('#queueBadge');
+  const card = $('#queueCard');
+  const list = $('#queueList');
+  const size = state.queue.length;
 
-// --- register service worker ---
-if ('serviceWorker' in navigator){
-  try { await navigator.serviceWorker.register('./sw.js'); } catch {}
-}
-
-// --- install prompt ---
-let deferredPrompt = null;
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault(); deferredPrompt = e; $('installBtn').hidden = false;
-});
-$('installBtn').addEventListener('click', async ()=>{
-  if (!deferredPrompt) return;
-  deferredPrompt.prompt();
-  await deferredPrompt.userChoice;
-  deferredPrompt = null;
-  $('installBtn').hidden = true;
-});
-
-// --- logout ---
-$('logoutBtn').addEventListener('click', async ()=>{
-  try{ await sb.auth.signOut(); }catch{}
-  try{ localStorage.removeItem(QKEY); }catch{}
-  location.href = '/public/auth/login.html';
-});
-
-// --- Feature: USSD open ---
-function openUSSD(code){ window.location.href = `tel:${encodeURIComponent(code)}`; }
-$('ussdBtn').addEventListener('click', async ()=>{
-  try{
-    const r = await authedFetch('/u/ussd/code');
-    openUSSD(r?.code || '*001*110#');
-  }catch{ openUSSD('*001*110#'); }
-});
-
-// --- Home / Summary ---
-async function loadSummary(){
-  const s = await authedFetch('/u/me/summary');
-  $('statusToday').textContent = s?.todayPaid ? 'PAID' : 'UNPAID';
-  $('statusToday').style.background = s?.todayPaid ? '#dcfce7' : '#fee2e2';
-  $('statusToday').style.color = s?.todayPaid ? '#065f46' : '#991b1b';
-  $('amountDue').textContent = s?.amountDue != null ? `KES ${s.amountDue}` : '—';
-  $('lastPayment').textContent = s?.lastTx ? `${s.lastTx.amount} @ ${s.lastTx.time}` : '—';
-  $('vehicleList').innerHTML = (s?.vehicles||[]).map(v => `<li>${esc(v.number_plate || v.plate || '')} — ${esc(v.sacco || '')}</li>`).join('') || '<li>None</li>';
-  // Profile
-  $('pfUser').textContent = s?.user?.email || '—';
-  $('pfRole').textContent = s?.role || (s?.user?.role || '—');
-  $('pfSacco').textContent = s?.sacco || '—';
-  $('pfVehicles').textContent = (s?.vehicles||[]).map(v=>v.number_plate||v.plate).join(', ') || '—';
-}
-$('homePayBtn').addEventListener('click', () => { document.querySelector('.tab[data-panel="pay"]').click(); });
-
-// --- Pay ---
-function randomId(){ return (typeof crypto!=='undefined' && crypto.randomUUID) ? crypto.randomUUID() : (Date.now()+'-'+Math.random()); }
-$('payButton').addEventListener('click', async ()=>{
-  const amount = Number(($('payAmount').value||'').trim() || 0);
-  if (!amount) { $('payMsg').textContent = 'Enter an amount'; return; }
-  $('payMsg').textContent = 'Starting STK push…';
-  const id = randomId();
-  try{
-    const r = await postOrQueue('/u/fees/pay', { amount, client_request_id: id });
-    if (r.queued){ $('payMsg').textContent = 'Queued (offline). Will process when online.'; return; }
-    $('payMsg').textContent = (r.status || 'PENDING');
-    // poll for final status for a short while
-    for (let i=0;i<8;i++){
-      await new Promise(res => setTimeout(res, 1500));
-      try{
-        const t = await authedFetch('/u/fees/today');
-        if (t?.paid){ $('payMsg').textContent = 'SUCCESS — Receipt '+(t?.tx?.ref || ''); await loadSummary(); return; }
-      }catch{}
+  if (badge) badge.textContent = `${size} queued`;
+  if (card) card.hidden = size === 0;
+  if (list){
+    if (!size){
+      list.innerHTML = '<li>No pending offline payments.</li>';
+    }else{
+      list.innerHTML = state.queue.map(item => {
+        const payload = item.payload || {};
+        return `<li><strong>${fmtMoney(payload.amount || 0)}</strong> · ${payload.phone || ''} · ${new Date(item.created_at).toLocaleString()}</li>`;
+      }).join('');
     }
-    $('payMsg').textContent = 'Pending confirmation…';
-  }catch(e){
-    $('payMsg').textContent = e.message || 'Payment failed';
   }
-});
-$('verifyButton').addEventListener('click', async ()=>{
-  $('payMsg').textContent = 'Checking today status…';
-  try{
-    const t = await authedFetch('/u/fees/today');
-    $('payMsg').textContent = t?.paid ? ('SUCCESS — Receipt '+(t?.tx?.ref||'')) : 'Not paid yet';
-    await loadSummary();
-  }catch(e){ $('payMsg').textContent = e.message || 'Check failed'; }
-});
-
-// --- Transactions ---
-function iso(d){ return d.toISOString().slice(0,10); }
-(function initTxDates(){
-  const to = new Date();
-  const from = new Date(); from.setDate(to.getDate()-7);
-  $('txFrom').value = iso(from);
-  $('txTo').value = iso(to);
-})();
-$('txReload').addEventListener('click', loadTx);
-async function loadTx(){
-  const from = $('txFrom').value, to = $('txTo').value, type = $('txType').value;
-  const q = new URLSearchParams({ from, to }); if (type) q.set('type', type);
-  const data = await authedFetch('/u/transactions?'+q.toString());
-  const list = Array.isArray(data) ? data : (data?.items || []);
-  $('txList').innerHTML = list.map(tx => `<tr><td>${esc(tx.date||'')}</td><td>${esc(tx.type||'')}</td><td>${esc(tx.amount||'')}</td><td class="mono">${esc(tx.ref||'')}</td></tr>`).join('');
 }
-
-// --- Loans ---
-async function loadLoans(){
-  try{
-    const s = await authedFetch('/u/loans/summary');
-    $('loanOutstanding').textContent = s?.outstanding != null ? `KES ${s.outstanding}` : '—';
-    $('loanNextDue').textContent = s?.next_amount != null ? `KES ${s.next_amount}` : '—';
-    $('loanNextDate').textContent = s?.next_date || '—';
-  }catch{}
-}
-$('loanPayBtn').addEventListener('click', async ()=>{
-  const amt = Number(($('loanPayAmount').value||'').trim()||0);
-  if (!amt){ $('loanMsg').textContent = 'Enter amount'; return; }
-  $('loanMsg').textContent = 'Starting loan repayment…';
-  const id = randomId();
-  try{
-    const r = await postOrQueue('/u/loans/pay', { amount: amt, client_request_id: id });
-    if (r.queued){ $('loanMsg').textContent = 'Queued (offline). Will process when online.'; return; }
-    $('loanMsg').textContent = r.status || 'PENDING';
-    setTimeout(loadLoans, 1500);
-  }catch(e){ $('loanMsg').textContent = e.message || 'Failed'; }
-});
-
-// --- init ---
-(async function init(){
-  setNetBadge();
-  // require session
-  const tok = await getToken();
-  if (!tok) return redirectToLogin();
-
-  // load data
-  try{
-    await loadSummary();
-    await loadTx();
-    await loadLoans();
-  }catch(e){ console.error(e); toast(e.message || 'Load error'); }
-
-  // start queue processor
-  processQueue();
-})();

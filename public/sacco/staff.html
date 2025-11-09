@@ -6,6 +6,7 @@
   <title>TekeTeke — SACCO Staff</title>
   <script src="/public/js/app-config.js"></script>
   <script src="/public/js/api.js"></script>
+  <script src="/public/js/role-guard.js"></script>
   <style>
     :root{ --brand:#1976d2; --brand-700:#135ba1; --bg:#f6f7fb; --panel:#fff; --border:#e5e7eb; --muted:#6b7280; --ink:#0b0f19; }
     *{box-sizing:border-box}
@@ -62,6 +63,15 @@
       <label>Search plate <input id="search" placeholder="KDA123A"/></label>
       <button id="reload" class="ghost">Reload</button>
       <span class="right muted" id="stat"></span>
+    </div>
+    <div class="card" style="background:#eef2ff;border:1px dashed #c7d2fe">
+      <div class="row" style="align-items:center;gap:12px">
+        <div style="flex:1">
+          <strong>Need offline mode?</strong>
+          <div class="muted">Download the SACCO Staff Android app for better offline recording.</div>
+        </div>
+        <a class="btn" href="/downloads/teketeke-go-sacco-staff.apk" download>Download APK</a>
+      </div>
     </div>
     
   </div>
@@ -182,6 +192,11 @@
 
 <script>
 (async function(){
+  try{
+    await requireRole('SACCO_STAFF', { statusEl: 'auth_state', roleLabel: 'SACCO Staff' });
+  }catch(_){
+    return;
+  }
   const $ = id => document.getElementById(id);
   const todayIso = d => new Date(d).toISOString().slice(0,10);
   const isToday = (ts) => todayIso(ts) === todayIso(new Date());

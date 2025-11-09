@@ -6,6 +6,7 @@
   <title>TekeTeke — Matatu Staff (Trips & Cash)</title>
   <script src="/public/js/app-config.js"></script>
   <script src="/public/js/api.js"></script>
+  <script src="/public/js/role-guard.js"></script>
   <style>
     :root{ --brand:#1976d2; --brand-700:#135ba1; --bg:#f6f7fb; --panel:#fff; --border:#e5e7eb; --muted:#6b7280; --ink:#0b0f19; }
     *{box-sizing:border-box}
@@ -73,6 +74,16 @@
     <div class="tab" data-panel="p_tx" role="tab">Transactions</div>
     <div class="tab" data-panel="p_manual" role="tab">Manual Cash</div>
     <div class="tab" data-panel="p_totals" role="tab">Totals</div>
+  </div>
+
+  <div class="card" style="background:#f3f5ff;border:1px dashed #c7d2fe">
+    <div class="row" style="align-items:center;gap:12px">
+      <div style="flex:1">
+        <h3 style="margin:0 0 4px">Need offline access?</h3>
+        <p class="muted" style="margin:0">Install the Matatu Staff Android app for full offline mode.</p>
+      </div>
+      <a class="btn" href="/downloads/teketeke-go-matatu-staff.apk" download>Download APK</a>
+    </div>
   </div>
 
   <!-- Trips Panel -->
@@ -178,6 +189,7 @@
   <div id="toast" role="status" aria-live="polite"></div>
 
 <script>
+requireRole('STAFF', { statusEl: 'auth_state', roleLabel: 'Matatu Staff' }).then(()=>{
 (function(){
   const $ = id => document.getElementById(id);
   const fmtKES = n => Number(n||0).toLocaleString('en-KE',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -473,6 +485,7 @@ startCornerClock();
     }
   }catch(_){ }
 })();
+}).catch(()=>{});
 </script>
 </body>
 </html>
