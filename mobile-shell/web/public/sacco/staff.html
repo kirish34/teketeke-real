@@ -1,9 +1,9 @@
-Ôªø<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>TekeTeke ‚Äî SACCO Staff</title>
+  <title>TekeTeke ó SACCO Staff</title>
   <script src="/public/js/app-config.js"></script>
   <script src="/public/js/api.js"></script>
   <script src="/public/js/role-guard.js"></script>
@@ -48,13 +48,13 @@
     <div class="time" id="dateTimeLine">--</div>
   </div>
   <div class="row" style="justify-content:space-between; align-items:center; margin-bottom:8px">
-    <a href="/public/auth/role-select.html">‚Üê Back</a>
+    <a href="/public/auth/role-select.html">? Back</a>
     <div class="row" style="gap:8px">
-      <span id="auth_state" class="pill">Checking sign-in‚Ä¶</span>
+      <span id="auth_state" class="pill">Checking sign-inÖ</span>
       <button id="logoutBtn" style="padding:8px 10px; border-radius:8px; border:1px solid #cfe3ff; background:#0b5cab; color:#fff">Logout</button>
     </div>
   </div>
-  <h2>SACCO Staff ‚Äî Cash Desk</h2>
+  <h2>SACCO Staff ó Cash Desk</h2>
 
   <!-- Top filters & defaults -->
   <div class="card stack">
@@ -70,7 +70,7 @@
           <strong>Need offline mode?</strong>
           <div class="muted">Download the SACCO Staff Android app for better offline recording.</div>
         </div>
-        <a class="btn" href="/downloads/teketeke-go-sacco-staff.apk" download>Download APK</a>
+        <a class="btn" href="/public/downloads/teketeke-go-sacco-staff.apk" download>Download APK</a>
       </div>
     </div>
     
@@ -238,7 +238,7 @@
       payer_phone: ''
     };
     await post('/api/staff/cash', body);
-    toast('Recorded ‚úì');
+    toast('Recorded ?');
     await Promise.all([renderAll(), loadRecentTx()]);
   }
 
@@ -296,14 +296,14 @@
     const dfSet = new Set(dfPaid.map(x=>x.matatu_id));
     renderPaidList('df_paid', dfPaid);
     renderDueList('df_due', dfSet, 'DAILY_FEE', '');
-    $('df_counts').textContent = `${dfPaid.length} paid ‚Ä¢ ${(MATATUS.length - dfSet.size)} due`;
+    $('df_counts').textContent = `${dfPaid.length} paid ï ${(MATATUS.length - dfSet.size)} due`;
 
     // LOANS
     const lnPaid = paidForKinds(['LOAN_REPAY']);
     const lnSet = new Set(lnPaid.map(x=>x.matatu_id));
     renderPaidList('ln_paid', lnPaid);
     renderDueList('ln_due', lnSet, 'LOAN_REPAY', '');
-    $('ln_counts').textContent = `${lnPaid.length} paid ‚Ä¢ ${(MATATUS.length - lnSet.size)} due`;
+    $('ln_counts').textContent = `${lnPaid.length} paid ï ${(MATATUS.length - lnSet.size)} due`;
 
     // SAVINGS
     const svPaid = paidForKinds(['SAVINGS']);
@@ -333,7 +333,7 @@
   // Simple self-tests (console-only)
   (function runSelfTests(){
     try{
-      console.group('SACCO Staff ‚Äî self-tests');
+      console.group('SACCO Staff ó self-tests');
       const now = new Date();
       const yesterday = new Date(Date.now()-24*3600*1000);
       console.assert(isToday(now) === true, 'isToday(now) should be true');
@@ -378,7 +378,7 @@
     const id = idEl && idEl.value; const amt = Number(amtEl && amtEl.value || 0);
     if(!id || !amt){ toast('Pick matatu & amount'); return; }
     const body = { sacco_id:SACCO_ID, matatu_id:id, kind, amount:amt, payer_name:(nameEl?nameEl.value.trim():''), payer_phone:(phoneEl?phoneEl.value.trim():'') };
-    post('/api/staff/cash', body).then(()=>{ toast('Recorded ‚úì'); if(amtEl) amtEl.value=''; renderAll(); loadRecentTx(); }).catch(e=>toast(e.message||'Error'));
+    post('/api/staff/cash', body).then(()=>{ toast('Recorded ?'); if(amtEl) amtEl.value=''; renderAll(); loadRecentTx(); }).catch(e=>toast(e.message||'Error'));
   };
   document.getElementById('df_collect')?.addEventListener('click', ()=> manual('df','DAILY_FEE'));
   document.getElementById('ln_collect')?.addEventListener('click', ()=> manual('ln','LOAN_REPAY'));
@@ -426,3 +426,4 @@ startCornerClock();
 </script>
 </body>
 </html>
+

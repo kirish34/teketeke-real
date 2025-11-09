@@ -1,9 +1,9 @@
-ï»¿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TekeTeke â€” Taxi Console</title>
+  <title>TekeTeke — Taxi Console</title>
   <script src="/public/js/app-config.js"></script>
   <script src="/public/js/api.js"></script>
   <script src="/public/js/role-guard.js"></script>
@@ -75,12 +75,12 @@
       <h1>Taxi Console</h1>
     </div>
     <div class="nav">
-      <a href="/public/auth/role-select.html">â†© Role Select</a>
+      <a href="/public/auth/role-select.html">? Role Select</a>
     </div>
   </header>
 
   <div class="row" style="justify-content:flex-end;gap:8px;margin-top:8px">
-    <span id="auth_state" class="pill" style="max-width:40vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Checking sign-inâ€¦</span>
+    <span id="auth_state" class="pill" style="max-width:40vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Checking sign-in…</span>
     <button id="logoutBtn" style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--sky);color:#fff;font-weight:900">Logout</button>
   </div>
 
@@ -88,8 +88,8 @@
     <h2>Status</h2>
     <div class="row">
       <div>
-        <div class="pill" id="sessionState">Checking sessionâ€¦</div>
-        <div class="hint" id="whoamiHint">â€”</div>
+        <div class="pill" id="sessionState">Checking session…</div>
+        <div class="hint" id="whoamiHint">—</div>
       </div>
       <div>
         <label for="taxiNo">Taxi Identifier</label>
@@ -108,19 +108,19 @@
         <h3 style="margin:0 0 4px;color:#0f172a">Taxi Android app</h3>
         <p class="hint" style="margin:0">Download the offline-ready taxi app for faster field access.</p>
       </div>
-      <a class="btn" href="/downloads/teketeke-go-taxi.apk" download>Download APK</a>
+      <a class="btn" href="/public/downloads/teketeke-go-taxi.apk" download>Download APK</a>
     </div>
   </div>
 
   <section>
     <h2>Today</h2>
     <div class="kpis">
-      <div class="kpi"><div class="v" id="kTillToday">â€”</div><div class="l">Till Today (KSh)</div></div>
-      <div class="kpi"><div class="v" id="kCashToday">â€”</div><div class="l">Cash Today (KSh)</div></div>
-      <div class="kpi"><div class="v" id="kExpToday">â€”</div><div class="l">Expenses Today</div></div>
-      <div class="kpi"><div class="v" id="kNetToday">â€”</div><div class="l">Net Today</div></div>
+      <div class="kpi"><div class="v" id="kTillToday">—</div><div class="l">Till Today (KSh)</div></div>
+      <div class="kpi"><div class="v" id="kCashToday">—</div><div class="l">Cash Today (KSh)</div></div>
+      <div class="kpi"><div class="v" id="kExpToday">—</div><div class="l">Expenses Today</div></div>
+      <div class="kpi"><div class="v" id="kNetToday">—</div><div class="l">Net Today</div></div>
     </div>
-    <div class="hint" id="sumHint">Refreshingâ€¦</div>
+    <div class="hint" id="sumHint">Refreshing…</div>
   </section>
 
   <section>
@@ -236,7 +236,7 @@
 
     // --- Summary ---
     async function refreshSummary(){
-      $('sumHint').textContent='Refreshingâ€¦';
+      $('sumHint').textContent='Refreshing…';
       try{
         const today = new Date().toISOString().slice(0,10);
         const data = await authFetch(`/api/taxi/summary?date=${today}`);
@@ -263,7 +263,7 @@
         rows.forEach(r=>{
           const tr = document.createElement('tr');
           const t = r.created_at || r.time || r.timestamp;
-          tr.innerHTML = `<td>${t? new Date(t).toLocaleTimeString():'â€”'}</td><td>${r.name||''}</td><td>${r.phone||''}</td><td>${fmt(r.amount||0)}</td>`;
+          tr.innerHTML = `<td>${t? new Date(t).toLocaleTimeString():'—'}</td><td>${r.name||''}</td><td>${r.phone||''}</td><td>${fmt(r.amount||0)}</td>`;
           tbody.appendChild(tr);
         });
       }catch(e){/* ignore */}
@@ -277,7 +277,7 @@
         rows.forEach(r=>{
           const tr = document.createElement('tr');
           const t = r.created_at || r.time || r.timestamp;
-          tr.innerHTML = `<td>${t? new Date(t).toLocaleTimeString():'â€”'}</td><td>${r.category||'â€”'}</td><td>${fmt(r.amount||0)}</td><td>${r.notes||''}</td>`;
+          tr.innerHTML = `<td>${t? new Date(t).toLocaleTimeString():'—'}</td><td>${r.category||'—'}</td><td>${fmt(r.amount||0)}</td><td>${r.notes||''}</td>`;
           tbody.appendChild(tr);
         });
       }catch(e){/* ignore */}
@@ -289,11 +289,11 @@
       const name = $('cashName').value||'';
       const phone = $('cashPhone').value||'';
       const notes = $('cashNotes').value||'';
-      const out = $('cashMsg'); out.textContent='Savingâ€¦';
+      const out = $('cashMsg'); out.textContent='Saving…';
       try{
         if(!amount) throw new Error('Amount is required');
         await authFetch('/api/taxi/cash', { method:'POST', body: JSON.stringify({ amount, name, phone, notes }) });
-        out.textContent='Saved âœ“'; out.className='success';
+        out.textContent='Saved ?'; out.className='success';
         $('cashAmt').value=''; $('cashName').value=''; $('cashPhone').value=''; $('cashNotes').value='';
         refreshSummary(); refreshCash();
       }catch(e){ out.textContent=`Error: ${e.message||e}`; out.className='error'; }
@@ -303,11 +303,11 @@
       const category = $('expCat').value||'Other';
       const amount = Number($('expAmt').value||0);
       const notes = $('expNotes').value||'';
-      const out = $('expMsg'); out.textContent='Savingâ€¦';
+      const out = $('expMsg'); out.textContent='Saving…';
       try{
         if(!amount) throw new Error('Amount is required');
         await authFetch('/api/taxi/expenses', { method:'POST', body: JSON.stringify({ category, amount, notes }) });
-        out.textContent='Saved âœ“'; out.className='success';
+        out.textContent='Saved ?'; out.className='success';
         $('expAmt').value=''; $('expNotes').value='';
         refreshSummary(); refreshExp();
       }catch(e){ out.textContent=`Error: ${e.message||e}`; out.className='error'; }
@@ -345,3 +345,4 @@
   </script>
 </body>
 </html>
+

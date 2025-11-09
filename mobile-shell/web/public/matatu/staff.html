@@ -1,9 +1,9 @@
-Ôªø<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>TekeTeke ‚Äî Matatu Staff (Trips & Cash)</title>
+  <title>TekeTeke ó Matatu Staff (Trips & Cash)</title>
   <script src="/public/js/app-config.js"></script>
   <script src="/public/js/api.js"></script>
   <script src="/public/js/role-guard.js"></script>
@@ -52,13 +52,13 @@
     <div class="time" id="dateTimeLine">--</div>
   </div>
   <div class="row" style="justify-content:space-between; align-items:center; margin-bottom:8px">
-    <a href="/public/auth/role-select.html">‚Üê Back</a>
+    <a href="/public/auth/role-select.html">? Back</a>
     <div class="row" style="gap:8px">
-      <span id="auth_state" class="pill">Checking sign-in‚Ä¶</span>
+      <span id="auth_state" class="pill">Checking sign-inÖ</span>
       <button id="logoutBtn" style="padding:8px 10px; border-radius:8px; border:1px solid #cfe3ff; background:#0b5cab; color:#fff">Logout</button>
     </div>
   </div>
-  <h2>Matatu Staff ‚Äî Trips & Cash</h2>
+  <h2>Matatu Staff ó Trips & Cash</h2>
 
   <div class="card">
     <div class="row">
@@ -82,7 +82,7 @@
         <h3 style="margin:0 0 4px">Need offline access?</h3>
         <p class="muted" style="margin:0">Install the Matatu Staff Android app for full offline mode.</p>
       </div>
-      <a class="btn" href="/downloads/teketeke-go-matatu-staff.apk" download>Download APK</a>
+      <a class="btn" href="/public/downloads/teketeke-go-matatu-staff.apk" download>Download APK</a>
     </div>
   </div>
 
@@ -115,7 +115,7 @@
     </div>
 
     <div class="card" style="margin-top:12px">
-      <h3>Today‚Äôs Trips</h3>
+      <h3>Todayís Trips</h3>
       <div class="table-wrap">
         <table>
           <thead><tr><th>Started</th><th>Ended</th><th>Route</th><th>Auto (KES)</th><th>Manual (KES)</th><th>Total</th><th>ID</th></tr></thead>
@@ -445,7 +445,7 @@ requireRole('STAFF', { statusEl: 'auth_state', roleLabel: 'Matatu Staff' }).then
   // self-tests
   (function tests(){
     try{
-      console.group('Matatu Staff ‚Äî tests');
+      console.group('Matatu Staff ó tests');
       console.assert(isToday(new Date())===true, 'isToday today');
       console.assert(isToday(new Date(Date.now()-24*3600*1000))===false, 'isToday yesterday');
       console.groupEnd();
@@ -489,3 +489,4 @@ startCornerClock();
 </script>
 </body>
 </html>
+
