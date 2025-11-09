@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>System Admin — TekeTeke</title>
+  <script src="/public/js/app-config.js"></script>
+  <script src="/public/js/api.js"></script>
+  <style>
+    :root{--brand:#1976d2;--brand-700:#135ba1;--bg:#f6f7fb;--panel:#fff;--ink:#0b0f19;--border:#e5e7eb;--muted:#4b5563;--ok:#065f46;--bad:#b91c1c}
+    *{box-sizing:border-box}
+    body{font-family:system-ui,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--ink);margin:0;padding:14px}
+    h2{margin:0 0 10px}
+    .topbar{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+    .pill{background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;padding:4px 10px;border-radius:999px;font-size:12px}
+    .right{margin-left:auto}
+    .btn{padding:8px 10px;border:1px solid var(--brand);border-radius:8px;background:var(--brand);color:#fff;font-weight:700;cursor:pointer}
+    .btn.ghost{background:#fff;color:var(--brand)}
+    .btn:hover{background:var(--brand-700);border-color:var(--brand-700)}
+    .btn.ghost:hover{background:#f0f7ff}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap}
+    .tab{padding:8px 10px;background:var(--brand);color:#fff;border-radius:8px;cursor:pointer}
+    .tab.active{background:var(--brand-700)}
+    .panel{display:none;background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px;box-shadow:0 6px 18px rgba(0,0,0,.06);margin-top:10px}
+    .panel.active{display:block}
+    input,select{padding:8px;border:1px solid var(--border);border-radius:8px}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{border:1px solid var(--border);padding:8px;text-align:left;vertical-align:top}
+    th{background:var(--brand);color:#fff}
+    .muted{color:var(--muted)} .err{color:var(--bad);font-weight:700} .ok{color:var(--ok);font-weight:700}
+    .row{display:flex;flex-wrap:wrap;gap:8px} .section{margin-top:10px} .hint{font-size:12px;color:#6b7280;margin-top:4px}
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <h2 style="margin:0">System Admin</h2>
+    <span id="sess_badge" class="pill right">Checking session…</span>
+    <button id="logout_btn" class="btn ghost">Logout</button>
+  </div>
+
+  <div class="tabs" role="tablist" aria-label="Sections">
+    <div class="tab active" data-id="saccos" role="tab" aria-selected="true">SACCOs</div>
+    <div class="tab" data-id="matatus" role="tab" aria-selected="false">Matatus (Owner/Staff/Taxi/Boda)</div>
+    <div class="tab" data-id="pool" role="tab" aria-selected="false">USSD Pool</div>
+    <div class="tab" data-id="roles" role="tab" aria-selected="false">Create Role Login</div>
+    <div class="tab" data-id="logins" role="tab" aria-selected="false">Recent Logins</div>
+  </div>
+
+  <!-- SACCOs -->
+  <section id="saccos" class="panel active">
+    <h3>Register SACCO</h3>
+    <div class="row">
+      <input id="sc_name" placeholder="SACCO name" autocomplete="organization"/>
+      <input id="sc_contact_name" placeholder="Contact name" autocomplete="name"/>
+      <input id="sc_phone" placeholder="Phone" autocomplete="tel"/>
+      <input id="sc_email" placeholder="Email" autocomplete="email"/>
+      <input id="sc_till" placeholder="Default till (optional)"/>
+    </div>
+    <div class="section">
+      <h4 style="margin:8px 0 4px">Create SACCO Admin Login (optional)</h4>
+      <div class="row">
+        <input id="sc_login_email" placeholder="Admin email" autocomplete="email"/>
+        <input id="sc_login_password" type="password" placeholder="Admin password" autocomplete="new-password"/>
+      </div>
+      <div class="hint">Creates a <b>SACCO</b> role linked to this SACCO.</div>
+    </div>
+    <div class="section">
+      <h4 style="margin:8px 0 4px">Create SACCO Staff Login (optional)</h4>
+      <div class="row">
+        <input id="sc_staff_email" placeholder="Staff email" autocomplete="email"/>
+        <input id="sc_staff_password" type="password" placeholder="Staff password" autocomplete="new-password"/>
+      </div>
+      <div class="hint">Creates a <b>SACCO_STAFF</b> role linked to this SACCO.</div>
+    </div>
+    <div class="section row">
+      <button id="sc_add" class="btn">Register SACCO (+ logins)</button>
+      <span id="sc_msg" class="muted" style="align-self:center"></span>
+    </div>
+    <table>
+      <thead><tr><th>Name</th><th>Contact</th><th>Phone</th><th>Email</th><th>ID</th></tr></thead>
+      <tbody id="sc_list"><tr><td colspan="5" class="muted">Loading…</td></tr></tbody>
+    </table>
+  </section>
+
+  <!-- Matatus -->
+  <section id="matatus" class="panel">
+    <h3>Register Matatu</h3>
+    <div class="row">
+      <input id="mt_plate" placeholder="KDA123A"/>
+      <input id="mt_owner" placeholder="Owner name"/>
+      <input id="mt_phone" placeholder="Owner phone"/>
+      <input id="mt_till" placeholder="Till number"/>
+      <select id="mt_type">
+        <option value="MATATU">MATATU</option>
+        <option value="TAXI">TAXI</option>
+        <option value="BODABODA">BODABODA</option>
+      </select>
+      <input id="mt_sacco" placeholder="SACCO id (optional for TAXI/BODABODA)"/>
+    </div>
+    <div class="section">
+      <h4 style="margin:8px 0 4px">Create Associated Logins (optional)</h4>
+      <div class="row">
+        <input id="mt_owner_email" placeholder="Owner login email" autocomplete="email"/>
+        <input id="mt_owner_pass" type="password" placeholder="Owner password" autocomplete="new-password"/>
+        <input id="mt_staff_email" placeholder="Staff login email" autocomplete="email"/>
+        <input id="mt_staff_pass" type="password" placeholder="Staff password" autocomplete="new-password"/>
+      </div>
+      <div class="row">
+        <input id="mt_taxi_email" placeholder="Taxi login email (if type=TAXI)" autocomplete="email"/>
+        <input id="mt_taxi_pass" type="password" placeholder="Taxi password" autocomplete="new-password"/>
+        <input id="mt_boda_email" placeholder="Boda login email (if type=BODABODA)" autocomplete="email"/>
+        <input id="mt_boda_pass" type="password" placeholder="Boda password" autocomplete="new-password"/>
+      </div>
+    </div>
+    <div class="section row">
+      <button id="mt_add" class="btn">Register Matatu (+ logins)</button>
+      <span id="mt_msg" class="muted" style="align-self:center"></span>
+    </div>
+    <table>
+      <thead><tr><th>Plate</th><th>Type</th><th>SACCO</th><th>ID</th></tr></thead>
+      <tbody id="mt_list"><tr><td colspan="4" class="muted">Loading…</td></tr></tbody>
+    </table>
+  </section>
+
+  <!-- USSD Pool -->
+  <section id="pool" class="panel">
+    <h3>USSD Pool</h3>
+    <div class="row">
+      <button id="pl_available" class="btn">Load free</button>
+      <button id="pl_alloc" class="btn ghost">Load allocated</button>
+    </div>
+    <table>
+      <thead><tr><th>Base</th><th>Checksum</th><th>Code</th></tr></thead>
+      <tbody id="pl_list"><tr><td colspan="3" class="muted">—</td></tr></tbody>
+    </table>
+  </section>
+
+  <!-- Create Role Login -->
+  <section id="roles" class="panel">
+    <h3>Create Role Login</h3>
+    <p class="muted" style="margin:0 0 8px">
+      Provide email/password and link to the relevant SACCO or Matatu.
+      <b>SACCO / SACCO_STAFF</b> require <code>sacco_id</code>.
+      <b>OWNER / STAFF / TAXI / BODA</b> require <code>matatu_id</code>.
+    </p>
+    <div class="row">
+      <input id="ur_email" placeholder="Email"/>
+      <input id="ur_pass" type="password" placeholder="Password"/>
+      <select id="ur_role">
+        <option value="SACCO">SACCO</option>
+        <option value="SACCO_STAFF">SACCO_STAFF</option>
+        <option value="OWNER">OWNER</option>
+        <option value="STAFF">STAFF</option>
+        <option value="TAXI">TAXI</option>
+        <option value="BODA">BODA</option>
+      </select>
+      <input id="ur_sacco" placeholder="sacco_id (if required)"/>
+      <input id="ur_matatu" placeholder="matatu_id (if required)"/>
+      <button id="ur_set" class="btn">Create login</button>
+      <span id="ur_msg" class="muted" style="align-self:center"></span>
+    </div>
+  </section>
+
+  <!-- Recent Logins -->
+  <section id="logins" class="panel">
+    <h3>Recent Logins</h3>
+    <table>
+      <thead><tr><th>Email</th><th>Role</th><th>SACCO</th><th>Matatu</th><th>Created</th></tr></thead>
+      <tbody id="login_list"><tr><td colspan="5" class="muted">Loading…</td></tr></tbody>
+    </table>
+  </section>
+
+  <!-- Tabs (works even if module fails) -->
+  <script>
+    (function(){
+      document.addEventListener('click', e=>{
+        const tab=e.target.closest('.tab'); if(!tab) return;
+        document.querySelectorAll('.tab').forEach(t=>{
+          const sel=t===tab; t.classList.toggle('active',sel); t.setAttribute('aria-selected', sel?'true':'false');
+        });
+        document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+        const p=document.getElementById(tab.dataset.id); if(p) p.classList.add('active');
+      }, true);
+      const q=new URLSearchParams(location.search); const want=q.get('tab');
+      if(want && document.getElementById(want)){ const btn=document.querySelector(`.tab[data-id="${want}"]`); if(btn) btn.click(); }
+    })();
+  </script>
+
+  <!-- Main logic -->
+  <script type="module">
+    async function start(){
+      let createClient;
+      try{ ({createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm')); }
+      catch(e){ console.error('supabase-js failed', e); document.getElementById('sess_badge').textContent='Supabase unavailable'; return; }
+
+      const sb=createClient(window.SUPABASE_URL||'', window.SUPABASE_ANON_KEY||'');
+      const $=id=>document.getElementById(id);
+
+      const parseErr=(err)=>{ if(!err) return 'Unknown error'; if(typeof err==='string'){ try{ const o=JSON.parse(err); return o.error||o.message||err; }catch{return err; } } return err.error||err.message||String(err); };
+
+      async function ensureSession(){
+        const {data:{session}}=await sb.auth.getSession();
+        if(!session?.access_token){ const next=encodeURIComponent(location.pathname+location.search); location.href=`/public/auth/login.html?next=${next}`; throw new Error('Not signed in'); }
+        document.getElementById('sess_badge').textContent=`Signed in as ${session.user.email}`;
+        return session.access_token;
+      }
+      async function token(){ return ensureSession(); }
+      async function jget(p){ const t=await token(); const r=await fetch(p,{headers:{'Authorization':'Bearer '+t,'Accept':'application/json'}}); const tx=await r.text(); if(!r.ok) throw tx||r.statusText; try{return JSON.parse(tx);}catch{return{};} }
+      async function jpost(p,b){ const t=await token(); const r=await fetch(p,{method:'POST',headers:{'Authorization':'Bearer '+t,'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(b||{})}); const tx=await r.text(); if(!r.ok) throw tx||r.statusText; try{return JSON.parse(tx);}catch{return{};} }
+
+      // logout
+      $('logout_btn').addEventListener('click', async()=>{ await sb.auth.signOut(); location.href='/public/auth/login.html'; });
+
+      // ----- lists -----
+      async function loadS(){ try{ const d=await jget('/api/admin/saccos'); $('sc_list').innerHTML=(d.items||[]).map(s=>`<tr><td>${s.name||''}</td><td>${s.contact_name||''}</td><td>${s.contact_phone||''}</td><td>${s.contact_email||''}</td><td>${s.id||''}</td></tr>`).join('')||'<tr><td colspan="5" class="muted">No SACCOs yet</td></tr>'; } catch(e){ $('sc_list').innerHTML=`<tr><td colspan="5" class="err">${parseErr(e)}</td></tr>`; } }
+      async function loadM(){ try{ const d=await jget('/api/admin/matatus'); $('mt_list').innerHTML=(d.items||[]).map(m=>`<tr><td>${m.number_plate||''}</td><td>${m.vehicle_type||''}</td><td>${m.sacco_id||''}</td><td>${m.id||''}</td></tr>`).join('')||'<tr><td colspan="4" class="muted">No matatus yet</td></tr>'; } catch(e){ $('mt_list').innerHTML=`<tr><td colspan="4" class="err">${parseErr(e)}</td></tr>`; } }
+      async function loadLogins(){ const tbody=$('login_list'); try{ const rows=await jget('/api/admin/user-roles/logins'); if(!Array.isArray(rows)||!rows.length){ tbody.innerHTML='<tr><td colspan="5" class="muted">No logins yet</td></tr>'; return; } tbody.innerHTML=rows.map(r=>`<tr><td>${r.email||''}</td><td>${r.role||''}</td><td>${r.sacco_id||''}</td><td>${r.matatu_id||''}</td><td>${r.created_at?new Date(r.created_at).toLocaleString():''}</td></tr>`).join(''); } catch(e){ tbody.innerHTML=`<tr><td colspan="5" class="err">${parseErr(e)}</td></tr>`; } }
+
+      // ----- actions -----
+      $('sc_add').addEventListener('click', async ()=>{
+        const msg=$('sc_msg'); msg.className='muted'; msg.textContent='Saving…';
+        const payload={ name:$('sc_name').value.trim(), contact_name:$('sc_contact_name').value.trim(), contact_phone:$('sc_phone').value.trim(), contact_email:$('sc_email').value.trim(), default_till:$('sc_till').value.trim()||null };
+        if(!payload.name){ msg.className='err'; msg.textContent='SACCO name is required'; return; }
+        try{
+          const res=await jpost('/api/admin/register-sacco', payload); const saccoId=res?.id; if(!saccoId) throw new Error('SACCO created but id missing');
+          let note='';
+          const aE=$('sc_login_email').value.trim(), aP=$('sc_login_password').value;
+          if(aE&&aP){ try{ const cr=await jpost('/api/admin/user-roles/create-user',{email:aE,password:aP,role:'SACCO',sacco_id:saccoId}); note+=` + admin login for ${cr.email||aE}`; }catch(e){ note+=` (admin login error: ${parseErr(e)})`; } }
+          const sE=$('sc_staff_email').value.trim(), sP=$('sc_staff_password').value;
+          if(sE&&sP){ try{ const cr=await jpost('/api/admin/user-roles/create-user',{email:sE,password:sP,role:'SACCO_STAFF',sacco_id:saccoId}); note+=` + staff login for ${cr.email||sE}`; }catch(e){ note+=` (staff login error: ${parseErr(e)})`; } }
+          msg.className='ok'; msg.textContent=`SACCO created${note}`;
+          $('sc_login_password').value=''; $('sc_staff_password').value='';
+          await loadS(); await loadLogins();
+        }catch(err){ msg.className='err'; msg.textContent=parseErr(err); }
+      });
+
+      $('mt_add').addEventListener('click', async ()=>{
+        const msg=$('mt_msg'); msg.className='muted'; msg.textContent='Saving…';
+        try{
+          const vehicleType=$('mt_type').value||'MATATU';
+          const saccoValue=$('mt_sacco').value.trim();
+          const payload={ number_plate:($('mt_plate').value||'').trim().toUpperCase(), owner_name:$('mt_owner').value.trim()||null, owner_phone:$('mt_phone').value.trim()||null, till_number:$('mt_till').value.trim()||null, vehicle_type:vehicleType, sacco_id:(saccoValue||null) };
+          const needsSacco=vehicleType!=='TAXI'&&vehicleType!=='BODABODA';
+          if(!payload.number_plate) throw new Error('Plate required'); if(needsSacco&&!payload.sacco_id) throw new Error('SACCO id required for MATATU');
+          const res=await jpost('/api/admin/register-matatu', payload); const matatuId=res?.id; if(!matatuId) throw new Error('Matatu created but id missing');
+          let notes=''; const wants=[];
+          const oE=$('mt_owner_email').value.trim(), oP=$('mt_owner_pass').value; if(oE&&oP) wants.push({role:'OWNER',email:oE,password:oP});
+          const stE=$('mt_staff_email').value.trim(), stP=$('mt_staff_pass').value; if(stE&&stP) wants.push({role:'STAFF',email:stE,password:stP});
+          const type=payload.vehicle_type;
+          const tE=$('mt_taxi_email').value.trim(), tP=$('mt_taxi_pass').value; if(type==='TAXI'&&tE&&tP) wants.push({role:'TAXI',email:tE,password:tP});
+          const bE=$('mt_boda_email').value.trim(), bP=$('mt_boda_pass').value; if(type==='BODABODA'&&bE&&bP) wants.push({role:'BODA',email:bE,password:bP});
+          for(const w of wants){ try{ const cr=await jpost('/api/admin/user-roles/create-user',{...w,matatu_id:matatuId}); notes+=` + ${w.role.toLowerCase()} login for ${cr.email||w.email}`; }catch(e){ notes+=` (${w.role.toLowerCase()} login error: ${parseErr(e)})`; } }
+          msg.className='ok'; msg.textContent=`Matatu created${notes}`; ['mt_owner_pass','mt_staff_pass','mt_taxi_pass','mt_boda_pass'].forEach(id=>{const el=$(id); if(el) el.value='';});
+          await loadM(); await loadLogins();
+        }catch(err){ msg.className='err'; msg.textContent=parseErr(err); }
+      });
+
+      // USSD pool
+      document.getElementById('pl_available').addEventListener('click', async()=>{ try{ const d=await jget('/api/admin/ussd/pool/available'); document.getElementById('pl_list').innerHTML=(d.items||[]).map(x=>`<tr><td>${x.base}</td><td>${x.checksum}</td><td>*001*${x.base}${x.checksum}#</td></tr>`).join('')||'<tr><td colspan="3" class="muted">No free codes</td></tr>'; }catch(e){ document.getElementById('pl_list').innerHTML=`<tr><td colspan="3" class="err">${parseErr(e)}</td></tr>`; } });
+      document.getElementById('pl_alloc').addEventListener('click', async()=>{ try{ const d=await jget('/api/admin/ussd/pool/allocated'); document.getElementById('pl_list').innerHTML=(d.items||[]).map(x=>`<tr><td colspan="3">${x.full_code} → ${x.level} ${x.matatu_id||x.sacco_id||''}</td></tr>`).join('')||'<tr><td colspan="3" class="muted">No allocations</td></tr>'; }catch(e){ document.getElementById('pl_list').innerHTML=`<tr><td colspan="3" class="err">${parseErr(e)}</td></tr>`; } });
+
+      // Create Role Login tab
+      document.getElementById('ur_set').addEventListener('click', async ()=>{
+        const msg=$('ur_msg'); msg.className='muted'; msg.textContent='Creating login…';
+        const body={ email:$('ur_email').value.trim(), password:$('ur_pass').value, role:$('ur_role').value, sacco_id:($('ur_sacco').value.trim()||null), matatu_id:($('ur_matatu').value.trim()||null) };
+        try{ const out=await jpost('/api/admin/user-roles/create-user', body); msg.className='ok'; msg.textContent=`Created ${out.role} login (${out.user_id||out.email||body.email})`; $('ur_pass').value=''; await loadLogins(); }
+        catch(e){ msg.className='err'; msg.textContent=parseErr(e); }
+      });
+
+      try{ await ensureSession(); await Promise.all([loadS(), loadM(), loadLogins()]); } catch(_){}
+    }
+    start();
+  </script>
+</body>
+</html>

@@ -1,0 +1,711 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>System Admin — TekeTeke</title>
+
+  <script src="/public/js/app-config.js"></script>
+  <script src="/public/js/api.js"></script>
+
+  <style>
+    :root{
+      --brand:#1976d2; --brand-700:#135ba1; --bg:#f6f7fb; --panel:#ffffff; --ink:#0b0f19;
+      --border:#e5e7eb; --muted:#4b5563; --ok:#065f46; --bad:#b91c1c;
+    }
+    *{box-sizing:border-box}
+    body{font-family:system-ui,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--ink);margin:0;padding:14px}
+    h2{margin:0 0 10px}
+    .topbar{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+    .pill{background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;padding:4px 10px;border-radius:999px;font-size:12px}
+    .right{margin-left:auto}
+    .btn{padding:8px 10px;border:1px solid var(--brand);border-radius:8px;background:var(--brand);color:#fff;font-weight:700;cursor:pointer}
+    .btn.ghost{background:#fff;color:var(--brand)}
+    .btn:hover{background:var(--brand-700);border-color:var(--brand-700)}
+    .btn.ghost:hover{background:#f0f7ff}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap}
+    .tab{padding:8px 10px;background:var(--brand);color:#fff;border-radius:8px;cursor:pointer}
+    .tab.active{background:var(--brand-700)}
+    .panel{display:none;background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px;box-shadow:0 6px 18px rgba(0,0,0,.06);margin-top:10px}
+    .panel.active{display:block}
+    input,select{padding:8px;border:1px solid var(--border);border-radius:8px}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{border:1px solid var(--border);padding:8px;text-align:left;vertical-align:top}
+    th{background:#1976d2;color:#fff}
+    .muted{color:var(--muted)}
+    .err{color:var(--bad);font-weight:700}
+    .ok{color:var(--ok);font-weight:700}
+    .row{display:flex;flex-wrap:wrap;gap:8px}
+    .hint{font-size:12px;color:#6b7280;margin-top:4px}
+    .section{margin-top:10px}
+    .stacked{display:flex;flex-direction:column;gap:6px}
+    .stacked .item{padding:6px 0;border-bottom:1px solid var(--border);font-size:13px}
+    .stacked .item:last-child{border-bottom:none}
+    .sacco-matatu-list{font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <h2 style="margin:0">System Admin</h2>
+    <span id="sess_badge" class="pill right">Checking session…</span>
+    <button id="logout_btn" class="btn ghost" title="Sign out">Logout</button>
+  </div>
+
+  <div class="tabs" role="tablist" aria-label="Sections">
+    <div class="tab active" data-id="saccos" role="tab" aria-selected="true">SACCOs</div>
+    <div class="tab" data-id="matatus" role="tab" aria-selected="false">Matatus (Owner/Staff)</div>
+    <div class="tab" data-id="taxis" role="tab" aria-selected="false">Taxis</div>
+    <div class="tab" data-id="bodas" role="tab" aria-selected="false">BodaBodas</div>
+    <div class="tab" data-id="pool" role="tab" aria-selected="false">USSD Pool</div>
+    <div class="tab" data-id="logins" role="tab" aria-selected="false">Recent Logins</div>
+  </div>
+
+  <section id="saccos" class="panel active" aria-labelledby="tab_saccos">
+    <h3>Register SACCO</h3>
+    <div class="row">
+      <input id="sc_name" placeholder="SACCO name" autocomplete="organization" />
+      <input id="sc_contact_name" placeholder="Contact name" autocomplete="name" />
+      <input id="sc_phone" placeholder="Phone" autocomplete="tel" />
+      <input id="sc_email" placeholder="Email" autocomplete="email" />
+      <input id="sc_till" placeholder="Default till (optional)" />
+    </div>
+
+    <div class="section">
+      <h4 style="margin:8px 0 4px">Create SACCO Admin Login (optional)</h4>
+      <div class="row">
+        <input id="sc_login_email" placeholder="Admin email" autocomplete="email" />
+        <input id="sc_login_password" type="password" placeholder="Admin password" autocomplete="new-password" />
+      </div>
+      <div class="hint">Creates a <b>SACCO</b> role linked to the new SACCO.</div>
+    </div>
+
+    <div class="section">
+      <h4 style="margin:8px 0 4px">Create SACCO Staff Login (optional)</h4>
+      <div class="row">
+        <input id="sc_staff_email" placeholder="Staff email" autocomplete="email" />
+        <input id="sc_staff_password" type="password" placeholder="Staff password" autocomplete="new-password" />
+      </div>
+      <div class="hint">Creates a <b>SACCO_STAFF</b> role linked to the same SACCO.</div>
+    </div>
+
+    <div class="section row">
+      <button id="sc_add" class="btn">Register SACCO (+ logins)</button>
+      <span id="sc_msg" class="muted" style="align-self:center"></span>
+    </div>
+
+    <table>
+      <thead><tr><th>Name</th><th>Contact</th><th>Phone</th><th>Email</th><th>ID</th></tr></thead>
+      <tbody id="sc_list"><tr><td colspan="5" class="muted">Loading…</td></tr></tbody>
+    </table>
+  </section>
+
+  <section id="matatus" class="panel" aria-labelledby="tab_matatus">
+    <h3>Register Matatu (Owner + Staff)</h3>
+    <div class="row">
+      <input id="mt_plate" placeholder="KDA123A" />
+      <input id="mt_owner" placeholder="Owner name" />
+      <input id="mt_phone" placeholder="Owner phone" />
+      <input id="mt_till" placeholder="Till number" />
+      <select id="mt_sacco">
+        <option value="">Select SACCO</option>
+      </select>
+    </div>
+
+    <div class="hint" id="mt_sacco_hint">Select a SACCO to link this matatu.</div>
+
+    <div class="section">
+      <h4 style="margin:8px 0 4px">Matatus already registered in this SACCO</h4>
+      <div id="mt_existing_list" class="sacco-matatu-list muted">Select a SACCO to see matatus registered under it.</div>
+    </div>
+
+    <div class="section">
+      <h4 style="margin:8px 0 4px">Create Associated Logins (optional)</h4>
+      <div class="row">
+        <input id="mt_owner_email" placeholder="Owner login email" autocomplete="email" />
+        <input id="mt_owner_pass" type="password" placeholder="Owner password" autocomplete="new-password" />
+        <input id="mt_staff_email" placeholder="Staff login email" autocomplete="email" />
+        <input id="mt_staff_pass" type="password" placeholder="Staff password" autocomplete="new-password" />
+      </div>
+      <div class="hint">Creates <b>OWNER</b> and <b>STAFF</b> roles linked to the new matatu.</div>
+    </div>
+
+    <div class="section row">
+      <button id="mt_add" class="btn">Register Matatu (+ logins)</button>
+      <span id="mt_msg" class="muted" style="align-self:center"></span>
+    </div>
+
+    <table>
+      <thead><tr><th>Plate</th><th>Owner</th><th>Type</th><th>SACCO</th><th>ID</th></tr></thead>
+      <tbody id="mt_list"><tr><td colspan="5" class="muted">Loading…</td></tr></tbody>
+    </table>
+  </section>
+
+  <section id="taxis" class="panel" aria-labelledby="tab_taxis">
+    <h3>Register Taxi</h3>
+    <div class="row">
+      <input id="taxi_plate" placeholder="KTA123B" />
+      <input id="taxi_owner" placeholder="Owner name" />
+      <input id="taxi_phone" placeholder="Owner phone" />
+      <input id="taxi_till" placeholder="Till number" />
+      <input id="taxi_sacco" placeholder="SACCO id (optional)" />
+    </div>
+    <div class="hint">Leave SACCO empty if this taxi is not registered under one.</div>
+
+    <div class="section">
+      <h4 style="margin:8px 0 4px">Create Taxi Login (optional)</h4>
+      <div class="row">
+        <input id="taxi_email" placeholder="Taxi login email" autocomplete="email" />
+        <input id="taxi_pass" type="password" placeholder="Taxi password" autocomplete="new-password" />
+      </div>
+      <div class="hint">Creates a <b>TAXI</b> role linked to this taxi.</div>
+    </div>
+
+    <div class="section row">
+      <button id="taxi_add" class="btn">Register Taxi (+ login)</button>
+      <span id="taxi_msg" class="muted" style="align-self:center"></span>
+    </div>
+
+    <table>
+      <thead><tr><th>Plate</th><th>SACCO</th><th>ID</th></tr></thead>
+      <tbody id="taxi_list"><tr><td colspan="3" class="muted">Loading…</td></tr></tbody>
+    </table>
+  </section>
+
+  <section id="bodas" class="panel" aria-labelledby="tab_bodas">
+    <h3>Register BodaBoda</h3>
+    <div class="row">
+      <input id="boda_plate" placeholder="KDB456C" />
+      <input id="boda_owner" placeholder="Rider name" />
+      <input id="boda_phone" placeholder="Rider phone" />
+      <input id="boda_till" placeholder="Till number" />
+      <input id="boda_sacco" placeholder="SACCO id (optional)" />
+    </div>
+    <div class="hint">SACCO linkage is optional for boda bodas.</div>
+
+    <div class="section">
+      <h4 style="margin:8px 0 4px">Create Boda Login (optional)</h4>
+      <div class="row">
+        <input id="boda_email" placeholder="Boda login email" autocomplete="email" />
+        <input id="boda_pass" type="password" placeholder="Boda password" autocomplete="new-password" />
+      </div>
+      <div class="hint">Creates a <b>BODA</b> role linked to this ride.</div>
+    </div>
+
+    <div class="section row">
+      <button id="boda_add" class="btn">Register Boda (+ login)</button>
+      <span id="boda_msg" class="muted" style="align-self:center"></span>
+    </div>
+
+    <table>
+      <thead><tr><th>Plate</th><th>SACCO</th><th>ID</th></tr></thead>
+      <tbody id="boda_list"><tr><td colspan="3" class="muted">Loading…</td></tr></tbody>
+    </table>
+  </section>
+
+  <section id="pool" class="panel" aria-labelledby="tab_pool">
+    <h3>USSD Pool</h3>
+    <div class="row">
+      <button id="pl_available" class="btn">Load free</button>
+      <button id="pl_alloc" class="btn ghost">Load allocated</button>
+    </div>
+    <table>
+      <thead><tr><th>Base</th><th>Checksum</th><th>Code</th></tr></thead>
+      <tbody id="pl_list"><tr><td colspan="3" class="muted">—</td></tr></tbody>
+    </table>
+  </section>
+
+  <section id="logins" class="panel" aria-labelledby="tab_logins">
+    <h3>Recent Logins</h3>
+    <table>
+      <thead><tr><th>Email</th><th>Role</th><th>SACCO</th><th>Matatu</th><th>Created</th></tr></thead>
+      <tbody id="login_list"><tr><td colspan="5" class="muted">Loading…</td></tr></tbody>
+    </table>
+  </section>
+
+  <script>
+    (function () {
+      document.addEventListener('click', function (e) {
+        const tab = e.target.closest('.tab'); if (!tab) return;
+        document.querySelectorAll('.tab').forEach(t => {
+          const sel = t === tab;
+          t.classList.toggle('active', sel);
+          t.setAttribute('aria-selected', sel ? 'true' : 'false');
+        });
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        const p = document.getElementById(tab.dataset.id); if (p) p.classList.add('active');
+      }, true);
+      const q = new URLSearchParams(location.search);
+      const want = q.get('tab');
+      if (want && document.getElementById(want)) {
+        const btn = document.querySelector(`.tab[data-id="${want}"]`);
+        if (btn) btn.click();
+      }
+    })();
+  </script>
+
+  <script type="module">
+    async function safeInit() {
+      let createClient;
+      try {
+        ({ createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'));
+      } catch (e) {
+        console.error('[system] Failed to import supabase-js:', e);
+        document.getElementById('sess_badge').textContent = 'Supabase unavailable';
+        return;
+      }
+
+      const sb = createClient(window.SUPABASE_URL || '', window.SUPABASE_ANON_KEY || '');
+      const $ = (id)=>document.getElementById(id);
+      const badge = $('sess_badge');
+      const state = { saccos: [], vehicles: [], vehiclesLoaded: false };
+
+      const parseErr = (err) => {
+        if (!err) return 'Unknown error';
+        if (typeof err === 'string') { try { const obj = JSON.parse(err); return obj.error || obj.message || err; } catch { return err; } }
+        return err.error || err.message || String(err);
+      };
+
+      const toast = (text, type='ok')=>{
+        const t = document.getElementById('toast') || (()=>{
+          const div = document.createElement('div');
+          div.id = 'toast'; document.body.appendChild(div);
+          return div;
+        })();
+        t.textContent = text;
+        t.className = type === 'err' ? 'show err' : 'show';
+        clearTimeout(window._toastTimer);
+        window._toastTimer = setTimeout(()=>{ t.className=''; }, 2200);
+      };
+
+      function clearInputs(ids){
+        if (!Array.isArray(ids)) return;
+        ids.forEach(id => {
+          const el = $(id);
+          if (!el) return;
+          if (el.tagName === 'SELECT'){
+            el.selectedIndex = 0;
+          }else if ('value' in el){
+            el.value = '';
+          }
+        });
+      }
+
+      async function ensureSession(){
+        const { data:{ session } } = await sb.auth.getSession();
+        if (!session?.access_token) {
+          const next = encodeURIComponent(location.pathname + location.search);
+          location.href = `/public/auth/login.html?next=${next}`;
+          throw new Error('Not signed in');
+        }
+        badge.textContent = `Signed in as ${session.user.email}`;
+        return session.access_token;
+      }
+      async function tkn(){ return ensureSession(); }
+
+      async function jget(url){
+        const token = await tkn();
+        const r = await fetch(url, { headers:{ Authorization:`Bearer ${token}`, Accept:'application/json' }});
+        const tx = await r.text();
+        if (!r.ok) throw tx || r.statusText;
+        try { return JSON.parse(tx); } catch { return {}; }
+      }
+
+      async function jpost(url, body){
+        const token = await tkn();
+        const r = await fetch(url, {
+          method:'POST',
+          headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json', Accept:'application/json' },
+          body: JSON.stringify(body||{})
+        });
+        const tx = await r.text();
+        if (!r.ok) throw tx || r.statusText;
+        try { return JSON.parse(tx); } catch { return {}; }
+      }
+
+      function saccoLabel(id){
+        if (!id) return '';
+        const sacco = state.saccos.find(s => s.id === id);
+        if (!sacco) return id;
+        return sacco.name ? `${sacco.name} (${sacco.id})` : sacco.id;
+      }
+
+      function populateMatatuSaccoSelect(){
+        const select = $('mt_sacco');
+        if (!select) return;
+        const current = select.value;
+        const options = ['<option value=\"\">Select SACCO</option>'];
+        state.saccos.forEach(row => {
+          const label = row.name ? `${row.name} (${row.id})` : row.id;
+          options.push(`<option value=\"${row.id}\">${label}</option>`);
+        });
+        select.innerHTML = options.join('');
+        if (current && state.saccos.some(row => row.id === current)){
+          select.value = current;
+        }
+        refreshMatatuSaccoMeta();
+      }
+
+      function refreshMatatuSaccoMeta(){
+        const hint = $('mt_sacco_hint');
+        const select = $('mt_sacco');
+        const saccoId = select ? select.value : '';
+        if (hint){
+          if (!saccoId){
+            hint.textContent = 'Select a SACCO to link this matatu.';
+          }else{
+            const sacco = state.saccos.find(s => s.id === saccoId);
+            const base = sacco ? `${sacco.name || 'Unnamed SACCO'} - ID ${sacco.id}` : saccoId;
+            const till = sacco?.default_till ? ` - Default till ${sacco.default_till}` : '';
+            hint.textContent = base + till;
+          }
+        }
+        renderExistingMatatuList(saccoId);
+      }
+
+      function renderExistingMatatuList(saccoId){
+        const list = $('mt_existing_list');
+        if (!list) return;
+        if (!saccoId){
+          list.classList.remove('stacked');
+          list.classList.add('muted');
+          list.textContent = 'Select a SACCO to see matatus registered under it.';
+          return;
+        }
+        if (!state.vehiclesLoaded){
+          list.classList.remove('stacked');
+          list.classList.add('muted');
+          list.textContent = 'Matatu register is still loading...';
+          return;
+        }
+        const matatus = (state.vehicles||[]).filter(row => row.sacco_id === saccoId && !['TAXI','BODABODA'].includes(normalizeType(row)));
+        if (!matatus.length){
+          list.classList.remove('stacked');
+          list.classList.add('muted');
+          list.textContent = 'No matatus registered for this SACCO yet.';
+          return;
+        }
+        list.classList.add('stacked');
+        list.classList.remove('muted');
+        list.innerHTML = matatus.map(row => {
+          const owner = row.owner_name || 'Owner not set';
+          const phone = row.owner_phone ? ` | ${row.owner_phone}` : '';
+          return `<div class=\"item\"><strong>${owner}</strong> - ${row.number_plate || ''} (ID: ${row.id || ''})${phone}</div>`;
+        }).join('');
+      }
+
+      $('logout_btn').addEventListener('click', async ()=>{
+        await sb.auth.signOut();
+        localStorage.removeItem('auth_token');
+        sessionStorage.removeItem('auth_token');
+        location.href = '/public/auth/login.html';
+      });
+
+      async function loadSaccos(){
+        try{
+          const data = await jget('/api/admin/saccos');
+          const rows = Array.isArray(data.items) ? data.items : [];
+          state.saccos = rows;
+          $('sc_list').innerHTML = rows.length ? rows.map(row=>`
+            <tr>
+              <td>${row.name||''}</td>
+              <td>${row.contact_name||''}</td>
+              <td>${row.contact_phone||''}</td>
+              <td>${row.contact_email||''}</td>
+              <td>${row.id||''}</td>
+            </tr>`).join('') : '<tr><td colspan="5" class="muted">No SACCOs yet</td></tr>';
+          populateMatatuSaccoSelect();
+          if (state.vehiclesLoaded) renderVehicleTables();
+        }catch(e){
+          state.saccos = [];
+          populateMatatuSaccoSelect();
+          if (state.vehiclesLoaded) renderVehicleTables();
+          $('sc_list').innerHTML = `<tr><td colspan="5" class="err">${parseErr(e)}</td></tr>`;
+        }
+      }
+
+      $('sc_add').addEventListener('click', async ()=>{
+        const msg = $('sc_msg'); msg.className='muted'; msg.textContent='Saving…';
+        const payload = {
+          name: $('sc_name').value.trim(),
+          contact_name: $('sc_contact_name').value.trim(),
+          contact_phone: $('sc_phone').value.trim(),
+          contact_email: $('sc_email').value.trim(),
+          default_till: $('sc_till').value.trim() || null
+        };
+        if (!payload.name){
+          msg.className='err'; msg.textContent='SACCO name required'; return;
+        }
+        try{
+          const sacco = await jpost('/api/admin/register-sacco', payload);
+          let note = '';
+          const saccoId = sacco?.id;
+          if (saccoId){
+            const adminEmail = $('sc_login_email').value.trim();
+            const adminPass  = $('sc_login_password').value;
+            if (adminEmail && adminPass){
+              try{
+                const r = await jpost('/api/admin/user-roles/create-user', { email: adminEmail, password: adminPass, role:'SACCO', sacco_id: saccoId });
+                note += ` + admin login (${r.email||adminEmail})`;
+              }catch(e){ note += ` (admin login error: ${parseErr(e)})`; }
+            }
+            const staffEmail = $('sc_staff_email').value.trim();
+            const staffPass  = $('sc_staff_password').value;
+            if (staffEmail && staffPass){
+              try{
+                const r = await jpost('/api/admin/user-roles/create-user', { email: staffEmail, password: staffPass, role:'SACCO_STAFF', sacco_id: saccoId });
+                note += ` + staff login (${r.email||staffEmail})`;
+              }catch(e){ note += ` (staff login error: ${parseErr(e)})`; }
+            }
+          }
+          msg.className='ok'; msg.textContent=`SACCO created${note}`;
+          clearInputs(['sc_name','sc_contact_name','sc_phone','sc_email','sc_till','sc_login_email','sc_login_password','sc_staff_email','sc_staff_password']);
+          await loadSaccos(); await loadLogins();
+        }catch(e){
+          msg.className='err'; msg.textContent=parseErr(e);
+        }
+      });
+
+      function normalizeType(row){
+        return (row?.vehicle_type || '').toString().toUpperCase();
+      }
+
+      function renderVehicleTables(){
+        const items = Array.isArray(state.vehicles) ? state.vehicles : [];
+
+        const matatus = items.filter(row => {
+          const t = normalizeType(row);
+          return t !== 'TAXI' && t !== 'BODABODA';
+        });
+        const taxis = items.filter(row => normalizeType(row) === 'TAXI');
+        const bodas = items.filter(row => normalizeType(row) === 'BODABODA');
+
+        $('mt_list').innerHTML = matatus.length ? matatus.map(row=>`
+          <tr>
+            <td>${row.number_plate||''}</td>
+            <td>${row.owner_name||''}</td>
+            <td>${row.vehicle_type||''}</td>
+            <td>${saccoLabel(row.sacco_id) || 'N/A'}</td>
+            <td>${row.id||''}</td>
+          </tr>`).join('') : '<tr><td colspan="5" class="muted">No matatus yet</td></tr>';
+
+        $('taxi_list').innerHTML = taxis.length ? taxis.map(row=>`
+          <tr>
+            <td>${row.number_plate||''}</td>
+            <td>${saccoLabel(row.sacco_id) || 'N/A'}</td>
+            <td>${row.id||''}</td>
+          </tr>`).join('') : '<tr><td colspan="3" class="muted">No taxis yet</td></tr>';
+
+        $('boda_list').innerHTML = bodas.length ? bodas.map(row=>`
+          <tr>
+            <td>${row.number_plate||''}</td>
+            <td>${saccoLabel(row.sacco_id) || 'N/A'}</td>
+            <td>${row.id||''}</td>
+          </tr>`).join('') : '<tr><td colspan="3" class="muted">No boda bodas yet</td></tr>';
+      }
+
+      async function loadVehicles(){
+        try{
+          const data = await jget('/api/admin/matatus');
+          state.vehicles = Array.isArray(data.items) ? data.items : [];
+          state.vehiclesLoaded = true;
+          renderVehicleTables();
+          refreshMatatuSaccoMeta();
+        }catch(e){
+          state.vehicles = [];
+          state.vehiclesLoaded = false;
+          const errMatatu = `<tr><td colspan="5" class="err">${parseErr(e)}</td></tr>`;
+          const errVehicle = `<tr><td colspan="3" class="err">${parseErr(e)}</td></tr>`;
+          $('mt_list').innerHTML = errMatatu;
+          $('taxi_list').innerHTML = errVehicle;
+          $('boda_list').innerHTML = errVehicle;
+          const list = $('mt_existing_list');
+          if (list){
+            list.classList.remove('stacked');
+            list.classList.add('muted');
+            list.textContent = `Failed to load matatus: ${parseErr(e)}`;
+          }
+        }
+      }
+
+      async function handleVehicleRegistration(cfg){
+        const msgEl = $(cfg.msgId);
+        if (!msgEl) return;
+        msgEl.className = 'muted';
+        msgEl.textContent = 'Saving...';
+
+        const plateEl = $(cfg.plateId);
+        const saccoEl = $(cfg.saccoId);
+        const ownerEl = cfg.ownerId ? $(cfg.ownerId) : null;
+        const phoneEl = cfg.phoneId ? $(cfg.phoneId) : null;
+        const tillEl = cfg.tillId ? $(cfg.tillId) : null;
+
+        const number_plate = (plateEl?.value || '').trim().toUpperCase();
+        const saccoValue = (saccoEl?.value || '').trim();
+        const sacco_id = saccoValue || null;
+        const requireSacco = cfg.requireSacco !== false;
+        const owner_name = ownerEl ? ownerEl.value.trim() : '';
+        const owner_phone = phoneEl ? phoneEl.value.trim() : '';
+        const till_number = tillEl ? tillEl.value.trim() : '';
+
+        if (!number_plate){
+          msgEl.className = 'err';
+          msgEl.textContent = 'Plate required';
+          return;
+        }
+        if (requireSacco && !sacco_id){
+          msgEl.className = 'err';
+          msgEl.textContent = 'SACCO id required';
+          return;
+        }
+
+        const payload = {
+          number_plate,
+          owner_name: owner_name || null,
+          owner_phone: owner_phone || null,
+          till_number: till_number || null,
+          vehicle_type: cfg.type,
+          sacco_id
+        };
+
+        try{
+          const created = await jpost('/api/admin/register-matatu', payload);
+          const vehicleId = created?.id;
+          let note = '';
+          if (vehicleId && Array.isArray(cfg.logins)){
+            for (const def of cfg.logins){
+              const emailEl = def.emailId ? $(def.emailId) : null;
+              const passEl = def.passId ? $(def.passId) : null;
+              const email = (emailEl?.value || '').trim();
+              const password = passEl?.value || '';
+              if (!email || !password) continue;
+              const body = { email, password, role: def.role };
+              if (def.link === 'sacco'){
+                body.sacco_id = sacco_id;
+              } else if (def.link !== 'none'){
+                body.matatu_id = vehicleId;
+              }
+              try{
+                const r = await jpost('/api/admin/user-roles/create-user', body);
+                note += ` + ${def.role.toLowerCase()} login (${r.email || email})`;
+              }catch(err){
+                note += ` (${def.role.toLowerCase()} login error: ${parseErr(err)})`;
+              }
+            }
+          }
+          if (Array.isArray(cfg.clearIds)){
+            clearInputs(cfg.clearIds);
+            if (cfg.clearIds.includes('mt_sacco')) refreshMatatuSaccoMeta();
+          }
+          msgEl.className = 'ok';
+          msgEl.textContent = `${cfg.successLabel} created${note}`;
+          await loadVehicles();
+          await loadLogins();
+        }catch(err){
+          msgEl.className = 'err';
+          msgEl.textContent = parseErr(err);
+        }
+      }
+
+      const mtSaccoSelect = $('mt_sacco');
+      if (mtSaccoSelect){
+        mtSaccoSelect.addEventListener('change', refreshMatatuSaccoMeta);
+      }
+
+      $('mt_add').addEventListener('click', () =>{
+        handleVehicleRegistration({
+          type:'MATATU',
+          plateId:'mt_plate',
+          ownerId:'mt_owner',
+          phoneId:'mt_phone',
+          tillId:'mt_till',
+          saccoId:'mt_sacco',
+          msgId:'mt_msg',
+          successLabel:'Matatu',
+          logins:[
+            { emailId:'mt_owner_email', passId:'mt_owner_pass', role:'OWNER' },
+            { emailId:'mt_staff_email', passId:'mt_staff_pass', role:'STAFF' }
+          ],
+          clearIds:['mt_plate','mt_owner','mt_phone','mt_till','mt_sacco','mt_owner_email','mt_owner_pass','mt_staff_email','mt_staff_pass']
+        });
+      });
+
+      $('taxi_add').addEventListener('click', () =>{
+        handleVehicleRegistration({
+          type:'TAXI',
+          plateId:'taxi_plate',
+          ownerId:'taxi_owner',
+          phoneId:'taxi_phone',
+          tillId:'taxi_till',
+          saccoId:'taxi_sacco',
+          msgId:'taxi_msg',
+          successLabel:'Taxi',
+          requireSacco:false,
+          logins:[
+            { emailId:'taxi_email', passId:'taxi_pass', role:'TAXI' }
+          ],
+          clearIds:['taxi_plate','taxi_owner','taxi_phone','taxi_till','taxi_sacco','taxi_email','taxi_pass']
+        });
+      });
+
+      $('boda_add').addEventListener('click', () =>{
+        handleVehicleRegistration({
+          type:'BODABODA',
+          plateId:'boda_plate',
+          ownerId:'boda_owner',
+          phoneId:'boda_phone',
+          tillId:'boda_till',
+          saccoId:'boda_sacco',
+          msgId:'boda_msg',
+          successLabel:'Boda boda',
+          requireSacco:false,
+          logins:[
+            { emailId:'boda_email', passId:'boda_pass', role:'BODA' }
+          ],
+          clearIds:['boda_plate','boda_owner','boda_phone','boda_till','boda_sacco','boda_email','boda_pass']
+        });
+      });
+      $('pl_available').addEventListener('click', async ()=>{
+        try{
+          const data = await jget('/api/admin/ussd/pool/available');
+          $('pl_list').innerHTML = (data.items||[]).map(x=>`
+            <tr><td>${x.base}</td><td>${x.checksum}</td><td>*001*${x.base}${x.checksum}#</td></tr>`).join('') || '<tr><td colspan="3" class="muted">No free codes</td></tr>';
+        }catch(e){
+          $('pl_list').innerHTML = `<tr><td colspan="3" class="err">${parseErr(e)}</td></tr>`;
+        }
+      });
+
+      $('pl_alloc').addEventListener('click', async ()=>{
+        try{
+          const data = await jget('/api/admin/ussd/pool/allocated');
+          $('pl_list').innerHTML = (data.items||[]).map(x=>`
+            <tr><td colspan="3">${x.full_code} → ${x.level} ${x.matatu_id || x.sacco_id || ''}</td></tr>`).join('') || '<tr><td colspan="3" class="muted">No allocations</td></tr>';
+        }catch(e){
+          $('pl_list').innerHTML = `<tr><td colspan="3" class="err">${parseErr(e)}</td></tr>`;
+        }
+      });
+
+      async function loadLogins(){
+        try{
+          const rows = await jget('/api/admin/user-roles/logins');
+          $('login_list').innerHTML = (rows||[]).map(r=>`
+            <tr>
+              <td>${r.email||''}</td>
+              <td>${r.role||''}</td>
+              <td>${r.sacco_id||''}</td>
+              <td>${r.matatu_id||''}</td>
+              <td>${r.created_at ? new Date(r.created_at).toLocaleString() : ''}</td>
+            </tr>`).join('') || '<tr><td colspan="5" class="muted">No logins yet</td></tr>';
+        }catch(e){
+          $('login_list').innerHTML = `<tr><td colspan="5" class="err">${parseErr(e)}</td></tr>`;
+        }
+      }
+
+      try{
+        await ensureSession();
+        await Promise.all([loadSaccos(), loadVehicles(), loadLogins()]);
+      }catch(_){}
+    }
+    safeInit();
+  </script>
+</body>
+</html>

@@ -1,192 +1,21 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#1976d2" />
-  <title>TekeTeke Go</title>
-  <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="icon" href="./icons/icon-192.png">
-  <link rel="apple-touch-icon" href="./icons/icon-192.png">
-  <link rel="stylesheet" href="./styles.css">
-  <script src="/public/js/app-config.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-</head>
+﻿<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>TekeTeke Mobile</title></head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <span class="logo" aria-hidden="true"></span>
-      <strong>TekeTeke Go</strong>
-    </div>
-    <div class="right row">
-      <span id="netBadge" class="pill">offline</span>
-      <button id="installBtn" class="btn ghost" hidden>Install</button>
-      <button id="logoutBtn" class="btn">Logout</button>
-    </div>
-  </header>
-
-  <main class="wrap">
-    <nav class="tabs" role="tablist" aria-label="App sections">
-      <button class="tab active" data-panel="home" aria-selected="true">Home</button>
-      <button class="tab" data-panel="pay">Pay</button>
-      <button class="tab" data-panel="tx">Transactions</button>
-      <button class="tab" data-panel="loans">Loans</button>
-      <button class="tab" data-panel="profile">Profile</button>
-    </nav>
-
-    <section id="panel-home" class="panel active">
-      <div class="card status-card">
-        <div>
-          <div class="k">Today's status</div>
-          <div id="statusToday" class="pill">Checking…</div>
-        </div>
-        <button id="refreshAll" class="btn ghost">Refresh</button>
-      </div>
-
-      <div class="grid metrics">
-        <div class="metric">
-          <div class="k">Linked vehicles</div>
-          <div class="v" id="metricVehicles">0</div>
-        </div>
-        <div class="metric">
-          <div class="k">Fees recorded today</div>
-          <div class="v" id="metricFeesToday">KES 0</div>
-        </div>
-        <div class="metric">
-          <div class="k">Loans recorded today</div>
-          <div class="v" id="metricLoansToday">KES 0</div>
-        </div>
-        <div class="metric">
-          <div class="k">Offline queue</div>
-          <div class="v" id="metricQueue">0</div>
-        </div>
-      </div>
-
-    <div class="card">
-      <div class="grid g2">
-        <div>
-          <div class="k">Payment channel</div>
-          <div class="v" id="amountDue">—</div>
-        </div>
-          <div>
-            <div class="k">Last payment</div>
-            <div class="v" id="lastPayment">—</div>
-      </div>
-    </div>
-
-        <div class="row gap">
-          <button class="btn ok" id="homePayBtn">Pay daily fee</button>
-          <button class="btn ghost" id="ussdBtn">Open USSD</button>
-        </div>
-      </div>
-
-      <div class="card" style="background:#eef2ff;border:1px dashed #c7d2fe">
-        <div class="row gap">
-          <div style="flex:1">
-            <h3 style="margin:0 0 4px">Need offline mode?</h3>
-            <p class="muted" style="margin:0">Install the Matatu crew Android app.</p>
-          </div>
-          <a class="btn" href="/downloads/teketeke-go-driver.apk" download>Download APK</a>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="row between">
-          <h3>Vehicles</h3>
-          <span id="statusMsg" class="muted">Loading…</span>
-        </div>
-        <ul id="vehicleList" class="list"></ul>
-      </div>
-
-      <div class="card" id="queueCard" hidden>
-        <div class="row between">
-          <h3>Queued payments</h3>
-          <span id="queueBadge" class="pill">0 queued</span>
-        </div>
-        <ul id="queueList" class="list"></ul>
-      </div>
-    </section>
-
-    <section id="panel-pay" class="panel">
-      <div class="card">
-        <h2>Send STK prompt</h2>
-        <label class="field">Vehicle
-          <select id="payVehicle"></select>
-        </label>
-        <p class="hint">USSD / Till: <span class="mono" id="payCode">—</span></p>
-        <label class="field">Phone number
-          <input id="payPhone" type="tel" placeholder="07XXXXXXXX" inputmode="tel" autocomplete="tel">
-        </label>
-        <label class="field">Amount (KES)
-          <input id="payAmount" type="number" placeholder="e.g. 200" inputmode="numeric" min="10" step="10">
-        </label>
-        <div class="row gap">
-          <button id="payButton" class="btn ok">Send STK</button>
-          <button id="verifyButton" class="btn ghost">Reload status</button>
-        </div>
-        <div id="payMsg" class="muted" aria-live="polite"></div>
-      </div>
-    </section>
-
-    <section id="panel-tx" class="panel">
-      <div class="row filters">
-        <div class="row gap">
-          <label>From <input id="txFrom" type="date"></label>
-          <label>To <input id="txTo" type="date"></label>
-          <label>Type
-            <select id="txType">
-              <option value="fees">Fees</option>
-              <option value="loans">Loans</option>
-              <option value="all">All</option>
-            </select>
-          </label>
-        </div>
-        <button id="txReload" class="btn ghost">Reload</button>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Ref</th></tr></thead>
-          <tbody id="txList"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <section id="panel-loans" class="panel">
-      <div class="card">
-        <h2>Loans overview</h2>
-        <div class="grid g3">
-          <div><div class="k">Principal total</div><div class="v" id="loanOutstanding">KES 0</div></div>
-          <div><div class="k">Active loans</div><div class="v" id="loanNextDue">0</div></div>
-          <div><div class="k">Next due</div><div class="v" id="loanNextDate">--</div></div>
-        </div>
-        <div class="row gap">
-          <input id="loanPayAmount" type="number" placeholder="Repay amount (KES)" inputmode="numeric" min="10" step="10">
-          <button id="loanPayBtn" class="btn ok">Repay via STK</button>
-        </div>
-        <div id="loanMsg" class="muted" aria-live="polite"></div>
-        <div class="table-wrap" style="margin-top:12px">
-          <table>
-            <thead><tr><th>Borrower</th><th>Matatu</th><th>Principal</th><th>Rate %</th><th>Term</th><th>Status</th></tr></thead>
-            <tbody id="loanTbody"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <section id="panel-profile" class="panel">
-      <div class="card">
-        <h2>Profile</h2>
-        <div class="grid g2">
-          <div><div class="k">User</div><div class="v" id="pfUser">—</div></div>
-          <div><div class="k">Role</div><div class="v" id="pfRole">—</div></div>
-          <div><div class="k">SACCO</div><div class="v" id="pfSacco">—</div></div>
-          <div><div class="k">Vehicles</div><div class="v" id="pfVehicles">—</div></div>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <div id="toast" role="status" aria-live="polite"></div>
-  <script src="./app.js" type="module"></script>
+<script>
+(function () {
+  var map = {
+    "matatu-staff": "/public/matatu/staff.html",
+    "matatu-owner": "/public/matatu/owner.html",
+    "sacco-staff":  "/public/sacco/staff.html",
+    "taxi":         "/public/taxi/index.html",
+    "bodaboda":     "/public/bodaboda/bodaboda.html",
+    "driver":       "/public/driver/index.html"
+  };
+  var slug = (location.hash || "").replace(/^#/, "");
+  var target = map[slug] || "/public/taxi/index.html";
+  location.replace(target);
+})();
+</script>
 </body>
 </html>
