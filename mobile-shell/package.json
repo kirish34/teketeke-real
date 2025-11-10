@@ -14,7 +14,8 @@
     "role:matatu-owner": "cross-env TEKETEKE_APP_NAME=\"TekeTeke Go Matatu Owner\" TEKETEKE_APP_ID=com.teketeke.matatuowner TEKETEKE_ENTRY_FILE=public/matatu/owner.html npm run cap:sync",
     "role:sacco-staff": "cross-env TEKETEKE_APP_NAME=\"TekeTeke Go Sacco Staff\" TEKETEKE_APP_ID=com.teketeke.saccostaff TEKETEKE_ENTRY_FILE=public/sacco/staff.html npm run cap:sync",
     "role:taxi": "cross-env TEKETEKE_APP_NAME=\"TekeTeke Go Taxi\" TEKETEKE_APP_ID=com.teketeke.taxi TEKETEKE_ENTRY_FILE=public/taxi/index.html npm run cap:sync",
-    "role:bodaboda": "cross-env TEKETEKE_APP_NAME=\"TekeTeke Go Boda\" TEKETEKE_APP_ID=com.teketeke.boda TEKETEKE_ENTRY_FILE=public/bodaboda/bodaboda.html npm run cap:sync"
+    "role:bodaboda": "cross-env TEKETEKE_APP_NAME=\"TekeTeke Go Boda\" TEKETEKE_APP_ID=com.teketeke.boda TEKETEKE_ENTRY_FILE=public/bodaboda/bodaboda.html npm run cap:sync",
+    "role:driver": "cross-env TEKETEKE_APP_NAME=\"TekeTeke Go Driver\" TEKETEKE_APP_ID=com.teketeke.driver TEKETEKE_ENTRY_FILE=public/driver/index.html npm run cap:sync"
   },
   "dependencies": {
     "@capacitor/android": "^6.2.1",
