@@ -40,7 +40,7 @@
     <div class="card" role="dialog" aria-labelledby="t_title">
       <div class="topline">
         <span id="auth_state" class="pill">Checking session…</span>
-        <a class="link" href="/public/auth/role-select.html">Role Select</a>
+        <a class="link" href="/public/downloads/index.html">Downloads</a>
       </div>
 
       <div class="brand">
@@ -151,7 +151,7 @@
         await refreshAuthBadge();
 
         const sp = new URLSearchParams(location.search);
-        const nxt = sp.get('next') || '/public/auth/role-select.html';
+        const nxt = sp.get('next') || '/public/downloads/index.html';
         setTimeout(()=>{ location.href = nxt; }, 120);
       }catch(e){
         msg(e.message||String(e),'err');
@@ -167,7 +167,7 @@
       setLoading(true); msg('Sending link…');
       try{
         const sp = new URLSearchParams(location.search);
-        const redirect = location.origin + '/public/auth/login.html?next=' + encodeURIComponent(sp.get('next')||'/public/auth/role-select.html');
+        const redirect = location.origin + '/public/auth/login.html?next=' + encodeURIComponent(sp.get('next')||'/public/downloads/index.html');
         const { error } = await sb.auth.signInWithOtp({ email: emailV, options:{ emailRedirectTo: redirect } });
         if(error) throw error;
         msg('Check your email for the link','ok');
@@ -191,7 +191,7 @@
       await refreshAuthBadge();
       if(s?.access_token){
         const sp = new URLSearchParams(location.search);
-        const next = sp.get('next') || '/public/auth/role-select.html';
+        const next = sp.get('next') || '/public/downloads/index.html';
         location.href = next;
       }
     });
@@ -204,7 +204,7 @@
         if(t){
           // already signed in, go ahead
           const sp = new URLSearchParams(location.search);
-          const nxt = sp.get('next') || '/public/auth/role-select.html';
+          const nxt = sp.get('next') || '/public/downloads/index.html';
           location.href = nxt;
         }
       } catch {}
@@ -212,3 +212,4 @@
   </script>
 </body>
 </html>
+

@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
-import { mkdirSync, rmSync, existsSync, writeFileSync } from 'fs';
-import cpy from 'cpy';
+import { mkdirSync, rmSync, existsSync, writeFileSync, cpSync } from 'fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, '..', '..');
@@ -35,10 +34,9 @@ const entryUrl = '/' + entryFile.replace(/^\.?\//, '');
 rmSync(dest, { recursive: true, force: true });
 mkdirSync(dest, { recursive: true });
 
-await cpy(['**/*'], resolve(dest, 'public'), {
-  cwd: publicSource,
-  parents: true
-});
+const targetPublicDir = resolve(dest, 'public');
+mkdirSync(targetPublicDir, { recursive: true });
+cpSync(publicSource, targetPublicDir, { recursive: true, force: true });
 
 const indexHtml = `<!doctype html>
 <html lang="en">

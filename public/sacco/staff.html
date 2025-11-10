@@ -1,9 +1,9 @@
-<!doctype html>
+ï»¿<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>TekeTeke — SACCO Staff</title>
+  <title>TekeTeke ï¿½ SACCO Staff</title>
   <script src="/public/js/app-config.js"></script>
   <script src="/public/js/api.js"></script>
   <script src="/public/js/role-guard.js"></script>
@@ -48,13 +48,13 @@
     <div class="time" id="dateTimeLine">--</div>
   </div>
   <div class="row" style="justify-content:space-between; align-items:center; margin-bottom:8px">
-    <a href="/public/auth/role-select.html">? Back</a>
+    <a href="/public/downloads/index.html">Downloads</a>
     <div class="row" style="gap:8px">
-      <span id="auth_state" class="pill">Checking sign-in…</span>
+      <span id="auth_state" class="pill">Checking sign-inï¿½</span>
       <button id="logoutBtn" style="padding:8px 10px; border-radius:8px; border:1px solid #cfe3ff; background:#0b5cab; color:#fff">Logout</button>
     </div>
   </div>
-  <h2>SACCO Staff — Cash Desk</h2>
+  <h2>SACCO Staff ï¿½ Cash Desk</h2>
 
   <!-- Top filters & defaults -->
   <div class="card stack">
@@ -296,14 +296,14 @@
     const dfSet = new Set(dfPaid.map(x=>x.matatu_id));
     renderPaidList('df_paid', dfPaid);
     renderDueList('df_due', dfSet, 'DAILY_FEE', '');
-    $('df_counts').textContent = `${dfPaid.length} paid • ${(MATATUS.length - dfSet.size)} due`;
+    $('df_counts').textContent = `${dfPaid.length} paid ï¿½ ${(MATATUS.length - dfSet.size)} due`;
 
     // LOANS
     const lnPaid = paidForKinds(['LOAN_REPAY']);
     const lnSet = new Set(lnPaid.map(x=>x.matatu_id));
     renderPaidList('ln_paid', lnPaid);
     renderDueList('ln_due', lnSet, 'LOAN_REPAY', '');
-    $('ln_counts').textContent = `${lnPaid.length} paid • ${(MATATUS.length - lnSet.size)} due`;
+    $('ln_counts').textContent = `${lnPaid.length} paid ï¿½ ${(MATATUS.length - lnSet.size)} due`;
 
     // SAVINGS
     const svPaid = paidForKinds(['SAVINGS']);
@@ -333,7 +333,7 @@
   // Simple self-tests (console-only)
   (function runSelfTests(){
     try{
-      console.group('SACCO Staff — self-tests');
+      console.group('SACCO Staff ï¿½ self-tests');
       const now = new Date();
       const yesterday = new Date(Date.now()-24*3600*1000);
       console.assert(isToday(now) === true, 'isToday(now) should be true');
@@ -426,4 +426,5 @@ startCornerClock();
 </script>
 </body>
 </html>
+
 

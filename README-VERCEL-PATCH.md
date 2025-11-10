@@ -1,4 +1,4 @@
-# Vercel Patch for TekeTeke
+ï»¿# Vercel Patch for TekeTeke
 
 This patch adds Vercel serverless support to your existing project.
 
@@ -16,7 +16,7 @@ This patch adds Vercel serverless support to your existing project.
 powershell
    ```
 4) Commit and push to GitHub, then import to Vercel (or use `vercel` CLI).
-5) In Vercel — Project Settings — Environment Variables, add:
+5) In Vercel ï¿½ Project Settings ï¿½ Environment Variables, add:
    - SUPABASE_URL
    - SUPABASE_ANON_KEY
    - SUPABASE_SERVICE_ROLE_KEY
@@ -26,9 +26,10 @@ powershell
 ## Local dev (unchanged)
 ```powershell
 npm run dev
-# open http://localhost:5001/public/auth/role-select.html
+# open http://localhost:5001/public/downloads/index.html
 ```
 
 ## Notes
 - Static assets remain at `/public/...` and are served by Vercel as static files.
 - API calls under `/api/*` and `/u/*` are handled by the serverless function.
+

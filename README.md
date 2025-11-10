@@ -9,7 +9,7 @@ cp .env.example .env
 # fill SUPABASE_URL + keys
 npm i
 npm run dev
-open http://localhost:5001/public/auth/role-select.html
+open http://localhost:5001/public/downloads/index.html
 ```
 Use the **Use Demo Token** button only to bypass UI auth during development.
 System Admin actions require an authenticated Supabase session for a user present in `public.staff_profiles` with role `SYSTEM_ADMIN`.
@@ -21,7 +21,7 @@ node scripts/seed-role-users.js
 This creates (or reuses) users such as `sacco.manager@example.com` with password `TekePass123!` and links them to the seeded sacco/matatu records via `public.user_roles`.
 
 ## Front-end entry points
-- **Role chooser:** `/public/auth/role-select.html` (links to every dashboard + the ops console).
+- **Download hub:** `/public/downloads/index.html` (links to every dashboard APK + the ops console).
 - **Mobile PWA:** `/public/mobile/index.html` &rarr; offline queue, STK launch, transaction history and profile (installs from the browser). Works with `/api/pay/stk` and `/u/*` routes.
 - **Ops console (system admin):** `/public/ops/index.html` &rarr; manage SACCOs, vehicles, USSD pool, and recent logins via `/api/admin/*`.
 - **Legacy dashboards:** `/public/system/dashboard.html`, `/public/sacco/*`, `/public/matatu/*`, etc. remain available for parity testing.

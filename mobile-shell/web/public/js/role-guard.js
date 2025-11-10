@@ -16,7 +16,7 @@
     const roleLabel = opts.roleLabel || required.join(' / ');
     const next = opts.next || (location.pathname + location.search);
     const loginUrl = opts.loginUrl || `/public/auth/login.html?next=${encodeURIComponent(next)}`;
-    const mismatchUrl = opts.onMismatch || '/public/auth/role-select.html';
+    const mismatchUrl = opts.onMismatch || '/public/downloads/index.html';
 
     try{
       const supa = await window.TT?.getSupabase?.();
