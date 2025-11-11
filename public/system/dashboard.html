@@ -28,11 +28,21 @@
     .tab.active{background:var(--brand-700)}
     .panel{display:none;background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px;box-shadow:0 6px 18px rgba(0,0,0,.06);margin-top:10px}
     .panel.active{display:block}
+    .card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(15,23,42,.06);margin-bottom:12px}
+    .grid.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:12px}
+    .metric{padding:12px;border-radius:10px;border:1px solid var(--border);background:#f8fafc}
+    .metric .k{font-size:13px;color:var(--muted)}
+    .metric .v{font-size:24px;font-weight:700;margin-top:6px}
+    .grid.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+    .table-wrap{overflow:auto}
+    .list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px}
+    .list li{padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:#f8fafc;font-family:monospace}
     input,select{padding:8px;border:1px solid var(--border);border-radius:8px}
     table{width:100%;border-collapse:collapse;margin-top:10px}
     th,td{border:1px solid var(--border);padding:8px;text-align:left;vertical-align:top}
     th{background:#1976d2;color:#fff}
     .muted{color:var(--muted)}
+    .status{display:block;font-size:13px}
     .err{color:var(--bad);font-weight:700}
     .ok{color:var(--ok);font-weight:700}
     .row{display:flex;flex-wrap:wrap;gap:8px}
@@ -52,7 +62,8 @@
   </div>
 
   <div class="tabs" role="tablist" aria-label="Sections">
-    <div class="tab active" data-id="saccos" role="tab" aria-selected="true">SACCOs</div>
+    <div class="tab active" data-id="overview" role="tab" aria-selected="true">Overview</div>
+    <div class="tab" data-id="saccos" role="tab" aria-selected="false">SACCOs</div>
     <div class="tab" data-id="matatus" role="tab" aria-selected="false">Matatus (Owner/Staff)</div>
     <div class="tab" data-id="taxis" role="tab" aria-selected="false">Taxis</div>
     <div class="tab" data-id="bodas" role="tab" aria-selected="false">BodaBodas</div>
@@ -60,7 +71,21 @@
     <div class="tab" data-id="logins" role="tab" aria-selected="false">Recent Logins</div>
   </div>
 
-  <section id="saccos" class="panel active" aria-labelledby="tab_saccos">
+  <section id="overview" class="panel active" aria-labelledby="tab_overview">
+    <div class="card">
+      <h3>Platform snapshot</h3>
+      <div class="grid metrics">
+        <div class="metric"><div class="k">SACCOs</div><div class="v" id="ov_saccos">—</div></div>
+        <div class="metric"><div class="k">Matatus</div><div class="v" id="ov_matatus">—</div></div>
+        <div class="metric"><div class="k">Cashiers</div><div class="v" id="ov_staff">—</div></div>
+        <div class="metric"><div class="k">Transactions today</div><div class="v" id="ov_tx">—</div></div>
+        <div class="metric"><div class="k">USSD available</div><div class="v" id="ov_pool_avail">—</div></div>
+        <div class="metric"><div class="k">USSD total</div><div class="v" id="ov_pool_total">—</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="saccos" class="panel" aria-labelledby="tab_saccos">
     <h3>Register SACCO</h3>
     <div class="row">
       <input id="sc_name" placeholder="SACCO name" autocomplete="organization" />
@@ -203,21 +228,43 @@
   </section>
 
   <section id="pool" class="panel" aria-labelledby="tab_pool">
-    <h3>USSD Pool</h3>
-    <div class="row">
-      <button id="pl_available" class="btn">Load free</button>
-      <button id="pl_alloc" class="btn ghost">Load allocated</button>
+    <div class="card">
+      <h3>Assign next USSD code</h3>
+      <form id="ussdForm" class="grid g2">
+        <label class="field">Prefix<input name="prefix" value="*001*" placeholder="*001*"></label>
+        <label class="field">Level
+          <select name="level">
+            <option value="MATATU">Matatu</option>
+            <option value="SACCO">SACCO</option>
+          </select>
+        </label>
+        <label class="field">Matatu ID<input name="matatu_id" placeholder="optional"></label>
+        <label class="field">SACCO ID<input name="sacco_id" placeholder="optional"></label>
+        <div class="field" style="align-self:flex-end">
+          <button class="btn" type="submit">Assign code</button>
+          <div id="ussdMsg" class="status muted" style="margin-top:6px"></div>
+        </div>
+      </form>
     </div>
-    <table>
-      <thead><tr><th>Base</th><th>Checksum</th><th>Code</th></tr></thead>
-      <tbody id="pl_list"><tr><td colspan="3" class="muted">—</td></tr></tbody>
-    </table>
+    <div class="card">
+      <h3>Available codes</h3>
+      <ul id="ussdAvail" class="list"><li class="muted">Loading...</li></ul>
+    </div>
+    <div class="card">
+      <h3>Recent allocations</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Code</th><th>Status</th><th>Level</th><th>Linked ID</th><th>Updated</th></tr></thead>
+          <tbody id="ussdAlloc"><tr><td colspan="5" class="muted">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
   </section>
 
   <section id="logins" class="panel" aria-labelledby="tab_logins">
     <h3>Recent Logins</h3>
     <table>
-      <thead><tr><th>Email</th><th>Role</th><th>SACCO</th><th>Matatu</th><th>Created</th></tr></thead>
+      <thead><tr><th>Email</th><th>Role</th><th>SACCO</th><th>Matatu</th><th>Assigned</th></tr></thead>
       <tbody id="login_list"><tr><td colspan="5" class="muted">Loading…</td></tr></tbody>
     </table>
   </section>
@@ -257,7 +304,8 @@
       const sb = createClient(window.SUPABASE_URL || '', window.SUPABASE_ANON_KEY || '');
       const $ = (id)=>document.getElementById(id);
       const badge = $('sess_badge');
-      const state = { saccos: [], vehicles: [], vehiclesLoaded: false };
+      const state = { saccos: [], vehicles: [], vehiclesLoaded: false, overview: null, ussdAvailable: [], ussdAllocated: [] };
+      const numberFmt = new Intl.NumberFormat('en-KE');
 
       const parseErr = (err) => {
         if (!err) return 'Unknown error';
@@ -393,6 +441,37 @@
         }).join('');
       }
 
+      function setMetric(id, value){
+        const el = $(id);
+        if (!el) return;
+        if (value === undefined || value === null || Number.isNaN(value)){
+          el.textContent = '—';
+        }else{
+          el.textContent = numberFmt.format(value);
+        }
+      }
+
+      function renderOverview(){
+        const counts = state.overview?.counts || {};
+        const pool = state.overview?.ussd_pool || {};
+        setMetric('ov_saccos', counts.saccos);
+        setMetric('ov_matatus', counts.matatus);
+        setMetric('ov_staff', counts.cashiers);
+        setMetric('ov_tx', counts.tx_today);
+        setMetric('ov_pool_avail', pool.available);
+        setMetric('ov_pool_total', pool.total);
+      }
+
+      async function loadOverview(){
+        try{
+          state.overview = await jget('/api/admin/system-overview');
+        }catch(e){
+          console.error('[system] overview', e);
+          state.overview = null;
+        }
+        renderOverview();
+      }
+
       $('logout_btn').addEventListener('click', async ()=>{
         await sb.auth.signOut();
         localStorage.removeItem('auth_token');
@@ -465,6 +544,38 @@
         }
       });
 
+      const ussdForm = document.getElementById('ussdForm');
+      if (ussdForm){
+        ussdForm.addEventListener('submit', async (event)=>{
+          event.preventDefault();
+          const msg = $('ussdMsg');
+          if (msg){
+            msg.className = 'status muted';
+            msg.textContent = 'Assigning...';
+          }
+          const formData = new FormData(ussdForm);
+          const payload = {};
+          formData.forEach((value, key)=>{
+            const trimmed = (value ?? '').toString().trim();
+            payload[key] = trimmed || null;
+          });
+          try{
+            const res = await jpost('/api/admin/ussd/pool/assign-next', payload);
+            if (msg){
+              msg.className = 'status ok';
+              msg.textContent = `Assigned ${res.ussd_code || 'code'}`;
+            }
+            ussdForm.reset();
+            await Promise.all([loadUssd(), loadOverview()]);
+          }catch(err){
+            if (msg){
+              msg.className = 'status err';
+              msg.textContent = parseErr(err);
+            }
+          }
+        });
+      }
+
       function normalizeType(row){
         return (row?.vehicle_type || '').toString().toUpperCase();
       }
@@ -523,6 +634,63 @@
             list.classList.remove('stacked');
             list.classList.add('muted');
             list.textContent = `Failed to load matatus: ${parseErr(e)}`;
+          }
+        }
+      }
+
+      function renderUssd(){
+        const avail = $('ussdAvail');
+        if (avail){
+          if (!state.ussdAvailable.length){
+            avail.innerHTML = '<li class="muted">No free codes.</li>';
+          }else{
+            avail.innerHTML = state.ussdAvailable.slice(0,30).map(item => `<li>${item.full_code || `*001*${item.base||''}${item.checksum||''}#`}</li>`).join('');
+          }
+        }
+        const alloc = $('ussdAlloc');
+        if (alloc){
+          if (!state.ussdAllocated.length){
+            alloc.innerHTML = '<tr><td colspan="5" class="muted">No allocations yet.</td></tr>';
+          }else{
+            alloc.innerHTML = state.ussdAllocated.slice(0,30).map(item => {
+              const updated = item.allocated_at ? new Date(item.allocated_at).toLocaleString() : '—';
+              const level = item.allocated_to_type || item.level || '—';
+              const linked = item.allocated_to_id || item.matatu_id || item.sacco_id || '—';
+              return `
+                <tr>
+                  <td>${item.full_code || '—'}</td>
+                  <td>${item.status || '—'}</td>
+                  <td>${level}</td>
+                  <td>${linked}</td>
+                  <td>${updated}</td>
+                </tr>`;
+            }).join('');
+          }
+        }
+      }
+
+      async function loadUssd(){
+        try{
+          const [avail, alloc] = await Promise.all([
+            jget('/api/admin/ussd/pool/available'),
+            jget('/api/admin/ussd/pool/allocated')
+          ]);
+          state.ussdAvailable = Array.isArray(avail?.items) ? avail.items : [];
+          state.ussdAllocated = Array.isArray(alloc?.items) ? alloc.items : [];
+          renderUssd();
+          const msg = $('ussdMsg');
+          if (msg && msg.textContent.startsWith('Assigning')){
+            msg.className = 'status ok';
+            msg.textContent = 'Pool updated';
+          }
+        }catch(e){
+          state.ussdAvailable = [];
+          state.ussdAllocated = [];
+          renderUssd();
+          const msg = $('ussdMsg');
+          if (msg){
+            msg.className = 'status err';
+            msg.textContent = parseErr(e);
           }
         }
       }
@@ -664,27 +832,7 @@
           clearIds:['boda_plate','boda_owner','boda_phone','boda_till','boda_sacco','boda_email','boda_pass']
         });
       });
-      $('pl_available').addEventListener('click', async ()=>{
-        try{
-          const data = await jget('/api/admin/ussd/pool/available');
-          $('pl_list').innerHTML = (data.items||[]).map(x=>`
-            <tr><td>${x.base}</td><td>${x.checksum}</td><td>*001*${x.base}${x.checksum}#</td></tr>`).join('') || '<tr><td colspan="3" class="muted">No free codes</td></tr>';
-        }catch(e){
-          $('pl_list').innerHTML = `<tr><td colspan="3" class="err">${parseErr(e)}</td></tr>`;
-        }
-      });
-
-      $('pl_alloc').addEventListener('click', async ()=>{
-        try{
-          const data = await jget('/api/admin/ussd/pool/allocated');
-          $('pl_list').innerHTML = (data.items||[]).map(x=>`
-            <tr><td colspan="3">${x.full_code} → ${x.level} ${x.matatu_id || x.sacco_id || ''}</td></tr>`).join('') || '<tr><td colspan="3" class="muted">No allocations</td></tr>';
-        }catch(e){
-          $('pl_list').innerHTML = `<tr><td colspan="3" class="err">${parseErr(e)}</td></tr>`;
-        }
-      });
-
-      async function loadLogins(){
+async function loadLogins(){
         try{
           const rows = await jget('/api/admin/user-roles/logins');
           $('login_list').innerHTML = (rows||[]).map(r=>`
@@ -702,7 +850,7 @@
 
       try{
         await ensureSession();
-        await Promise.all([loadSaccos(), loadVehicles(), loadLogins()]);
+        await Promise.all([loadOverview(), loadSaccos(), loadVehicles(), loadLogins(), loadUssd()]);
       }catch(_){}
     }
     safeInit();
