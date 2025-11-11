@@ -21,7 +21,7 @@ node scripts/seed-role-users.js
 This creates (or reuses) users such as `sacco.manager@example.com` with password `TekePass123!` and links them to the seeded sacco/matatu records via `public.user_roles`.
 
 ## Front-end entry points
-- **System Admin console:** `/public/auth/role-select.html` (redirects to `/public/system/dashboard.html` after sign-in).
+- **Role chooser:** `/public/auth/role-select.html` (links to System Admin, SACCO, Matatu, Taxi and Boda dashboards).
 - **Mobile PWA:** `/public/mobile/index.html` &rarr; offline queue, STK launch, transaction history and profile (installs from the browser). Works with `/api/pay/stk` and `/u/*` routes.
 - **Legacy dashboards:** `/public/system/dashboard.html`, `/public/sacco/*`, `/public/matatu/*`, etc. remain available for parity testing.
 - **Native shell:** `/mobile-shell` contains a Capacitor wrapper that emits Android (and optional iOS) binaries. Run `npm run role:<slug>` inside that folder (e.g., `role:taxi`, `role:bodaboda`, `role:matatu-staff`) to sync assets and build a role-specific APK such as “TekeTeke Go Taxi”.
