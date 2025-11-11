@@ -80,24 +80,16 @@
   </header>
 
   <div class="row" style="justify-content:flex-end;gap:8px;margin-top:8px">
-    <span id="auth_state" class="pill" style="max-width:40vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Checking sign-in�</span>
-    <button id="logoutBtn" style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--sky);color:#fff;font-weight:900">Logout</button>
+    <span id="auth_state" class="pill" style="max-width:40vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Checking sign-in…</span>
+    <button id="logoutBtn" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--sky);color:#fff;font-weight:900;font-size:13px">Logout</button>
   </div>
 
   <section>
     <h2>Status</h2>
     <div class="row">
       <div>
-        <div class="pill" id="sessionState">Checking session�</div>
-        <div class="hint" id="whoamiHint">�</div>
-      </div>
-      <div>
-        <label for="taxiNo">Taxi Identifier</label>
-        <input id="taxiNo" placeholder="e.g., KDA 123A" />
-      </div>
-      <div>
-        <label for="driver">Driver Name</label>
-        <input id="driver" placeholder="optional" />
+        <div class="pill" id="sessionState">Checking session…</div>
+        <div class="hint" id="whoamiHint">—</div>
       </div>
     </div>
   </section>
@@ -313,6 +305,22 @@
       }catch(e){ out.textContent=`Error: ${e.message||e}`; out.className='error'; }
     }
 
+    function clearStoredTokens(){
+      try{ ['auth_token','tt_root_token','tt_admin_token'].forEach(k => localStorage.removeItem(k)); }catch(_){ }
+      try{ sessionStorage.removeItem('auth_token'); }catch(_){ }
+    }
+
+    async function logoutToLogin(opts = {}){
+      const { keepNext = false } = opts;
+      try{
+        const supa = await window.TT?.getSupabase?.();
+        await supa?.auth?.signOut();
+      }catch(_){ }
+      clearStoredTokens();
+      const next = keepNext ? `?next=${encodeURIComponent(location.pathname + location.search)}` : '';
+      location.href = '/public/auth/login.html' + next;
+    }
+
     // --- Init ---
     (async function main(){
       try{
@@ -329,7 +337,10 @@
           if(el) el.textContent = session?.user?.email ? (`Signed in as ${session.user.email}`) : 'Not signed in';
           setWelcome(session?.user);
           const b=document.getElementById('logoutBtn');
-          b?.addEventListener('click', async ()=>{ try{ await supa.auth.signOut(); }catch(_){} localStorage.removeItem('auth_token'); localStorage.removeItem('tt_root_token'); localStorage.removeItem('tt_admin_token'); location.reload(); }, {passive:true});
+          b?.addEventListener('click', (event)=>{
+            event.preventDefault();
+            logoutToLogin({ keepNext:false });
+          });
           setSessionState(session?.user? 'Session: OK' : 'Session: missing', session?.user? 'ok':'warn');
         } else {
           setSessionState('Session: unknown', 'warn');

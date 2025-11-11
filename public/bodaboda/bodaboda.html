@@ -360,6 +360,22 @@
   })();
   </script>
   <script>
+    function clearStoredTokens(){
+      try{ ['auth_token','tt_root_token','tt_admin_token'].forEach(k => localStorage.removeItem(k)); }catch(_){ }
+      try{ sessionStorage.removeItem('auth_token'); }catch(_){ }
+    }
+
+    async function logoutToLogin(opts = {}){
+      const { keepNext = false } = opts;
+      try{
+        const supa = await window.TT?.getSupabase?.();
+        await supa?.auth?.signOut();
+      }catch(_){ }
+      clearStoredTokens();
+      const next = keepNext ? `?next=${encodeURIComponent(location.pathname + location.search)}` : '';
+      location.href = '/public/auth/login.html' + next;
+    }
+
     // Auth banner + logout using Supabase session
     (async function(){
       try{
@@ -371,12 +387,10 @@
           const welcome = document.getElementById('welcomeLine');
           if (welcome) welcome.textContent = `Hello, ${friendlyName(session?.user)}`;
           const b = document.getElementById('logoutBtn');
-          b?.addEventListener('click', async ()=>{
-            try{ await supa.auth.signOut(); }catch(_){ }
-            // Clear any legacy tokens if they exist (harmless if absent)
-            ['auth_token','tt_root_token','tt_admin_token'].forEach(k=>localStorage.removeItem(k));
-            location.reload();
-          }, {passive:true});
+          b?.addEventListener('click', (e)=>{
+            e.preventDefault();
+            logoutToLogin({ keepNext:false });
+          });
         }
       }catch(_){ }
     })();
