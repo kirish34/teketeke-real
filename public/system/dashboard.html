@@ -366,6 +366,21 @@
         });
       }
 
+      function clearStoredTokens(){
+        ['auth_token','tt_root_token','tt_admin_token'].forEach(k => {
+          try{ localStorage.removeItem(k); }catch(_){ }
+        });
+        try{ sessionStorage.removeItem('auth_token'); }catch(_){ }
+      }
+
+      async function logoutAndRedirect(opts = {}){
+        const { keepNext = false } = opts;
+        try{ await sb.auth.signOut(); }catch(_){ }
+        clearStoredTokens();
+        const next = keepNext ? `?next=${encodeURIComponent(location.pathname + location.search)}` : '';
+        location.href = '/public/auth/login.html' + next;
+      }
+
       async function ensureSession(){
         try{
           const { data:{ session } } = await sb.auth.getSession();
@@ -377,8 +392,7 @@
         }catch(err){
           badge.textContent = 'Not signed in';
           badge.classList.add('err');
-          const next = encodeURIComponent(location.pathname + location.search);
-          setTimeout(()=>{ location.href = `/public/auth/login.html?next=${next}`; }, 250);
+          setTimeout(()=> logoutAndRedirect({ keepNext:true }), 200);
           throw err;
         }
       }
@@ -505,11 +519,8 @@
         renderOverview();
       }
 
-      $('logout_btn').addEventListener('click', async ()=>{
-        await sb.auth.signOut();
-        localStorage.removeItem('auth_token');
-        sessionStorage.removeItem('auth_token');
-        location.href = '/public/auth/login.html';
+      $('logout_btn').addEventListener('click', ()=>{
+        logoutAndRedirect({ keepNext:false });
       });
 
       async function loadSaccos(){
