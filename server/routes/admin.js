@@ -1,10 +1,13 @@
-const express = require('express');
+﻿const express = require('express');
 const { supabaseAdmin } = require('../supabase');
 const { requireUser } = require('../middleware/auth');
 const router = express.Router();
 
 // Require a signed-in Supabase user with role SYSTEM_ADMIN
 async function requireSystemAdmin(req, res, next){
+  if (!supabaseAdmin) {
+    return res.status(500).json({ error: 'SERVICE_ROLE not configured on server (SUPABASE_SERVICE_ROLE_KEY)' });
+  }
   return requireUser(req, res, async () => {
     try{
       const uid = req.user?.id;
@@ -355,3 +358,16 @@ router.post('/loans', async (req,res)=>{
 });
 
 module.exports = router;
+
+
+// Supabase health for admin routes
+router.get('/health', async (_req, res) => {
+  try{
+    if (!supabaseAdmin) return res.status(500).json({ ok:false, error:'service_role_missing' });
+    const { error } = await supabaseAdmin.from('saccos').select('id', { head:true, count:'exact' }).limit(1);
+    if (error) return res.status(500).json({ ok:false, error: error.message });
+    return res.json({ ok:true });
+  }catch(e){
+    return res.status(500).json({ ok:false, error: e.message || 'unknown' });
+  }
+});
