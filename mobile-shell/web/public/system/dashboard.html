@@ -314,16 +314,20 @@
 
   <script type="module">
     async function safeInit() {
-      let createClient;
+      let sb;
       try {
-        ({ createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'));
+        sb = await window.TT?.getSupabase?.();
+        if (!sb) throw new Error('Supabase client not ready');
       } catch (e) {
-        console.error('[system] Failed to import supabase-js:', e);
-        document.getElementById('sess_badge').textContent = 'Supabase unavailable';
+        console.error('[system] Supabase unavailable', e);
+        const badge = document.getElementById('sess_badge');
+        if (badge){
+          badge.textContent = 'Supabase unavailable';
+          badge.classList.add('err');
+        }
         return;
       }
 
-      const sb = createClient(window.SUPABASE_URL || '', window.SUPABASE_ANON_KEY || '');
       const $ = (id)=>document.getElementById(id);
       const badge = $('sess_badge');
       const state = { saccos: [], vehicles: [], vehiclesLoaded: false, overview: null, ussdAvailable: [], ussdAllocated: [], logins: [], loginBeingEdited: null };
