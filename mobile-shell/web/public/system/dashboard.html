@@ -23,16 +23,29 @@
     .btn.ghost{background:#fff;color:var(--brand)}
     .btn:hover{background:var(--brand-700);border-color:var(--brand-700)}
     .btn.ghost:hover{background:#f0f7ff}
+    .btn.danger{border-color:#b91c1c;color:#b91c1c;background:#fff}
+    .btn.danger:hover{background:#fee2e2}
+    .field.hidden{display:none}
     .tabs{display:flex;gap:8px;flex-wrap:wrap}
     .tab{padding:8px 10px;background:var(--brand);color:#fff;border-radius:8px;cursor:pointer}
     .tab.active{background:var(--brand-700)}
     .panel{display:none;background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px;box-shadow:0 6px 18px rgba(0,0,0,.06);margin-top:10px}
     .panel.active{display:block}
+    .card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(15,23,42,.06);margin-bottom:12px}
+    .grid.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:12px}
+    .metric{padding:12px;border-radius:10px;border:1px solid var(--border);background:#f8fafc}
+    .metric .k{font-size:13px;color:var(--muted)}
+    .metric .v{font-size:24px;font-weight:700;margin-top:6px}
+    .grid.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+    .table-wrap{overflow:auto}
+    .list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px}
+    .list li{padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:#f8fafc;font-family:monospace}
     input,select{padding:8px;border:1px solid var(--border);border-radius:8px}
     table{width:100%;border-collapse:collapse;margin-top:10px}
     th,td{border:1px solid var(--border);padding:8px;text-align:left;vertical-align:top}
     th{background:#1976d2;color:#fff}
     .muted{color:var(--muted)}
+    .status{display:block;font-size:13px}
     .err{color:var(--bad);font-weight:700}
     .ok{color:var(--ok);font-weight:700}
     .row{display:flex;flex-wrap:wrap;gap:8px}
@@ -52,15 +65,29 @@
   </div>
 
   <div class="tabs" role="tablist" aria-label="Sections">
-    <div class="tab active" data-id="saccos" role="tab" aria-selected="true">SACCOs</div>
+    <div class="tab active" data-id="overview" role="tab" aria-selected="true">Overview</div>
+    <div class="tab" data-id="saccos" role="tab" aria-selected="false">SACCOs</div>
     <div class="tab" data-id="matatus" role="tab" aria-selected="false">Matatus (Owner/Staff)</div>
     <div class="tab" data-id="taxis" role="tab" aria-selected="false">Taxis</div>
     <div class="tab" data-id="bodas" role="tab" aria-selected="false">BodaBodas</div>
     <div class="tab" data-id="pool" role="tab" aria-selected="false">USSD Pool</div>
-    <div class="tab" data-id="logins" role="tab" aria-selected="false">Recent Logins</div>
+    <div class="tab" data-id="logins" role="tab" aria-selected="false">Logins</div>
   </div>
 
-  <section id="saccos" class="panel active" aria-labelledby="tab_saccos">
+  <section id="overview" class="panel active" aria-labelledby="tab_overview">
+    <div class="card">
+      <h3>Platform snapshot</h3>
+      <div class="grid metrics">
+        <div class="metric"><div class="k">SACCOs</div><div class="v" id="ov_saccos">—</div></div>
+        <div class="metric"><div class="k">Matatus</div><div class="v" id="ov_matatus">—</div></div>
+        <div class="metric"><div class="k">Transactions today</div><div class="v" id="ov_tx">—</div></div>
+        <div class="metric"><div class="k">USSD available</div><div class="v" id="ov_pool_avail">—</div></div>
+        <div class="metric"><div class="k">USSD total</div><div class="v" id="ov_pool_total">—</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="saccos" class="panel" aria-labelledby="tab_saccos">
     <h3>Register SACCO</h3>
     <div class="row">
       <input id="sc_name" placeholder="SACCO name" autocomplete="organization" />
@@ -70,26 +97,8 @@
       <input id="sc_till" placeholder="Default till (optional)" />
     </div>
 
-    <div class="section">
-      <h4 style="margin:8px 0 4px">Create SACCO Admin Login (optional)</h4>
-      <div class="row">
-        <input id="sc_login_email" placeholder="Admin email" autocomplete="email" />
-        <input id="sc_login_password" type="password" placeholder="Admin password" autocomplete="new-password" />
-      </div>
-      <div class="hint">Creates a <b>SACCO</b> role linked to the new SACCO.</div>
-    </div>
-
-    <div class="section">
-      <h4 style="margin:8px 0 4px">Create SACCO Staff Login (optional)</h4>
-      <div class="row">
-        <input id="sc_staff_email" placeholder="Staff email" autocomplete="email" />
-        <input id="sc_staff_password" type="password" placeholder="Staff password" autocomplete="new-password" />
-      </div>
-      <div class="hint">Creates a <b>SACCO_STAFF</b> role linked to the same SACCO.</div>
-    </div>
-
     <div class="section row">
-      <button id="sc_add" class="btn">Register SACCO (+ logins)</button>
+      <button id="sc_add" class="btn">Register SACCO</button>
       <span id="sc_msg" class="muted" style="align-self:center"></span>
     </div>
 
@@ -100,7 +109,7 @@
   </section>
 
   <section id="matatus" class="panel" aria-labelledby="tab_matatus">
-    <h3>Register Matatu (Owner + Staff)</h3>
+    <h3>Register Matatu</h3>
     <div class="row">
       <input id="mt_plate" placeholder="KDA123A" />
       <input id="mt_owner" placeholder="Owner name" />
@@ -118,19 +127,8 @@
       <div id="mt_existing_list" class="sacco-matatu-list muted">Select a SACCO to see matatus registered under it.</div>
     </div>
 
-    <div class="section">
-      <h4 style="margin:8px 0 4px">Create Associated Logins (optional)</h4>
-      <div class="row">
-        <input id="mt_owner_email" placeholder="Owner login email" autocomplete="email" />
-        <input id="mt_owner_pass" type="password" placeholder="Owner password" autocomplete="new-password" />
-        <input id="mt_staff_email" placeholder="Staff login email" autocomplete="email" />
-        <input id="mt_staff_pass" type="password" placeholder="Staff password" autocomplete="new-password" />
-      </div>
-      <div class="hint">Creates <b>OWNER</b> and <b>STAFF</b> roles linked to the new matatu.</div>
-    </div>
-
     <div class="section row">
-      <button id="mt_add" class="btn">Register Matatu (+ logins)</button>
+      <button id="mt_add" class="btn">Register Matatu</button>
       <span id="mt_msg" class="muted" style="align-self:center"></span>
     </div>
 
@@ -151,17 +149,8 @@
     </div>
     <div class="hint">Leave SACCO empty if this taxi is not registered under one.</div>
 
-    <div class="section">
-      <h4 style="margin:8px 0 4px">Create Taxi Login (optional)</h4>
-      <div class="row">
-        <input id="taxi_email" placeholder="Taxi login email" autocomplete="email" />
-        <input id="taxi_pass" type="password" placeholder="Taxi password" autocomplete="new-password" />
-      </div>
-      <div class="hint">Creates a <b>TAXI</b> role linked to this taxi.</div>
-    </div>
-
     <div class="section row">
-      <button id="taxi_add" class="btn">Register Taxi (+ login)</button>
+      <button id="taxi_add" class="btn">Register Taxi</button>
       <span id="taxi_msg" class="muted" style="align-self:center"></span>
     </div>
 
@@ -182,17 +171,8 @@
     </div>
     <div class="hint">SACCO linkage is optional for boda bodas.</div>
 
-    <div class="section">
-      <h4 style="margin:8px 0 4px">Create Boda Login (optional)</h4>
-      <div class="row">
-        <input id="boda_email" placeholder="Boda login email" autocomplete="email" />
-        <input id="boda_pass" type="password" placeholder="Boda password" autocomplete="new-password" />
-      </div>
-      <div class="hint">Creates a <b>BODA</b> role linked to this ride.</div>
-    </div>
-
     <div class="section row">
-      <button id="boda_add" class="btn">Register Boda (+ login)</button>
+      <button id="boda_add" class="btn">Register BodaBoda</button>
       <span id="boda_msg" class="muted" style="align-self:center"></span>
     </div>
 
@@ -203,24 +183,113 @@
   </section>
 
   <section id="pool" class="panel" aria-labelledby="tab_pool">
-    <h3>USSD Pool</h3>
-    <div class="row">
-      <button id="pl_available" class="btn">Load free</button>
-      <button id="pl_alloc" class="btn ghost">Load allocated</button>
+    <div class="card">
+      <h3>Assign next USSD code</h3>
+      <form id="ussdForm" class="grid g2">
+        <label class="field">Prefix<input name="prefix" value="*001*" placeholder="*001*"></label>
+        <label class="field">Level
+          <select name="level">
+            <option value="MATATU">Matatu</option>
+            <option value="SACCO">SACCO</option>
+          </select>
+        </label>
+        <label class="field">Matatu ID<input name="matatu_id" placeholder="optional"></label>
+        <label class="field">SACCO ID<input name="sacco_id" placeholder="optional"></label>
+        <div class="field" style="align-self:flex-end">
+          <button class="btn" type="submit">Assign code</button>
+          <div id="ussdMsg" class="status muted" style="margin-top:6px"></div>
+        </div>
+      </form>
     </div>
-    <table>
-      <thead><tr><th>Base</th><th>Checksum</th><th>Code</th></tr></thead>
-      <tbody id="pl_list"><tr><td colspan="3" class="muted">—</td></tr></tbody>
-    </table>
+    <div class="card">
+      <h3>Available codes</h3>
+      <ul id="ussdAvail" class="list"><li class="muted">Loading...</li></ul>
+    </div>
+    <div class="card">
+      <h3>Recent allocations</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Code</th><th>Status</th><th>Level</th><th>Linked ID</th><th>Updated</th></tr></thead>
+          <tbody id="ussdAlloc"><tr><td colspan="5" class="muted">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
   </section>
 
   <section id="logins" class="panel" aria-labelledby="tab_logins">
-    <h3>Recent Logins</h3>
-    <table>
-      <thead><tr><th>Email</th><th>Role</th><th>SACCO</th><th>Matatu</th><th>Created</th></tr></thead>
-      <tbody id="login_list"><tr><td colspan="5" class="muted">Loading…</td></tr></tbody>
-    </table>
+    <div class="card">
+      <h3>Create login</h3>
+      <form id="loginForm" class="grid g2">
+        <label class="field">Role
+          <select id="login_role">
+            <option value="SACCO">SACCO Admin</option>
+            <option value="OWNER">Matatu Owner</option>
+            <option value="TAXI">Taxi</option>
+            <option value="BODA">BodaBoda</option>
+          </select>
+        </label>
+        <label class="field">Email<input id="login_email" type="email" autocomplete="email" required></label>
+        <label class="field">Password<input id="login_password" type="password" autocomplete="new-password" required></label>
+        <label class="field" data-login-field="create-sacco">SACCO
+          <select id="login_sacco">
+            <option value="">Select SACCO</option>
+          </select>
+        </label>
+        <label class="field" data-login-field="create-matatu">Matatu
+          <select id="login_matatu">
+            <option value="">Select Matatu</option>
+          </select>
+        </label>
+        <div class="field" style="align-self:flex-end">
+          <button class="btn" type="submit">Create login</button>
+          <div id="login_create_msg" class="status muted"></div>
+        </div>
+      </form>
+    </div>
+
+    <div class="card" id="loginEditor" hidden>
+      <h3>Edit login</h3>
+      <form id="loginEditForm" class="grid g2">
+        <input type="hidden" id="edit_user_id" />
+        <label class="field">Email<input id="edit_email" type="email" autocomplete="email"></label>
+        <label class="field">Role
+          <select id="edit_role">
+            <option value="SACCO">SACCO Admin</option>
+            <option value="OWNER">Matatu Owner</option>
+            <option value="TAXI">Taxi</option>
+            <option value="BODA">BodaBoda</option>
+          </select>
+        </label>
+        <label class="field">New password<input id="edit_password" type="password" placeholder="Leave blank to keep" autocomplete="new-password"></label>
+        <label class="field" data-login-field="edit-sacco">SACCO
+          <select id="edit_sacco">
+            <option value="">Select SACCO</option>
+          </select>
+        </label>
+        <label class="field" data-login-field="edit-matatu">Matatu
+          <select id="edit_matatu">
+            <option value="">Select Matatu</option>
+          </select>
+        </label>
+        <div class="field" style="align-self:flex-end">
+          <button class="btn" type="submit">Save changes</button>
+          <button class="btn ghost" type="button" id="cancelEdit">Cancel</button>
+          <div id="login_edit_msg" class="status muted"></div>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3>Existing logins</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Email</th><th>Role</th><th>SACCO</th><th>Matatu</th><th>Assigned</th><th width="160">Actions</th></tr></thead>
+          <tbody id="login_list"><tr><td colspan="6" class="muted">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
   </section>
+
 
   <script>
     (function () {
@@ -257,7 +326,14 @@
       const sb = createClient(window.SUPABASE_URL || '', window.SUPABASE_ANON_KEY || '');
       const $ = (id)=>document.getElementById(id);
       const badge = $('sess_badge');
-      const state = { saccos: [], vehicles: [], vehiclesLoaded: false };
+      const state = { saccos: [], vehicles: [], vehiclesLoaded: false, overview: null, ussdAvailable: [], ussdAllocated: [], logins: [], loginBeingEdited: null };
+      const loginRoleMeta = {
+        SACCO: { sacco: true, matatu: false, label: 'SACCO Admin' },
+        OWNER: { sacco: false, matatu: true, label: 'Matatu Owner' },
+        TAXI: { sacco: false, matatu: true, label: 'Taxi' },
+        BODA: { sacco: false, matatu: true, label: 'BodaBoda' }
+      };
+      const numberFmt = new Intl.NumberFormat('en-KE');
 
       const parseErr = (err) => {
         if (!err) return 'Unknown error';
@@ -393,6 +469,36 @@
         }).join('');
       }
 
+      function setMetric(id, value){
+        const el = $(id);
+        if (!el) return;
+        if (value === undefined || value === null || Number.isNaN(value)){
+          el.textContent = '—';
+        }else{
+          el.textContent = numberFmt.format(value);
+        }
+      }
+
+      function renderOverview(){
+        const counts = state.overview?.counts || {};
+        const pool = state.overview?.ussd_pool || {};
+        setMetric('ov_saccos', counts.saccos);
+        setMetric('ov_matatus', counts.matatus);
+        setMetric('ov_tx', counts.tx_today);
+        setMetric('ov_pool_avail', pool.available);
+        setMetric('ov_pool_total', pool.total);
+      }
+
+      async function loadOverview(){
+        try{
+          state.overview = await jget('/api/admin/system-overview');
+        }catch(e){
+          console.error('[system] overview', e);
+          state.overview = null;
+        }
+        renderOverview();
+      }
+
       $('logout_btn').addEventListener('click', async ()=>{
         await sb.auth.signOut();
         localStorage.removeItem('auth_token');
@@ -405,6 +511,7 @@
           const data = await jget('/api/admin/saccos');
           const rows = Array.isArray(data.items) ? data.items : [];
           state.saccos = rows;
+          populateLoginSelects();
           $('sc_list').innerHTML = rows.length ? rows.map(row=>`
             <tr>
               <td>${row.name||''}</td>
@@ -417,6 +524,7 @@
           if (state.vehiclesLoaded) renderVehicleTables();
         }catch(e){
           state.saccos = [];
+          populateLoginSelects();
           populateMatatuSaccoSelect();
           if (state.vehiclesLoaded) renderVehicleTables();
           $('sc_list').innerHTML = `<tr><td colspan="5" class="err">${parseErr(e)}</td></tr>`;
@@ -437,33 +545,45 @@
         }
         try{
           const sacco = await jpost('/api/admin/register-sacco', payload);
-          let note = '';
-          const saccoId = sacco?.id;
-          if (saccoId){
-            const adminEmail = $('sc_login_email').value.trim();
-            const adminPass  = $('sc_login_password').value;
-            if (adminEmail && adminPass){
-              try{
-                const r = await jpost('/api/admin/user-roles/create-user', { email: adminEmail, password: adminPass, role:'SACCO', sacco_id: saccoId });
-                note += ` + admin login (${r.email||adminEmail})`;
-              }catch(e){ note += ` (admin login error: ${parseErr(e)})`; }
-            }
-            const staffEmail = $('sc_staff_email').value.trim();
-            const staffPass  = $('sc_staff_password').value;
-            if (staffEmail && staffPass){
-              try{
-                const r = await jpost('/api/admin/user-roles/create-user', { email: staffEmail, password: staffPass, role:'SACCO_STAFF', sacco_id: saccoId });
-                note += ` + staff login (${r.email||staffEmail})`;
-              }catch(e){ note += ` (staff login error: ${parseErr(e)})`; }
-            }
-          }
-          msg.className='ok'; msg.textContent=`SACCO created${note}`;
-          clearInputs(['sc_name','sc_contact_name','sc_phone','sc_email','sc_till','sc_login_email','sc_login_password','sc_staff_email','sc_staff_password']);
-          await loadSaccos(); await loadLogins();
+          msg.className='ok'; msg.textContent='SACCO created';
+          clearInputs(['sc_name','sc_contact_name','sc_phone','sc_email','sc_till']);
+          await loadSaccos();
         }catch(e){
           msg.className='err'; msg.textContent=parseErr(e);
         }
       });
+
+      const ussdForm = document.getElementById('ussdForm');
+      if (ussdForm){
+        ussdForm.addEventListener('submit', async (event)=>{
+          event.preventDefault();
+          const msg = $('ussdMsg');
+          if (msg){
+            msg.className = 'status muted';
+            msg.textContent = 'Assigning...';
+          }
+          const formData = new FormData(ussdForm);
+          const payload = {};
+          formData.forEach((value, key)=>{
+            const trimmed = (value ?? '').toString().trim();
+            payload[key] = trimmed || null;
+          });
+          try{
+            const res = await jpost('/api/admin/ussd/pool/assign-next', payload);
+            if (msg){
+              msg.className = 'status ok';
+              msg.textContent = `Assigned ${res.ussd_code || 'code'}`;
+            }
+            ussdForm.reset();
+            await Promise.all([loadUssd(), loadOverview()]);
+          }catch(err){
+            if (msg){
+              msg.className = 'status err';
+              msg.textContent = parseErr(err);
+            }
+          }
+        });
+      }
 
       function normalizeType(row){
         return (row?.vehicle_type || '').toString().toUpperCase();
@@ -508,11 +628,13 @@
           const data = await jget('/api/admin/matatus');
           state.vehicles = Array.isArray(data.items) ? data.items : [];
           state.vehiclesLoaded = true;
+          populateLoginSelects();
           renderVehicleTables();
           refreshMatatuSaccoMeta();
         }catch(e){
           state.vehicles = [];
           state.vehiclesLoaded = false;
+          populateLoginSelects();
           const errMatatu = `<tr><td colspan="5" class="err">${parseErr(e)}</td></tr>`;
           const errVehicle = `<tr><td colspan="3" class="err">${parseErr(e)}</td></tr>`;
           $('mt_list').innerHTML = errMatatu;
@@ -523,6 +645,63 @@
             list.classList.remove('stacked');
             list.classList.add('muted');
             list.textContent = `Failed to load matatus: ${parseErr(e)}`;
+          }
+        }
+      }
+
+      function renderUssd(){
+        const avail = $('ussdAvail');
+        if (avail){
+          if (!state.ussdAvailable.length){
+            avail.innerHTML = '<li class="muted">No free codes.</li>';
+          }else{
+            avail.innerHTML = state.ussdAvailable.slice(0,30).map(item => `<li>${item.full_code || `*001*${item.base||''}${item.checksum||''}#`}</li>`).join('');
+          }
+        }
+        const alloc = $('ussdAlloc');
+        if (alloc){
+          if (!state.ussdAllocated.length){
+            alloc.innerHTML = '<tr><td colspan="5" class="muted">No allocations yet.</td></tr>';
+          }else{
+            alloc.innerHTML = state.ussdAllocated.slice(0,30).map(item => {
+              const updated = item.allocated_at ? new Date(item.allocated_at).toLocaleString() : '—';
+              const level = item.allocated_to_type || item.level || '—';
+              const linked = item.allocated_to_id || item.matatu_id || item.sacco_id || '—';
+              return `
+                <tr>
+                  <td>${item.full_code || '—'}</td>
+                  <td>${item.status || '—'}</td>
+                  <td>${level}</td>
+                  <td>${linked}</td>
+                  <td>${updated}</td>
+                </tr>`;
+            }).join('');
+          }
+        }
+      }
+
+      async function loadUssd(){
+        try{
+          const [avail, alloc] = await Promise.all([
+            jget('/api/admin/ussd/pool/available'),
+            jget('/api/admin/ussd/pool/allocated')
+          ]);
+          state.ussdAvailable = Array.isArray(avail?.items) ? avail.items : [];
+          state.ussdAllocated = Array.isArray(alloc?.items) ? alloc.items : [];
+          renderUssd();
+          const msg = $('ussdMsg');
+          if (msg && msg.textContent.startsWith('Assigning')){
+            msg.className = 'status ok';
+            msg.textContent = 'Pool updated';
+          }
+        }catch(e){
+          state.ussdAvailable = [];
+          state.ussdAllocated = [];
+          renderUssd();
+          const msg = $('ussdMsg');
+          if (msg){
+            msg.className = 'status err';
+            msg.textContent = parseErr(e);
           }
         }
       }
@@ -570,34 +749,8 @@
         try{
           const created = await jpost('/api/admin/register-matatu', payload);
           const vehicleId = created?.id;
-          let note = '';
-          if (vehicleId && Array.isArray(cfg.logins)){
-            for (const def of cfg.logins){
-              const emailEl = def.emailId ? $(def.emailId) : null;
-              const passEl = def.passId ? $(def.passId) : null;
-              const email = (emailEl?.value || '').trim();
-              const password = passEl?.value || '';
-              if (!email || !password) continue;
-              const body = { email, password, role: def.role };
-              if (def.link === 'sacco'){
-                body.sacco_id = sacco_id;
-              } else if (def.link !== 'none'){
-                body.matatu_id = vehicleId;
-              }
-              try{
-                const r = await jpost('/api/admin/user-roles/create-user', body);
-                note += ` + ${def.role.toLowerCase()} login (${r.email || email})`;
-              }catch(err){
-                note += ` (${def.role.toLowerCase()} login error: ${parseErr(err)})`;
-              }
-            }
-          }
-          if (Array.isArray(cfg.clearIds)){
-            clearInputs(cfg.clearIds);
-            if (cfg.clearIds.includes('mt_sacco')) refreshMatatuSaccoMeta();
-          }
           msgEl.className = 'ok';
-          msgEl.textContent = `${cfg.successLabel} created${note}`;
+          msgEl.textContent = `${cfg.successLabel} created`;
           await loadVehicles();
           await loadLogins();
         }catch(err){
@@ -621,11 +774,7 @@
           saccoId:'mt_sacco',
           msgId:'mt_msg',
           successLabel:'Matatu',
-          logins:[
-            { emailId:'mt_owner_email', passId:'mt_owner_pass', role:'OWNER' },
-            { emailId:'mt_staff_email', passId:'mt_staff_pass', role:'STAFF' }
-          ],
-          clearIds:['mt_plate','mt_owner','mt_phone','mt_till','mt_sacco','mt_owner_email','mt_owner_pass','mt_staff_email','mt_staff_pass']
+          clearIds:['mt_plate','mt_owner','mt_phone','mt_till','mt_sacco']
         });
       });
 
@@ -640,10 +789,7 @@
           msgId:'taxi_msg',
           successLabel:'Taxi',
           requireSacco:false,
-          logins:[
-            { emailId:'taxi_email', passId:'taxi_pass', role:'TAXI' }
-          ],
-          clearIds:['taxi_plate','taxi_owner','taxi_phone','taxi_till','taxi_sacco','taxi_email','taxi_pass']
+          clearIds:['taxi_plate','taxi_owner','taxi_phone','taxi_till','taxi_sacco']
         });
       });
 
@@ -658,51 +804,251 @@
           msgId:'boda_msg',
           successLabel:'Boda boda',
           requireSacco:false,
-          logins:[
-            { emailId:'boda_email', passId:'boda_pass', role:'BODA' }
-          ],
-          clearIds:['boda_plate','boda_owner','boda_phone','boda_till','boda_sacco','boda_email','boda_pass']
+          clearIds:['boda_plate','boda_owner','boda_phone','boda_till','boda_sacco']
         });
       });
-      $('pl_available').addEventListener('click', async ()=>{
-        try{
-          const data = await jget('/api/admin/ussd/pool/available');
-          $('pl_list').innerHTML = (data.items||[]).map(x=>`
-            <tr><td>${x.base}</td><td>${x.checksum}</td><td>*001*${x.base}${x.checksum}#</td></tr>`).join('') || '<tr><td colspan="3" class="muted">No free codes</td></tr>';
-        }catch(e){
-          $('pl_list').innerHTML = `<tr><td colspan="3" class="err">${parseErr(e)}</td></tr>`;
+      function renderLoginTable(){
+        const tbody = $('login_list');
+        if (!tbody) return;
+        if (!state.logins.length){
+          tbody.innerHTML = '<tr><td colspan="6" class="muted">No logins yet</td></tr>';
+          return;
         }
-      });
-
-      $('pl_alloc').addEventListener('click', async ()=>{
-        try{
-          const data = await jget('/api/admin/ussd/pool/allocated');
-          $('pl_list').innerHTML = (data.items||[]).map(x=>`
-            <tr><td colspan="3">${x.full_code} → ${x.level} ${x.matatu_id || x.sacco_id || ''}</td></tr>`).join('') || '<tr><td colspan="3" class="muted">No allocations</td></tr>';
-        }catch(e){
-          $('pl_list').innerHTML = `<tr><td colspan="3" class="err">${parseErr(e)}</td></tr>`;
-        }
-      });
+        tbody.innerHTML = state.logins.map(row => {
+          const created = row.created_at ? new Date(row.created_at).toLocaleString() : '—';
+          return `
+            <tr>
+              <td>${row.email || '—'}</td>
+              <td>${row.role || '—'}</td>
+              <td>${row.sacco_id || '—'}</td>
+              <td>${row.matatu_id || '—'}</td>
+              <td>${created}</td>
+              <td>
+                <button class="btn ghost" type="button" data-edit="${row.user_id}">Edit</button>
+                <button class="btn danger" type="button" data-delete="${row.user_id}">Remove</button>
+              </td>
+            </tr>`;
+        }).join('');
+      }
 
       async function loadLogins(){
         try{
           const rows = await jget('/api/admin/user-roles/logins');
-          $('login_list').innerHTML = (rows||[]).map(r=>`
-            <tr>
-              <td>${r.email||''}</td>
-              <td>${r.role||''}</td>
-              <td>${r.sacco_id||''}</td>
-              <td>${r.matatu_id||''}</td>
-              <td>${r.created_at ? new Date(r.created_at).toLocaleString() : ''}</td>
-            </tr>`).join('') || '<tr><td colspan="5" class="muted">No logins yet</td></tr>';
+          state.logins = Array.isArray(rows) ? rows : [];
+          renderLoginTable();
         }catch(e){
-          $('login_list').innerHTML = `<tr><td colspan="5" class="err">${parseErr(e)}</td></tr>`;
+          state.logins = [];
+          const tbody = $('login_list');
+          if (tbody){
+            tbody.innerHTML = `<tr><td colspan="6" class="err">${parseErr(e)}</td></tr>`;
+          }
         }
+      }
+
+      function populateLoginSelects(){
+        const saccoOptions = ['<option value=\"\">Select SACCO</option>']
+          .concat(state.saccos.map(row => `<option value=\"${row.id}\">${row.name || row.id}</option>`));
+        ['login_sacco','edit_sacco'].forEach(id => {
+          const el = $(id);
+          if (!el) return;
+          const current = el.value;
+          el.innerHTML = saccoOptions.join('');
+          if (current) el.value = current;
+        });
+
+        const matatuOptions = ['<option value=\"\">Select Matatu</option>']
+          .concat(state.vehicles.map(row => {
+            const id = row.id || '';
+            const label = row.number_plate || id || 'Matatu';
+            const display = id ? `${label} (${id})` : label;
+            return `<option value=\"${id}\">${display}</option>`;
+          }));
+        ['login_matatu','edit_matatu'].forEach(id => {
+          const el = $(id);
+          if (!el) return;
+          const current = el.value;
+          el.innerHTML = matatuOptions.join('');
+          if (current) el.value = current;
+        });
+      }
+
+      function setLoginFieldVisibility(prefix, role){
+        const meta = loginRoleMeta[role] || {};
+        const saccoField = document.querySelector(`[data-login-field=\"${prefix}-sacco\"]`);
+        const matatuField = document.querySelector(`[data-login-field=\"${prefix}-matatu\"]`);
+
+
+      function setLoginFieldVisibility(prefix, role){
+        const meta = loginRoleMeta[role] || {};
+        const saccoField = document.querySelector(`[data-login-field="${prefix}-sacco"]`);
+        const matatuField = document.querySelector(`[data-login-field="${prefix}-matatu"]`);
+        if (saccoField) saccoField.classList.toggle('hidden', !meta.sacco);
+        if (matatuField) matatuField.classList.toggle('hidden', !meta.matatu);
+      }
+
+      function openLoginEditor(userId){
+        const entry = state.logins.find(l => l.user_id === userId);
+        const wrap = $('loginEditor');
+        if (!entry || !wrap) return;
+        state.loginBeingEdited = entry;
+        wrap.hidden = false;
+        $('edit_user_id').value = entry.user_id;
+        $('edit_email').value = entry.email || '';
+        $('edit_role').value = entry.role || 'SACCO';
+        $('edit_sacco').value = entry.sacco_id || '';
+        $('edit_matatu').value = entry.matatu_id || '';
+        $('edit_password').value = '';
+        setLoginFieldVisibility('edit', $('edit_role').value);
+      }
+
+      function closeLoginEditor(){
+        state.loginBeingEdited = null;
+        const wrap = $('loginEditor');
+        if (wrap) wrap.hidden = true;
+        $('edit_user_id')?.value = '';
+        $('edit_password')?.value = '';
+        $('login_edit_msg').textContent = '';
+      }
+
+      const loginRoleSelect = $('login_role');
+      if (loginRoleSelect){
+        loginRoleSelect.addEventListener('change', ()=> setLoginFieldVisibility('create', loginRoleSelect.value));
+        setLoginFieldVisibility('create', loginRoleSelect.value);
+      }
+
+      const editRoleSelect = $('edit_role');
+      if (editRoleSelect){
+        editRoleSelect.addEventListener('change', ()=> setLoginFieldVisibility('edit', editRoleSelect.value));
+      }
+
+      const cancelEditBtn = $('cancelEdit');
+      if (cancelEditBtn){
+        cancelEditBtn.addEventListener('click', () => closeLoginEditor());
+      }
+
+      const loginForm = $('loginForm');
+      if (loginForm){
+        loginForm.addEventListener('submit', async (event)=>{
+          event.preventDefault();
+          const role = $('login_role').value;
+          const email = ($('login_email').value || '').trim();
+          const password = $('login_password').value || '';
+          const saccoId = $('login_sacco').value || '';
+          const matatuId = $('login_matatu').value || '';
+          const msg = $('login_create_msg');
+          const meta = loginRoleMeta[role] || {};
+          if (!email || !password){
+            msg.className = 'status err';
+            msg.textContent = 'Email and password are required';
+            return;
+          }
+          if (meta.sacco && !saccoId){
+            msg.className = 'status err';
+            msg.textContent = 'Select a SACCO';
+            return;
+          }
+          if (meta.matatu && !matatuId){
+            msg.className = 'status err';
+            msg.textContent = 'Select a matatu';
+            return;
+          }
+          msg.className = 'status muted';
+          msg.textContent = 'Creating...';
+          const body = { email, password, role };
+          if (meta.sacco) body.sacco_id = saccoId;
+          if (meta.matatu) body.matatu_id = matatuId;
+          try{
+            await jpost('/api/admin/user-roles/create-user', body);
+            msg.className = 'status ok';
+            msg.textContent = 'Login created';
+            loginForm.reset();
+            setLoginFieldVisibility('create', $('login_role').value);
+            await loadLogins();
+          }catch(err){
+            msg.className = 'status err';
+            msg.textContent = parseErr(err);
+          }
+        });
+      }
+
+      const loginEditForm = $('loginEditForm');
+      if (loginEditForm){
+        loginEditForm.addEventListener('submit', async (event)=>{
+          event.preventDefault();
+          const userId = $('edit_user_id').value;
+          if (!userId) return;
+          const role = $('edit_role').value;
+          const email = ($('edit_email').value || '').trim();
+          const password = $('edit_password').value || '';
+          const saccoId = $('edit_sacco').value || '';
+          const matatuId = $('edit_matatu').value || '';
+          const meta = loginRoleMeta[role] || {};
+          const msg = $('login_edit_msg');
+          if (!email){
+            msg.className = 'status err';
+            msg.textContent = 'Email is required';
+            return;
+          }
+          if (meta.sacco && !saccoId){
+            msg.className = 'status err';
+            msg.textContent = 'Select a SACCO';
+            return;
+          }
+          if (meta.matatu && !matatuId){
+            msg.className = 'status err';
+            msg.textContent = 'Select a matatu';
+            return;
+          }
+          const body = { user_id: userId, role, email };
+          body.sacco_id = meta.sacco ? saccoId : null;
+          body.matatu_id = meta.matatu ? matatuId : null;
+          if (password) body.password = password;
+          msg.className = 'status muted';
+          msg.textContent = 'Saving...';
+          try{
+            await jpost('/api/admin/user-roles/update', body);
+            msg.className = 'status ok';
+            msg.textContent = 'Login updated';
+            closeLoginEditor();
+            await loadLogins();
+          }catch(err){
+            msg.className = 'status err';
+            msg.textContent = parseErr(err);
+          }
+        });
+      }
+
+      const loginTable = $('login_list');
+      if (loginTable){
+        loginTable.addEventListener('click', async (event)=>{
+          const editBtn = event.target.closest('button[data-edit]');
+          if (editBtn){
+            openLoginEditor(editBtn.getAttribute('data-edit'));
+            return;
+          }
+          const deleteBtn = event.target.closest('button[data-delete]');
+          if (deleteBtn){
+            const userId = deleteBtn.getAttribute('data-delete');
+            if (!userId) return;
+            if (!confirm('Remove this login?')) return;
+            const resp = await fetch(`/api/admin/user-roles/${userId}?remove_user=true`, { method:'DELETE' });
+            if (!resp.ok){
+              let message = resp.statusText;
+              try{
+                const data = await resp.json();
+                message = data.error || message;
+              }catch(_){}
+              alert(message);
+              return;
+            }
+            await loadLogins();
+          }
+        });
       }
 
       try{
         await ensureSession();
-        await Promise.all([loadSaccos(), loadVehicles(), loadLogins()]);
+        await Promise.all([loadOverview(), loadSaccos(), loadVehicles(), loadLogins(), loadUssd()]);
       }catch(_){}
     }
     safeInit();

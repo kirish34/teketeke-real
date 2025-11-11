@@ -216,6 +216,64 @@ router.get('/user-roles/logins', async (_req,res)=>{
   }
 });
 
+router.post('/user-roles/update', async (req,res)=>{
+  const userId = req.body?.user_id;
+  if (!userId) return res.status(400).json({ error: 'user_id required' });
+  const update = {};
+  const nextRole = req.body?.role ? String(req.body.role).toUpperCase() : null;
+  const saccoId = req.body?.sacco_id ?? null;
+  const matatuId = req.body?.matatu_id ?? null;
+
+  if (nextRole){
+    update.role = nextRole;
+  }
+  if ('sacco_id' in req.body) update.sacco_id = saccoId;
+  if ('matatu_id' in req.body) update.matatu_id = matatuId;
+
+  const needsSacco = ['SACCO'].includes(nextRole || '');
+  const needsMatatu = ['OWNER','STAFF','TAXI','BODA'].includes(nextRole || '');
+  if (needsSacco && !saccoId) return res.status(400).json({ error:'sacco_id required for role ' + nextRole });
+  if (needsMatatu && !matatuId) return res.status(400).json({ error:'matatu_id required for role ' + nextRole });
+
+  try{
+    if (Object.keys(update).length){
+      const { error } = await supabaseAdmin.from('user_roles').update(update).eq('user_id', userId);
+      if (error) throw error;
+    }
+
+    const authUpdates = {};
+    if (req.body?.email) authUpdates.email = req.body.email;
+    if (req.body?.email) authUpdates.email_confirm = true;
+    if (req.body?.password) authUpdates.password = req.body.password;
+    if (Object.keys(authUpdates).length){
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, authUpdates);
+      if (error) throw error;
+    }
+
+    res.json({ ok:true });
+  }catch(e){
+    res.status(500).json({ error: e.message || 'Failed to update login' });
+  }
+});
+
+router.delete('/user-roles/:user_id', async (req,res)=>{
+  const userId = req.params.user_id;
+  if (!userId) return res.status(400).json({ error:'user_id required' });
+  const removeAuth = String(req.query.remove_user || '').toLowerCase() === 'true';
+  try{
+    const { error } = await supabaseAdmin.from('user_roles').delete().eq('user_id', userId);
+    if (error) throw error;
+    if (removeAuth){
+      try{
+        await supabaseAdmin.auth.admin.deleteUser(userId);
+      }catch(_){ /* ignore */ }
+    }
+    res.json({ ok:true });
+  }catch(e){
+    res.status(500).json({ error: e.message || 'Failed to delete login' });
+  }
+});
+
 // USSD Pool
 router.get('/ussd/pool/available', async (_req,res)=>{
   const { data, error } = await supabaseAdmin.from('ussd_pool').select('*').eq('status','AVAILABLE').order('base');
