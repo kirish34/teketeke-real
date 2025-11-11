@@ -926,9 +926,12 @@
         state.loginBeingEdited = null;
         const wrap = $('loginEditor');
         if (wrap) wrap.hidden = true;
-        $('edit_user_id')?.value = '';
-        $('edit_password')?.value = '';
-        $('login_edit_msg').textContent = '';
+        const editUserInput = $('edit_user_id');
+        if (editUserInput) editUserInput.value = '';
+        const editPassInput = $('edit_password');
+        if (editPassInput) editPassInput.value = '';
+        const msg = $('login_edit_msg');
+        if (msg) msg.textContent = '';
       }
 
       const loginRoleSelect = $('login_role');
