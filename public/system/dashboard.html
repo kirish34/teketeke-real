@@ -367,14 +367,20 @@
       }
 
       async function ensureSession(){
-        const { data:{ session } } = await sb.auth.getSession();
-        if (!session?.access_token) {
+        try{
+          const { data:{ session } } = await sb.auth.getSession();
+          if (!session?.access_token) throw new Error('Not signed in');
+          const email = session.user?.email || session.user?.id || 'admin';
+          badge.textContent = `Signed in as ${email}`;
+          badge.classList.remove('err');
+          return session.access_token;
+        }catch(err){
+          badge.textContent = 'Not signed in';
+          badge.classList.add('err');
           const next = encodeURIComponent(location.pathname + location.search);
-          location.href = `/public/auth/login.html?next=${next}`;
-          throw new Error('Not signed in');
+          setTimeout(()=>{ location.href = `/public/auth/login.html?next=${next}`; }, 250);
+          throw err;
         }
-        badge.textContent = `Signed in as ${session.user.email}`;
-        return session.access_token;
       }
       async function tkn(){ return ensureSession(); }
 
