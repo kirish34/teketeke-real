@@ -875,12 +875,6 @@
 
       function setLoginFieldVisibility(prefix, role){
         const meta = loginRoleMeta[role] || {};
-        const saccoField = document.querySelector(`[data-login-field=\"${prefix}-sacco\"]`);
-        const matatuField = document.querySelector(`[data-login-field=\"${prefix}-matatu\"]`);
-
-
-      function setLoginFieldVisibility(prefix, role){
-        const meta = loginRoleMeta[role] || {};
         const saccoField = document.querySelector(`[data-login-field="${prefix}-sacco"]`);
         const matatuField = document.querySelector(`[data-login-field="${prefix}-matatu"]`);
         if (saccoField) saccoField.classList.toggle('hidden', !meta.sacco);
