@@ -16,7 +16,7 @@
     const roleLabel = opts.roleLabel || required.join(' / ');
     const next = opts.next || (location.pathname + location.search);
     const loginUrl = opts.loginUrl || `/public/auth/login.html?next=${encodeURIComponent(next)}`;
-    const mismatchUrl = opts.onMismatch || '/public/downloads/index.html';
+    const mismatchUrl = opts.onMismatch || '/public/auth/role-select.html';
 
     try{
       const supa = await window.TT?.getSupabase?.();
@@ -24,7 +24,7 @@
 
       const { data:{ session } } = await supa.auth.getSession();
       if (!session){
-        setStatus(statusTarget, 'Redirecting to login…');
+        setStatus(statusTarget, 'Redirecting to login...');
         location.href = loginUrl;
         throw new Error('no_session');
       }

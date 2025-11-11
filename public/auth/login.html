@@ -1,9 +1,9 @@
-ï»¿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Login â€” TekeTeke</title>
+  <title>Login — TekeTeke</title>
   <script src="/public/js/app-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -39,8 +39,8 @@
   <div class="wrap">
     <div class="card" role="dialog" aria-labelledby="t_title">
       <div class="topline">
-        <span id="auth_state" class="pill">Checking sessionâ€¦</span>
-        <a class="link" href="/public/downloads/index.html">Downloads</a>
+        <span id="auth_state" class="pill">Checking session…</span>
+        <a class="link" href="/public/auth/role-select.html">Role Select</a>
       </div>
 
       <div class="brand">
@@ -54,7 +54,7 @@
         <input id="email" type="email" placeholder="you@example.com" autocomplete="email" />
         <label for="password">Password</label>
         <div class="row">
-          <input id="password" type="password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" autocomplete="current-password" />
+          <input id="password" type="password" placeholder="••••••••" autocomplete="current-password" />
           <button id="togglePw" class="ghost" type="button" style="min-width:110px">Show</button>
         </div>
         <div class="actions">
@@ -128,7 +128,7 @@
       const emailV = (el('email').value||'').trim();
       const passV  = el('password').value || '';
       if(!emailV || !passV) return msg('Enter email and password','err');
-      setLoading(true); msg('Signing inâ€¦');
+      setLoading(true); msg('Signing in…');
       try{
         const { data, error } = await sb.auth.signInWithPassword({ email: emailV, password: passV });
         if(error) throw error;
@@ -146,12 +146,12 @@
 
         // store JWT so the rest of the app (and Swagger) can use it
         setAuthToken(session.access_token);
-        msg('Signed in âœ“ Redirectingâ€¦','ok');
+        msg('Signed in ? Redirecting…','ok');
         setLoading(false);
         await refreshAuthBadge();
 
         const sp = new URLSearchParams(location.search);
-        const nxt = sp.get('next') || '/public/downloads/index.html';
+        const nxt = sp.get('next') || '/public/auth/role-select.html';
         setTimeout(()=>{ location.href = nxt; }, 120);
       }catch(e){
         msg(e.message||String(e),'err');
@@ -164,10 +164,10 @@
     el('magic').addEventListener('click', async ()=>{
       const emailV = (el('email').value||'').trim();
       if(!emailV) return msg('Enter email first','err');
-      setLoading(true); msg('Sending linkâ€¦');
+      setLoading(true); msg('Sending link…');
       try{
         const sp = new URLSearchParams(location.search);
-        const redirect = location.origin + '/public/auth/login.html?next=' + encodeURIComponent(sp.get('next')||'/public/downloads/index.html');
+        const redirect = location.origin + '/public/auth/login.html?next=' + encodeURIComponent(sp.get('next')||'/public/auth/role-select.html');
         const { error } = await sb.auth.signInWithOtp({ email: emailV, options:{ emailRedirectTo: redirect } });
         if(error) throw error;
         msg('Check your email for the link','ok');
@@ -191,7 +191,7 @@
       await refreshAuthBadge();
       if(s?.access_token){
         const sp = new URLSearchParams(location.search);
-        const next = sp.get('next') || '/public/downloads/index.html';
+        const next = sp.get('next') || '/public/auth/role-select.html';
         location.href = next;
       }
     });
@@ -204,7 +204,7 @@
         if(t){
           // already signed in, go ahead
           const sp = new URLSearchParams(location.search);
-          const nxt = sp.get('next') || '/public/downloads/index.html';
+          const nxt = sp.get('next') || '/public/auth/role-select.html';
           location.href = nxt;
         }
       } catch {}

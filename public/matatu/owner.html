@@ -1,9 +1,9 @@
-ï»¿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>TekeTeke â€” Matatu Owner Dashboard</title>
+  <title>TekeTeke — Matatu Owner Dashboard</title>
   <style>
     :root{
       --brand:#0ea5e9; --brand-700:#0284c7;
@@ -88,7 +88,7 @@
       </div>
       <span class="badge">Owner</span>
       <span class="muted" style="margin-left:auto">
-        <a href="/public/downloads/index.html">Downloads</a> Â·
+        <a href="/public/auth/role-select.html">Role Select</a> ·
         <a href="#" id="logoutLink">Logout</a>
       </span>
       <button id="switchMatatu" class="btn ghost" type="button">Switch Matatu</button>
@@ -177,9 +177,9 @@
           <button class="btn ghost" id="ov_refresh" style="margin-left:auto">Refresh</button>
         </div>
         <div class="grid">
-          <div class="kv"><div class="k">Plate</div><div class="v" id="ov_plate_v">â€”</div></div>
-          <div class="kv"><div class="k">SACCO</div><div class="v" id="ov_sacco_v">â€”</div></div>
-          <div class="kv"><div class="k">Matatu ID</div><div class="v mono" id="ov_id_v">â€”</div></div>
+          <div class="kv"><div class="k">Plate</div><div class="v" id="ov_plate_v">—</div></div>
+          <div class="kv"><div class="k">SACCO</div><div class="v" id="ov_sacco_v">—</div></div>
+          <div class="kv"><div class="k">Matatu ID</div><div class="v mono" id="ov_id_v">—</div></div>
         </div>
         <div class="note">Use the <strong>Staff</strong> tab to add/remove staff once your vehicle is selected.</div>
       </div>
@@ -200,13 +200,13 @@
         </div>
 
         <div class="grid" style="margin-top:10px">
-          <div class="kv"><div class="k">Plate</div><div class="v" id="mt_plate_v">â€”</div></div>
-          <div class="kv"><div class="k">Owner</div><div class="v" id="mt_owner_v">â€”</div></div>
-          <div class="kv"><div class="k">SACCO</div><div class="v" id="mt_sacco_v">â€”</div></div>
-          <div class="kv"><div class="k">Type</div><div class="v" id="mt_type_v">â€”</div></div>
-          <div class="kv"><div class="k">TLB</div><div class="v" id="mt_tlb_v">â€”</div></div>
-          <div class="kv"><div class="k">Till</div><div class="v" id="mt_till_v">â€”</div></div>
-          <div class="kv"><div class="k">Matatu ID</div><div class="v mono" id="mt_id_v">â€”</div></div>
+          <div class="kv"><div class="k">Plate</div><div class="v" id="mt_plate_v">—</div></div>
+          <div class="kv"><div class="k">Owner</div><div class="v" id="mt_owner_v">—</div></div>
+          <div class="kv"><div class="k">SACCO</div><div class="v" id="mt_sacco_v">—</div></div>
+          <div class="kv"><div class="k">Type</div><div class="v" id="mt_type_v">—</div></div>
+          <div class="kv"><div class="k">TLB</div><div class="v" id="mt_tlb_v">—</div></div>
+          <div class="kv"><div class="k">Till</div><div class="v" id="mt_till_v">—</div></div>
+          <div class="kv"><div class="k">Matatu ID</div><div class="v mono" id="mt_id_v">—</div></div>
         </div>
 
         <div class="note">Details are read-only here. For staff actions, go to the <strong>Staff</strong> tab.</div>
@@ -261,7 +261,7 @@
 
         <div class="note">
           Uses RPCs: <span class="mono">owner_add_staff_by_email</span>, <span class="mono">owner_remove_staff</span>.
-          Listing tries <span class="mono">owner_list_matatu_staff</span>, then falls back to <span class="mono">/api/owner/members?matatu_id=â€¦</span>.
+          Listing tries <span class="mono">owner_list_matatu_staff</span>, then falls back to <span class="mono">/api/owner/members?matatu_id=…</span>.
         </div>
       </div>
     </section>
@@ -291,7 +291,7 @@
 
         <div class="note">
           This tries your RPC <span class="mono">owner_transactions_today</span> (if you created it).  
-          If missing, it falls back to <span class="mono">/api/owner/transactions?matatu_id=â€¦</span>.
+          If missing, it falls back to <span class="mono">/api/owner/transactions?matatu_id=…</span>.
         </div>
       </div>
     </section>
@@ -403,7 +403,7 @@ requireRole('OWNER', { statusEl: 'auth_state', roleLabel: 'Matatu Owner' }).then
       if(!chooserList) return;
       chooserList.innerHTML = MY_VEHICLES.map(v=>{
         const plate = (v.number_plate||'').toUpperCase();
-        const meta = [v.vehicle_type||'', v.sacco_id||''].filter(Boolean).join(' â€¢ ');
+        const meta = [v.vehicle_type||'', v.sacco_id||''].filter(Boolean).join(' • ');
         const active = String(v.id) === String(MATATU_ID);
         return `<button type="button" class="chooser-item${active?' active':''}" data-id="${v.id}">
           <div>
@@ -497,18 +497,18 @@ requireRole('OWNER', { statusEl: 'auth_state', roleLabel: 'Matatu Owner' }).then
 
     // populate overview/vehicle cards
     function fillOverview(m){
-      $('ov_plate_v').textContent = m.number_plate || 'â€”';
-      $('ov_sacco_v').textContent = m.sacco_id || 'â€”';
-      $('ov_id_v').textContent = m.id || 'â€”';
+      $('ov_plate_v').textContent = m.number_plate || '—';
+      $('ov_sacco_v').textContent = m.sacco_id || '—';
+      $('ov_id_v').textContent = m.id || '—';
     }
     function fillVehicle(m){
-      $('mt_plate_v').textContent = m.number_plate || 'â€”';
-      $('mt_owner_v').textContent = m.owner_name || 'â€”';
-      $('mt_sacco_v').textContent = m.sacco_id || 'â€”';
-      $('mt_type_v').textContent  = m.vehicle_type || 'â€”';
-      $('mt_tlb_v').textContent   = m.tlb_number || 'â€”';
-      $('mt_till_v').textContent  = m.till_number || 'â€”';
-      $('mt_id_v').textContent    = m.id || 'â€”';
+      $('mt_plate_v').textContent = m.number_plate || '—';
+      $('mt_owner_v').textContent = m.owner_name || '—';
+      $('mt_sacco_v').textContent = m.sacco_id || '—';
+      $('mt_type_v').textContent  = m.vehicle_type || '—';
+      $('mt_tlb_v').textContent   = m.tlb_number || '—';
+      $('mt_till_v').textContent  = m.till_number || '—';
+      $('mt_id_v').textContent    = m.id || '—';
     }
 
     // -------- Overview find/refresh ----------

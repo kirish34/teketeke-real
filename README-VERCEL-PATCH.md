@@ -26,7 +26,7 @@ powershell
 ## Local dev (unchanged)
 ```powershell
 npm run dev
-# open http://localhost:5001/public/downloads/index.html
+# open http://localhost:5001/public/auth/role-select.html
 ```
 
 ## Notes

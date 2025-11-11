@@ -99,7 +99,7 @@ TT.getAuth = () => localStorage.getItem('auth_token') || '';
       document.querySelectorAll('a').forEach(a => {
         const t = (a.textContent||'').trim();
         if (t === '? Back') a.textContent = 'Back';
-        if (/^\?\s*Role Select$/.test(t)) a.textContent = 'Downloads';
+        if (/^\?\s*Role Select$/.test(t)) a.textContent = 'Role Select';
       });
     }catch(_){ }
     try{

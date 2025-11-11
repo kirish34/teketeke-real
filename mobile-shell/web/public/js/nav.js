@@ -6,7 +6,7 @@
       try{
         if (window.TT && window.TT.getSupabase){ const supa = await window.TT.getSupabase(); await supa?.auth?.signOut(); }
       }catch(_){ }
-      go('/public/auth/login.html');
+      go('/public/auth/role-select.html');
     });
   }
   window.protect = async function(){
