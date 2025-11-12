@@ -62,8 +62,8 @@
     </div>
 
     <table>
-      <thead><tr><th>Name</th><th>Contact</th><th>Phone</th><th>Email</th><th>ID</th></tr></thead>
-      <tbody id="sc_list"><tr><td colspan="5" class="muted">Loading…</td></tr></tbody>
+      <thead><tr><th>Name</th><th>Contact</th><th>Phone</th><th>Email</th><th>ID</th><th width="80">Actions</th></tr></thead>
+      <tbody id="sc_list"><tr><td colspan="6" class="muted">Loading…</td></tr></tbody>
     </table>
   </section>
 
@@ -94,7 +94,7 @@
     </div>
 
     <table>
-      <thead><tr><th>Plate</th><th>Owner</th><th>Type</th><th>SACCO</th><th>ID</th></tr></thead>
+      <thead><tr><th>Plate</th><th>Owner</th><th>Type</th><th>SACCO</th><th>ID</th><th width="80">Actions</th></tr></thead>
       <tbody id="mt_list"><tr><td colspan="5" class="muted">Loading…</td></tr></tbody>
     </table>
   </section>
@@ -116,7 +116,7 @@
     </div>
 
     <table>
-      <thead><tr><th>Plate</th><th>SACCO</th><th>ID</th></tr></thead>
+      <thead><tr><th>Plate</th><th>SACCO</th><th>ID</th><th width="80">Actions</th></tr></thead>
       <tbody id="taxi_list"><tr><td colspan="3" class="muted">Loading…</td></tr></tbody>
     </table>
   </section>
@@ -138,7 +138,7 @@
     </div>
 
     <table>
-      <thead><tr><th>Plate</th><th>SACCO</th><th>ID</th></tr></thead>
+      <thead><tr><th>Plate</th><th>SACCO</th><th>ID</th><th width="80">Actions</th></tr></thead>
       <tbody id="boda_list"><tr><td colspan="3" class="muted">Loading…</td></tr></tbody>
     </table>
   </section>
@@ -383,6 +383,14 @@
         try { return JSON.parse(tx); } catch { return {}; }
       }
 
+
+      async function jdel(url){
+        const token = await tkn();
+        const r = await fetch(url, { method:'DELETE', headers:{ Authorization:Bearer , Accept:'application/json' }});
+        const tx = await r.text();
+        if (!r.ok) throw tx || r.statusText;
+        try { return JSON.parse(tx); } catch { return {}; }
+      }
       function saccoLabel(id){
         if (!id) return '';
         const sacco = state.saccos.find(s => s.id === id);
@@ -605,7 +613,24 @@
           </tr>`).join('') : '<tr><td colspan="3" class="muted">No boda bodas yet</td></tr>';
       }
 
-      async function loadVehicles(){
+            // Delete handlers (event delegation)
+      document.addEventListener('click', async (event) => {
+        const sacBtn = event.target.closest('[data-del-sacco]');
+        if (sacBtn){
+          const id = sacBtn.getAttribute('data-del-sacco');
+          if (id && confirm('Delete this SACCO? This cannot be undone.')){
+            try{ await jdel(/api/admin/delete-sacco/); await loadSaccos(); toast('SACCO deleted'); }catch(e){ alert(parseErr(e)); }
+          }
+          return;
+        }
+        const mtBtn = event.target.closest('[data-del-matatu]');
+        if (mtBtn){
+          const id = mtBtn.getAttribute('data-del-matatu');
+          if (id && confirm('Delete this vehicle? This cannot be undone.')){
+            try{ await jdel(/api/admin/delete-matatu/); await loadVehicles(); toast('Vehicle deleted'); }catch(e){ alert(parseErr(e)); }
+          }
+        }
+      });async function loadVehicles(){
         try{
           const data = await jget('/api/admin/matatus');
           state.vehicles = Array.isArray(data.items) ? data.items : [];
