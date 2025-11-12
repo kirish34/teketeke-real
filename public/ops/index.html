@@ -3,23 +3,25 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>TekeTeke Ops Console</title>
+  <title>TekeTeke Ops Console</title>
+  <link rel="stylesheet" href="/public/css/dashboard-theme.css"/>
   <link rel="stylesheet" href="./ops.css">
   <script src="/public/js/app-config.js"></script>
   <script src="/public/js/api.js"></script>
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      Ops Console
-      <span id="auth_state" class="badge">Checking session…</span>
-    </div>
-    <div class="right">
-      <a class="link" href="/public/auth/role-select.html">Role Select</a>
-      <button id="opsRefresh" class="btn ghost">Refresh</button>
-      <button id="opsLogout" class="btn ghost">Logout</button>
-    </div>
-  </header>
+<header class="topbar hero-card">
+  <div class="hero-stack">
+    <p class="eyebrow">Ops Console</p>
+    <h1 style="margin:0">Ops Console</h1>
+    <span id="auth_state" class="pill">Checking session.</span>
+  </div>
+  <div class="hero-actions">
+    <a class="btn ghost" href="/public/auth/role-select.html">Role Select</a>
+    <button id="opsRefresh" class="btn ghost">Refresh</button>
+    <button id="opsLogout" class="btn bad">Logout</button>
+  </div>
+</header>
 
   <main>
     <nav class="tabbar" role="tablist">

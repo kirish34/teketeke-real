@@ -3,39 +3,22 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>System Admin — TekeTeke</title>
+  <title>System Admin — TekeTeke</title>
+  <link rel="stylesheet" href="/public/css/dashboard-theme.css"/>
   <script src="/public/js/app-config.js"></script>
   <script src="/public/js/api.js"></script>
-  <style>
-    :root{--brand:#1976d2;--brand-700:#135ba1;--bg:#f6f7fb;--panel:#fff;--ink:#0b0f19;--border:#e5e7eb;--muted:#4b5563;--ok:#065f46;--bad:#b91c1c}
-    *{box-sizing:border-box}
-    body{font-family:system-ui,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--ink);margin:0;padding:14px}
-    h2{margin:0 0 10px}
-    .topbar{display:flex;align-items:center;gap:8px;margin-bottom:10px}
-    .pill{background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;padding:4px 10px;border-radius:999px;font-size:12px}
-    .right{margin-left:auto}
-    .btn{padding:8px 10px;border:1px solid var(--brand);border-radius:8px;background:var(--brand);color:#fff;font-weight:700;cursor:pointer}
-    .btn.ghost{background:#fff;color:var(--brand)}
-    .btn:hover{background:var(--brand-700);border-color:var(--brand-700)}
-    .btn.ghost:hover{background:#f0f7ff}
-    .tabs{display:flex;gap:8px;flex-wrap:wrap}
-    .tab{padding:8px 10px;background:var(--brand);color:#fff;border-radius:8px;cursor:pointer}
-    .tab.active{background:var(--brand-700)}
-    .panel{display:none;background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px;box-shadow:0 6px 18px rgba(0,0,0,.06);margin-top:10px}
-    .panel.active{display:block}
-    input,select{padding:8px;border:1px solid var(--border);border-radius:8px}
-    table{width:100%;border-collapse:collapse;margin-top:10px}
-    th,td{border:1px solid var(--border);padding:8px;text-align:left;vertical-align:top}
-    th{background:var(--brand);color:#fff}
-    .muted{color:var(--muted)} .err{color:var(--bad);font-weight:700} .ok{color:var(--ok);font-weight:700}
-    .row{display:flex;flex-wrap:wrap;gap:8px} .section{margin-top:10px} .hint{font-size:12px;color:#6b7280;margin-top:4px}
-  </style>
+  
 </head>
 <body>
-  <div class="topbar">
-    <h2 style="margin:0">System Admin</h2>
-    <span id="sess_badge" class="pill right">Checking session…</span>
-    <button id="logout_btn" class="btn ghost">Logout</button>
+    <div class="topbar hero-card">
+    <div class="hero-stack">
+      <h2>System Admin</h2>
+      <p class="muted" style="margin:4px 0 0">Provision SACCOS, matatus and role logins.</p>
+    </div>
+    <div class="hero-actions">
+      <span id="sess_badge" class="pill">Checking session???</span>
+      <button id="logout_btn" class="btn ghost">Logout</button>
+    </div>
   </div>
 
   <div class="tabs" role="tablist" aria-label="Sections">
@@ -273,3 +256,6 @@
   </script>
 </body>
 </html>
+
+
+

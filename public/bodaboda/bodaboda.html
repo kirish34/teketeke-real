@@ -4,80 +4,28 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TekeTeke - Boda Boda Console</title>
+
+  <link rel="stylesheet" href="/public/css/dashboard-theme.css"/>
   <script src="/public/js/app-config.js"></script>
   <script src="/public/js/api.js"></script>
   <script src="/public/js/role-guard.js"></script>
-  <style>
-    :root{
-      --sky:#0ea5e9; /* sky blue */
-      --sky-600:#0284c7;
-      --bg:#f5f7fb;
-      --card:#ffffff;
-      --muted:#475569;
-      --ok:#15803d;
-      --warn:#b45309;
-      --err:#b91c1c;
-      --border:#e5e7eb;
-    }
-    *{box-sizing:border-box}
-    body{margin:0;background:var(--bg);color:#0f172a;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;}
-    .wrap{max-width:980px;margin:0 auto;padding:18px}
-
-    header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-    h1{margin:0;font-size:24px;letter-spacing:.2px;color:var(--sky);font-weight:900}
-    .brand-stack{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
-    .brand-stack .hello{font-weight:900;color:#0f172a;font-size:16px}
-    .brand-stack .time{font-weight:800;color:var(--muted);font-size:13px}
-    a.link{color:var(--sky);text-decoration:none;font-weight:900}
-
-    section{background:var(--card);margin-top:14px;padding:14px;border-radius:14px;border:1px solid var(--border);box-shadow:0 6px 16px rgba(2,132,199,.07)}
-    section h2{margin:0 0 10px 0;font-size:18px;color:var(--sky-600);font-weight:900}
-
-    .row{display:flex;gap:12px;flex-wrap:wrap}
-    .row > *{flex:1 1 260px}
-
-    label{display:block;margin:8px 0 6px;font-size:12px;color:var(--muted);font-weight:900}
-    input,select,textarea,button{width:100%;padding:12px;border-radius:12px;border:1px solid var(--border);font:inherit}
-    textarea{min-height:72px;resize:vertical}
-    button{background:var(--sky);color:#fff;border-color:transparent;font-weight:900;cursor:pointer}
-    button:hover{filter:brightness(.97)}
-    button[disabled]{opacity:.6;cursor:not-allowed}
-
-    .pill{display:inline-block;padding:4px 10px;border-radius:999px;border:1px solid var(--border);font-size:12px;font-weight:900}
-    .ok{color:var(--ok)}
-    .warn{color:var(--warn)}
-    .err{color:var(--err)}
-
-    .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
-    .kpi{background:#f0f9ff;border:1px solid var(--border);border-radius:14px;padding:12px;text-align:center}
-    .kpi .v{font-size:20px;font-weight:1000;color:#0f172a}
-    .kpi .l{font-size:12px;color:var(--muted);font-weight:900}
-    @media(max-width:760px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
-
-    table{width:100%;border-collapse:collapse;margin-top:10px}
-    th,td{padding:10px;border:1px solid #e2e8f0;font-size:14px}
-    th{background:var(--sky);color:#fff;text-align:left}
-
-    .hint{color:var(--muted);font-size:12px;font-weight:900}
-    .error{color:var(--err);font-weight:900;margin-top:8px}
-    .success{color:var(--ok);font-weight:900;margin-top:8px}
-  </style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <div class="brand-stack">
-        <h1>Boda Boda Console</h1>
-        <div class="hello" id="welcomeLine">Hello, Rider</div>
-        <div class="time" id="dateTimeLine">--</div>
-      </div>
-      <div class="row" style="gap:10px;align-items:center;justify-content:flex-end">
-        <span id="auth_state" class="pill" style="max-width:40vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Checking sign-in.</span>
-        <button id="logoutBtn" class="link" style="border:1px solid var(--border);background:var(--sky);color:#fff;border-radius:10px;padding:8px 12px;cursor:pointer">Logout</button>
-      </div>
-    </header>
-
-    <section id="status">
+<div class="wrap">
+  <header class="hero-card">
+    <div class="hero-stack brand-stack">
+      <p class="eyebrow">Boda Console</p>
+      <h1 style="margin:0">Boda Boda Console</h1>
+      <div class="hello" id="welcomeLine">Hello, Rider</div>
+      <div class="timestamp" id="dateTimeLine">--</div>
+    </div>
+    <div class="hero-actions">
+      <span id="auth_state" class="pill" style="max-width:40vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Checking sign-in.</span>
+      <button id="logoutBtn" class="btn bad">Logout</button>
+    </div>
+  </header>
+
+  <section id="status">
       <h2>Status</h2>
       <div class="row">
         <div>

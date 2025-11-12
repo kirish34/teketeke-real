@@ -3,72 +3,34 @@
 <head>
   <meta charset="utf-8"/>
   <title>TekeTeke — SACCO Dashboard</title>
+
+  <link rel="stylesheet" href="/public/css/dashboard-theme.css"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <script src="/public/js/app-config.js"></script>
   <script src="/public/js/api.js"></script>
 
   <!-- Charts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-  <style>
-    :root{
-      --brand:#1976d2; --brand-700:#135ba1;
-      --bg:#f6f7fb; --panel:#fff; --text:#0b0f19; --muted:#6b7280; --border:#e5e7eb;
-    }
-    *{box-sizing:border-box}
-    body{font-family:system-ui,Segoe UI,Arial;background:var(--bg);color:var(--text);margin:0;padding:20px}
-    h2{color:var(--brand);margin:0 0 12px}
-    .bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
-    select,input,button{padding:10px;border:1px solid var(--border);border-radius:8px}
-    button{background:var(--brand);color:#fff;border:none;cursor:pointer}
-    button.ghost{background:#fff;color:var(--brand)}
-    .tabs{display:flex;gap:8px;margin:8px 0 16px;flex-wrap:wrap}
-    .tab{padding:10px 14px;background:var(--brand);color:#fff;border-radius:8px;cursor:pointer}
-    .tab.active{background:var(--brand-700)}
-    .panel{display:none;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.04)}
-    .panel.active{display:block}
-    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .right{margin-left:auto}
-    .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-    .card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px}
-    .k{color:var(--muted);font-size:12px}
-    .v{font-weight:700;font-size:20px}
-    table{width:100%;border-collapse:collapse;margin-top:10px}
-    th,td{padding:10px;border:1px solid var(--border);text-align:left}
-    th{background:var(--brand);color:#fff}
-    .mono{font-family:ui-monospace,Consolas,monospace}
-    .note{color:var(--muted); font-size:12px}
-    a.back{display:inline-block;margin-bottom:10px}
-    .form-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:10px 0}
-    .form-grid-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:10px 0}
-    .w-2{grid-column:span 2}
-    .top-meta{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start;margin-bottom:10px}
-    .top-left{display:flex;flex-direction:column;gap:6px;min-width:220px}
-    .hello-block{display:flex;flex-direction:column;gap:2px}
-    .hello-block .hello{font-weight:600;font-size:16px;color:var(--text)}
-    .hello-block .time{font-size:13px;color:var(--muted)}
-    .top-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-    .pill{background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;padding:4px 10px;border-radius:999px;font-size:12px}
-  </style>
 </head>
 <body>
 
-  <div class="top-meta">
-    <div class="top-left">
-      <a class="back" href="/public/auth/role-select.html">Role Select</a>
-      <div class="hello-block">
-        <div class="hello" id="welcomeLine">Hello!</div>
-        <div class="time" id="dateTimeLine">--</div>
-      </div>
-    </div>
-    <div class="top-actions">
-      <span id="auth_state" class="pill">Checking sign-in…</span>
-      <button id="logoutBtn" class="ghost">Logout</button>
-    </div>
-  </div>
-  <h2 id="saccoHeadline">SACCO Dashboard</h2>
-
-  <div class="bar">
+<div class="top-meta hero-card">
+  <div class="top-left hero-stack">
+    <p class="eyebrow" style="margin:0;text-transform:uppercase;letter-spacing:.3em;font-size:11px">SACCO Console</p>
+    <h2 style="margin:0" id="saccoHeadline">SACCO Dashboard</h2>
+    <div class="hello-block" style="margin-top:6px">
+      <div class="hello" id="welcomeLine">Hello!</div>
+      <div class="time" id="dateTimeLine">--</div>
+    </div>
+  </div>
+  <div class="top-actions hero-actions">
+    <a class="btn ghost" href="/public/auth/role-select.html">Role Select</a>
+    <span id="auth_state" class="pill">Checking sign-in.</span>
+    <button id="logoutBtn" class="btn bad">Logout</button>
+  </div>
+</div>
+
+<div class="bar">
     <label>SACCO <select id="saccoSelect"></select></label>
     <label>From <input id="fromDate" type="date"></label>
     <label>To <input id="toDate" type="date"></label>

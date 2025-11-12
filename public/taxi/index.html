@@ -4,85 +4,26 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TekeTeke � Taxi Console</title>
+
+  <link rel="stylesheet" href="/public/css/dashboard-theme.css"/>
   <script src="/public/js/app-config.js"></script>
   <script src="/public/js/api.js"></script>
   <script src="/public/js/role-guard.js"></script>
-  <style>
-    :root{
-      --sky:#0ea5e9;        /* sky blue */
-      --bg:#f1f5f9;         /* slate-100 */
-      --card:#ffffff;       /* white */
-      --ink:#0f172a;        /* slate-900 */
-      --muted:#64748b;      /* slate-500 */
-      --ok:#16a34a;         /* green-600 */
-      --warn:#b45309;       /* amber-700 */
-      --err:#b91c1c;        /* red-700 */
-      --border:#e2e8f0;     /* slate-200 */
-    }
-    *{box-sizing:border-box}
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;margin:0;background:var(--bg);color:var(--ink);padding:18px}
-
-    header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:6px}
-    .brand{display:flex;align-items:center;gap:10px}
-    h1{margin:0;font-size:22px;font-weight:900;color:var(--sky)}
-    .nav a{display:inline-block;background:var(--sky);color:#fff;text-decoration:none;padding:8px 12px;border-radius:10px;font-weight:900}
-
-    section{background:var(--card);margin-top:16px;padding:14px;border-radius:12px;border:1px solid var(--border);box-shadow:0 1px 10px rgba(2,6,23,.06)}
-    section h2{margin:0 0 10px 0;color:var(--sky);font-size:18px;font-weight:900}
-
-    .row{display:flex;gap:10px;flex-wrap:wrap}
-    .row > *{flex:1 1 240px}
-
-    label{display:block;font-size:12px;color:var(--muted);font-weight:800;margin:8px 0 6px}
-    input,select,button,textarea{width:100%;padding:12px;border-radius:10px;border:1px solid var(--border);font:inherit}
-    textarea{min-height:64px;resize:vertical}
-    button{background:var(--sky);color:#fff;border-color:transparent;font-weight:900;cursor:pointer}
-    button[disabled]{opacity:.6;cursor:not-allowed}
-
-    .pill{display:inline-block;padding:4px 10px;border-radius:999px;border:1px solid var(--border);font-size:12px;font-weight:900}
-    .ok{color:var(--ok)}
-    .warn{color:var(--warn)}
-    .err{color:var(--err)}
-
-    .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-    .kpi{background:#f8fafc;border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center}
-    .kpi .v{font-size:20px;font-weight:1000;color:var(--ink)}
-    .kpi .l{font-size:12px;color:var(--muted);font-weight:800}
-    @media(max-width: 760px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
-
-    .grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-    @media(max-width: 760px){.grid-2{grid-template-columns:1fr}}
-
-    table{width:100%;border-collapse:collapse;margin-top:10px}
-    th,td{padding:10px;border:1px solid #e5e7eb;font-size:14px}
-    th{background:var(--sky);color:#fff;text-align:left}
-
-    .hint{color:var(--muted);font-size:12px;font-weight:800}
-    .error{color:var(--err);font-weight:900;margin-top:8px}
-    .success{color:var(--ok);font-weight:900;margin-top:8px}
-    .corner-meta{display:flex;flex-direction:column;align-items:flex-start;margin-bottom:10px}
-    .corner-meta .hello{font-size:16px;font-weight:900;color:var(--ink)}
-    .corner-meta .time{font-size:13px;font-weight:800;color:var(--muted)}
-  </style>
 </head>
 <body>
-  <div class="corner-meta">
-    <div class="hello" id="welcomeLine">Hello!</div>
-    <div class="time" id="dateTimeLine">--</div>
-  </div>
-  <header>
-    <div class="brand">
-      <h1>Taxi Console</h1>
-    </div>
-    <div class="nav">
-      <a href="/public/auth/role-select.html">Role Select</a>
-    </div>
-  </header>
-
-  <div class="row" style="justify-content:flex-end;gap:8px;margin-top:8px">
-    <span id="auth_state" class="pill" style="max-width:40vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Checking sign-in…</span>
-    <button id="logoutBtn" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--sky);color:#fff;font-weight:900;font-size:13px">Logout</button>
-  </div>
+<header class="hero-card">
+  <div class="hero-stack">
+    <p class="eyebrow">Taxi Console</p>
+    <h1 style="margin:0">Taxi Console</h1>
+    <p id="welcomeLine" class="muted" style="margin:6px 0 0">Hello!</p>
+    <p id="dateTimeLine" class="timestamp">--</p>
+  </div>
+  <div class="hero-actions">
+    <a class="btn ghost" href="/public/auth/role-select.html">Role Select</a>
+    <span id="auth_state" class="pill" style="max-width:40vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Checking sign-in.</span>
+    <button id="logoutBtn" class="btn bad">Logout</button>
+  </div>
+</header>
 
   <section>
     <h2>Status</h2>
