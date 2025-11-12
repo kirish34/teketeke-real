@@ -522,7 +522,6 @@
           contact_email: $('sc_email').value.trim(),
           default_till: $('sc_till').value.trim() || null
         };
-        if (bodyEl){ const v=(bodyEl.value||'').trim(); if(v) payload.body_type=v; }
         if (!payload.name){
           msg.className='err'; msg.textContent='SACCO name required'; return;
         }
@@ -729,7 +728,6 @@
           vehicle_type: cfg.type,
           sacco_id
         };
-        if (bodyEl){ const v=(bodyEl.value||'').trim(); if(v) payload.body_type=v; }
 
         try{
           const created = await jpost('/api/admin/register-matatu', payload);
@@ -1041,6 +1039,7 @@
   </script>
 </body>
 </html>
+
 
 
 
