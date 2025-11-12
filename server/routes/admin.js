@@ -143,6 +143,7 @@ router.post('/register-matatu', async (req,res)=>{
     owner_name: req.body?.owner_name,
     owner_phone: req.body?.owner_phone,
     vehicle_type: vehicleType,
+    body_type: req.body?.body_type || null,
     tlb_number: req.body?.tlb_number,
     till_number: req.body?.till_number
   };

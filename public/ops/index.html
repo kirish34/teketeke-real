@@ -90,6 +90,14 @@
               <option value="BODABODA">BodaBoda</option>
             </select>
           </label>
+          <label class="field">Matatu type
+            <select name="body_type">
+              <option value="">Select body type</option>
+              <option value="VAN">Van</option>
+              <option value="MINI_BUS">Mini Bus</option>
+              <option value="BUS">Bus</option>
+            </select>
+          </label>
           <label class="field">Owner name<input name="owner_name" placeholder="Owner"></label>
           <label class="field">Owner phone<input name="owner_phone" placeholder="+2547..."></label>
           <label class="field">TLB number<input name="tlb_number" placeholder="TLB"></label>
@@ -107,7 +115,7 @@
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Plate</th><th>Type</th><th>SACCO</th><th>Owner</th><th>Phone</th><th>Till</th></tr></thead>
+            <thead><tr><th>Plate</th><th>Type</th><th>Body Type</th><th>SACCO</th><th>Owner</th><th>Phone</th><th>Till</th></tr></thead>
             <tbody id="matatuTable"></tbody>
           </table>
         </div>

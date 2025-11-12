@@ -189,12 +189,23 @@ function renderMatatus(){
     <tr>
       <td>${row.number_plate || ''}</td>
       <td>${row.vehicle_type || ''}</td>
+      <td>${prettyBodyType(row.body_type)}</td>
       <td>${row.sacco_id || '—'}</td>
       <td>${row.owner_name || ''}</td>
       <td>${row.owner_phone || ''}</td>
       <td>${row.till_number || ''}</td>
     </tr>
   `).join('');
+}
+
+function prettyBodyType(value){
+  if (!value) return '—';
+  const map = {
+    VAN: 'Van',
+    MINI_BUS: 'Mini Bus',
+    BUS: 'Bus'
+  };
+  return map[value] || value;
 }
 
 async function loadUssd(){
