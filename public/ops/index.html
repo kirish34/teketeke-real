@@ -82,20 +82,20 @@
         <h2>Register vehicle</h2>
         <form id="matatuForm" class="grid g2">
           <label class="field">SACCO<select name="sacco_id" id="matatuSacco"><option value="">-- optional for taxi/boda --</option></select></label>
-          <label class="field">Matatu type
-            <select name="body_type">
-              <option value="">Select body type</option>
-              <option value="VAN">Van</option>
-              <option value="MINI_BUS">Mini Bus</option>
-              <option value="BUS">Bus</option>
-            </select>
-          </label>
           <label class="field">Plate<input name="number_plate" placeholder="KDA 123A" required></label>
           <label class="field">Vehicle type
             <select name="vehicle_type">
               <option value="MATATU">Matatu</option>
               <option value="TAXI">Taxi</option>
               <option value="BODABODA">BodaBoda</option>
+            </select>
+          </label>
+          <label class="field">Matatu type
+            <select name="body_type">
+              <option value="">Select body type</option>
+              <option value="VAN">Van</option>
+              <option value="MINI_BUS">Mini Bus</option>
+              <option value="BUS">Bus</option>
             </select>
           </label>
           <label class="field">Owner name<input name="owner_name" placeholder="Owner"></label>
