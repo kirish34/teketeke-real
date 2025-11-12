@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>System Admin — TekeTeke</title>
+  <title>System Admin â€” TekeTeke</title>
 
   <link rel="stylesheet" href="/public/css/dashboard-theme.css"/>
   <script src="/public/js/app-config.js"></script>
@@ -37,11 +37,11 @@
     <div class="card">
       <h3>Platform snapshot</h3>
       <div class="grid metrics">
-        <div class="metric"><div class="k">SACCOs</div><div class="v" id="ov_saccos">—</div></div>
-        <div class="metric"><div class="k">Matatus</div><div class="v" id="ov_matatus">—</div></div>
-        <div class="metric"><div class="k">Transactions today</div><div class="v" id="ov_tx">—</div></div>
-        <div class="metric"><div class="k">USSD available</div><div class="v" id="ov_pool_avail">—</div></div>
-        <div class="metric"><div class="k">USSD total</div><div class="v" id="ov_pool_total">—</div></div>
+        <div class="metric"><div class="k">SACCOs</div><div class="v" id="ov_saccos">â€”</div></div>
+        <div class="metric"><div class="k">Matatus</div><div class="v" id="ov_matatus">â€”</div></div>
+        <div class="metric"><div class="k">Transactions today</div><div class="v" id="ov_tx">â€”</div></div>
+        <div class="metric"><div class="k">USSD available</div><div class="v" id="ov_pool_avail">â€”</div></div>
+        <div class="metric"><div class="k">USSD total</div><div class="v" id="ov_pool_total">â€”</div></div>
       </div>
     </div>
   </section>
@@ -63,19 +63,23 @@
 
     <table>
       <thead><tr><th>Name</th><th>Contact</th><th>Phone</th><th>Email</th><th>ID</th></tr></thead>
-      <tbody id="sc_list"><tr><td colspan="5" class="muted">Loading…</td></tr></tbody>
+      <tbody id="sc_list"><tr><td colspan="6" class="muted">Loadingâ€¦</td></tr></tbody>
     </table>
   </section>
 
-  <section id="matatus" class="panel" aria-labelledby="tab_matatus">
-    <h3>Register Matatu</h3>
-    <div class="row">
+      <div class="row">
       <input id="mt_plate" placeholder="KDA123A" />
       <input id="mt_owner" placeholder="Owner name" />
       <input id="mt_phone" placeholder="Owner phone" />
       <input id="mt_till" placeholder="Till number" />
       <select id="mt_sacco">
         <option value="">Select SACCO</option>
+      </select>
+      <select id="mt_body_type">
+        <option value="">Matatu type</option>
+        <option value="VAN">Van</option>
+        <option value="MINI_BUS">Mini Bus</option>
+        <option value="BUS">Bus</option>
       </select>
     </div>
 
@@ -92,8 +96,8 @@
     </div>
 
     <table>
-      <thead><tr><th>Plate</th><th>Owner</th><th>Type</th><th>SACCO</th><th>ID</th></tr></thead>
-      <tbody id="mt_list"><tr><td colspan="5" class="muted">Loading…</td></tr></tbody>
+            <thead><tr><th>Plate</th><th>Owner</th><th>Body Type</th><th>Type</th><th>SACCO</th><th>ID</th></tr></thead>
+      <tbody id="mt_list"><tr><td colspan="6" class="muted">Loadingâ€¦</td></tr></tbody>
     </table>
   </section>
 
@@ -115,7 +119,7 @@
 
     <table>
       <thead><tr><th>Plate</th><th>SACCO</th><th>ID</th></tr></thead>
-      <tbody id="taxi_list"><tr><td colspan="3" class="muted">Loading…</td></tr></tbody>
+      <tbody id="taxi_list"><tr><td colspan="3" class="muted">Loadingâ€¦</td></tr></tbody>
     </table>
   </section>
 
@@ -137,7 +141,7 @@
 
     <table>
       <thead><tr><th>Plate</th><th>SACCO</th><th>ID</th></tr></thead>
-      <tbody id="boda_list"><tr><td colspan="3" class="muted">Loading…</td></tr></tbody>
+      <tbody id="boda_list"><tr><td colspan="3" class="muted">Loadingâ€¦</td></tr></tbody>
     </table>
   </section>
 
@@ -169,7 +173,7 @@
       <div class="table-wrap">
         <table>
           <thead><tr><th>Code</th><th>Status</th><th>Level</th><th>Linked ID</th><th>Updated</th></tr></thead>
-          <tbody id="ussdAlloc"><tr><td colspan="5" class="muted">Loading...</td></tr></tbody>
+          <tbody id="ussdAlloc"><tr><td colspan="6" class="muted">Loading...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -456,7 +460,7 @@
         const el = $(id);
         if (!el) return;
         if (value === undefined || value === null || Number.isNaN(value)){
-          el.textContent = '—';
+          el.textContent = 'â€”';
         }else{
           el.textContent = numberFmt.format(value);
         }
@@ -499,7 +503,7 @@
               <td>${row.contact_phone||''}</td>
               <td>${row.contact_email||''}</td>
               <td>${row.id||''}</td>
-            </tr>`).join('') : '<tr><td colspan="5" class="muted">No SACCOs yet</td></tr>';
+            </tr>`).join('') : '<tr><td colspan="6" class="muted">No SACCOs yet</td></tr>';
           populateMatatuSaccoSelect();
           if (state.vehiclesLoaded) renderVehicleTables();
         }catch(e){
@@ -507,12 +511,12 @@
           populateLoginSelects();
           populateMatatuSaccoSelect();
           if (state.vehiclesLoaded) renderVehicleTables();
-          $('sc_list').innerHTML = `<tr><td colspan="5" class="err">${parseErr(e)}</td></tr>`;
+          $('sc_list').innerHTML = `<tr><td colspan="6" class="err">${parseErr(e)}</td></tr>`;
         }
       }
 
       $('sc_add').addEventListener('click', async ()=>{
-        const msg = $('sc_msg'); msg.className='muted'; msg.textContent='Saving…';
+        const msg = $('sc_msg'); msg.className='muted'; msg.textContent='Savingâ€¦';
         const payload = {
           name: $('sc_name').value.trim(),
           contact_name: $('sc_contact_name').value.trim(),
@@ -569,6 +573,16 @@
         return (row?.vehicle_type || '').toString().toUpperCase();
       }
 
+      function formatBodyType(value){
+        if (!value) return '--';
+        const map = {
+          VAN: 'Van',
+          MINI_BUS: 'Mini Bus',
+          BUS: 'Bus'
+        };
+        return map[value] || value;
+      }
+
       function renderVehicleTables(){
         const items = Array.isArray(state.vehicles) ? state.vehicles : [];
 
@@ -583,10 +597,11 @@
           <tr>
             <td>${row.number_plate||''}</td>
             <td>${row.owner_name||''}</td>
+            <td>${formatBodyType(row.body_type)}</td>
             <td>${row.vehicle_type||''}</td>
             <td>${saccoLabel(row.sacco_id) || 'N/A'}</td>
             <td>${row.id||''}</td>
-          </tr>`).join('') : '<tr><td colspan="5" class="muted">No matatus yet</td></tr>';
+          </tr>`).join('') : '<tr><td colspan="6" class="muted">No matatus yet</td></tr>';
 
         $('taxi_list').innerHTML = taxis.length ? taxis.map(row=>`
           <tr>
@@ -615,7 +630,7 @@
           state.vehicles = [];
           state.vehiclesLoaded = false;
           populateLoginSelects();
-          const errMatatu = `<tr><td colspan="5" class="err">${parseErr(e)}</td></tr>`;
+          const errMatatu = `<tr><td colspan="6" class="err">${parseErr(e)}</td></tr>`;
           const errVehicle = `<tr><td colspan="3" class="err">${parseErr(e)}</td></tr>`;
           $('mt_list').innerHTML = errMatatu;
           $('taxi_list').innerHTML = errVehicle;
@@ -641,16 +656,16 @@
         const alloc = $('ussdAlloc');
         if (alloc){
           if (!state.ussdAllocated.length){
-            alloc.innerHTML = '<tr><td colspan="5" class="muted">No allocations yet.</td></tr>';
+            alloc.innerHTML = '<tr><td colspan="6" class="muted">No allocations yet.</td></tr>';
           }else{
             alloc.innerHTML = state.ussdAllocated.slice(0,30).map(item => {
-              const updated = item.allocated_at ? new Date(item.allocated_at).toLocaleString() : '—';
-              const level = item.allocated_to_type || item.level || '—';
-              const linked = item.allocated_to_id || item.matatu_id || item.sacco_id || '—';
+              const updated = item.allocated_at ? new Date(item.allocated_at).toLocaleString() : 'â€”';
+              const level = item.allocated_to_type || item.level || 'â€”';
+              const linked = item.allocated_to_id || item.matatu_id || item.sacco_id || 'â€”';
               return `
                 <tr>
-                  <td>${item.full_code || '—'}</td>
-                  <td>${item.status || '—'}</td>
+                  <td>${item.full_code || 'â€”'}</td>
+                  <td>${item.status || 'â€”'}</td>
                   <td>${level}</td>
                   <td>${linked}</td>
                   <td>${updated}</td>
@@ -697,6 +712,7 @@
         const ownerEl = cfg.ownerId ? $(cfg.ownerId) : null;
         const phoneEl = cfg.phoneId ? $(cfg.phoneId) : null;
         const tillEl = cfg.tillId ? $(cfg.tillId) : null;
+        const bodyEl = cfg.bodyId ? $(cfg.bodyId) : null;
 
         const number_plate = (plateEl?.value || '').trim().toUpperCase();
         const saccoValue = (saccoEl?.value || '').trim();
@@ -725,12 +741,28 @@
           vehicle_type: cfg.type,
           sacco_id
         };
+        if (bodyEl){
+          const bodyVal = (bodyEl.value || '').trim();
+          payload.body_type = bodyVal || null;
+        }
 
         try{
           const created = await jpost('/api/admin/register-matatu', payload);
           const vehicleId = created?.id;
           msgEl.className = 'ok';
           msgEl.textContent = `${cfg.successLabel} created`;
+          if (Array.isArray(cfg.clearIds)){
+            cfg.clearIds.forEach(id => {
+              const input = $(id);
+              if (input){
+                if (input.tagName === 'SELECT'){
+                  input.selectedIndex = 0;
+                }else{
+                  input.value = '';
+                }
+              }
+            });
+          }
           await loadVehicles();
           await loadLogins();
         }catch(err){
@@ -752,9 +784,10 @@
           phoneId:'mt_phone',
           tillId:'mt_till',
           saccoId:'mt_sacco',
+          bodyId:'mt_body_type',
           msgId:'mt_msg',
           successLabel:'Matatu',
-          clearIds:['mt_plate','mt_owner','mt_phone','mt_till','mt_sacco']
+          clearIds:['mt_plate','mt_owner','mt_phone','mt_till','mt_sacco','mt_body_type']
         });
       });
 
@@ -795,17 +828,17 @@
           return;
         }
         tbody.innerHTML = state.logins.map(row => {
-          const created = row.created_at ? new Date(row.created_at).toLocaleString() : '—';
+          const created = row.created_at ? new Date(row.created_at).toLocaleString() : 'â€”';
           const canManage = Boolean(loginRoleMeta[row.role || '']);
           const editBtn = canManage ? `<button class="btn ghost" type="button" data-edit="${row.user_id}">Edit</button>` : '';
           const deleteBtn = `<button class="btn danger" type="button" data-delete="${row.user_id}">Remove</button>`;
           const actions = editBtn ? `${editBtn} ${deleteBtn}` : deleteBtn;
           return `
             <tr>
-              <td>${row.email || '—'}</td>
-              <td>${row.role || '—'}</td>
-              <td>${row.sacco_id || '—'}</td>
-              <td>${row.matatu_id || '—'}</td>
+              <td>${row.email || 'â€”'}</td>
+              <td>${row.role || 'â€”'}</td>
+              <td>${row.sacco_id || 'â€”'}</td>
+              <td>${row.matatu_id || 'â€”'}</td>
               <td>${created}</td>
               <td>${actions}</td>
             </tr>`;
@@ -1036,4 +1069,5 @@
   </script>
 </body>
 </html>
+
 
