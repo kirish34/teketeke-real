@@ -356,7 +356,7 @@ requireRole('OWNER', { statusEl: 'auth_state', roleLabel: 'Matatu Owner' }).then
     }
     async function jget(p){ const r=await fetch(p,{headers:await H()}); return handle(r); }
     async function jpost(p,b){ const r=await fetch(p,{method:'POST',headers:await H(),body:JSON.stringify(b||{})}); return handle(r); }
-    async function jrpc(fn,args){ return jpost('/rpc/'+fn, args||{}); }
+    \r\n    async function jdel(p){ const r = await fetch(p,{method:'DELETE',headers:await H()}); return handle(r); }\r\nasync function jrpc(fn,args){ return jpost('/rpc/'+fn, args||{}); }
     // tabs
     document.querySelectorAll('.tab').forEach(t=>{
       t.onclick=()=>{
@@ -520,6 +520,16 @@ requireRole('OWNER', { statusEl: 'auth_state', roleLabel: 'Matatu Owner' }).then
       const T = $('st_tbody'); T.innerHTML = '';
       (rows||[]).forEach(row=>{
         const tr = document.createElement('tr');
+        const uid = row.user_id || '';
+        const canDelete = !!uid;
+        tr.innerHTML = `
+          <td>${row.name || row.email || ''}</td>
+          <td>${row.phone || ''}</td>
+          <td>${row.email || ''}</td>
+          <td>${row.role || ''}</td>
+          <td class="mono">${uid || row.id || ''}</td>
+          <td>${canDelete ? `<button class="btn bad" data-id="${uid}">Remove</button>` : '<span class="muted">—</span>'}</td>
+        `;
         T.appendChild(tr);
       });
       T.onclick = async (e)=>{
@@ -527,8 +537,8 @@ requireRole('OWNER', { statusEl: 'auth_state', roleLabel: 'Matatu Owner' }).then
         const uid = b.dataset.id;
         if (!confirm('Remove staff ('+uid+')?')) return;
         try{
-          await jrpc('owner_remove_staff', { p_matatu: MATATU_ID, p_user: uid });
-          log('??? Removed staff '+uid);
+          await jdel(`/u/matatu/${encodeURIComponent(MATATU_ID)}/staff/${encodeURIComponent(uid)}`);
+          log('✓ Removed staff '+uid);
           $('st_reload').click();
         }catch(err){ alert(err.message||err); log('? Remove failed', { error: String(err) }); }
       };
@@ -537,15 +547,9 @@ requireRole('OWNER', { statusEl: 'auth_state', roleLabel: 'Matatu Owner' }).then
       if (!MATATU_ID) return alert('Find a Matatu first');
       let rows = [];
       try{
-        rows = await jrpc('owner_list_matatu_staff', { p_matatu: MATATU_ID });
-      }catch(_try2){
-        try{
-          rows = await jrpc('sacco_admin_list_matatu_staff', { p_matatu: MATATU_ID });
-        }catch(_try3){
-          const d = await jget('/api/owner/members?matatu_id='+encodeURIComponent(MATATU_ID));
-          rows = d.items || d || [];
-        }
-      }
+        const d = await jget(`/u/matatu/${encodeURIComponent(MATATU_ID)}/staff`);
+        rows = d.items || d || [];
+      }catch(_){ rows = []; }
       renderStaff(rows);
       log('?? Staff listed', rows);
     }
@@ -558,17 +562,18 @@ requireRole('OWNER', { statusEl: 'auth_state', roleLabel: 'Matatu Owner' }).then
       }catch(e){ alert(e.message||e); log('? Staff find failed',{error:String(e)}); }
     };
     $('st_reload').onclick = loadStaff;
-    $('st_add').onclick = async ()=>{
+    st_add_direct.onclick = async ()=>{
       try{
         if (!MATATU_ID) return alert('Find a Matatu first');
-        const email = $('st_email').value.trim();
-        const role  = $('st_role').value;
-        if (!email) return alert('Enter email');
-        await jrpc('owner_add_staff_by_email', { p_matatu: MATATU_ID, p_email: email, p_role: role });
-        $('st_email').value='';
-        log('? Added staff by email', { email, role });
+        const name = st_fullname.value.trim();
+        const phone= st_phone.value.trim();
+        const email= st_email2.value.trim();
+        const role = st_role2.value || 'MATATU_STAFF';
+        if (!name) return alert('Enter full name');
+        await jpost(`/u/matatu/${encodeURIComponent(MATATU_ID)}/staff`, { name, phone, email, role });
+        st_fullname.value=''; st_phone.value=''; st_email2.value='';
         await loadStaff();
-      }catch(e){ alert(e.message||e); log('? Add staff failed', { error: String(e) }); }
+      }catch(e){ alert(e.message||e); }
     };
     $('st_export').onclick = ()=> exportTableToCSV('matatu-staff.csv', 'st_tbody');
     // ================= TRANSACTIONS =================
@@ -576,8 +581,10 @@ requireRole('OWNER', { statusEl: 'auth_state', roleLabel: 'Matatu Owner' }).then
       const T = $('tx_tbody'); T.innerHTML='';
       (rows||[]).forEach(x=>{
         const tr = document.createElement('tr');
+        const row = {};
         tr.innerHTML = `\r\n          <td>${row.name || row.email || ""}</td>\r\n          <td>${row.phone || ""}</td>\r\n          <td>${row.email || ""}</td>\r\n          <td>${row.role || ""}</td>\r\n          <td class="mono">${row.user_id || row.id || ""}</td>\r\n          <td><button class="btn bad" data-id="${row.user_id || row.id}">Remove</button></td>`;
         tr.innerHTML = `<td>${x.date||""}</td><td>${x.type||x.kind||""}</td><td>${x.amount||""}</td><td>${x.time||""}</td>`;
+        T.appendChild(tr);
       });
     }
     async function loadTx(){
