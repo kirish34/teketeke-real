@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const { requireUser } = require('../middleware/auth');
 const { supabaseAdmin } = require('../supabase');
 
@@ -405,4 +405,78 @@ router.post('/sacco/:id/loans', async (req,res)=>{
   }
 });
 
+// ---------- Matatu staff management (owner-scoped) ----------
+async function ensureMatatuWithAccess(req, res){
+  const matatuId = req.params.id;
+  if (!matatuId) { res.status(400).json({ error:"matatu_id required" }); return null; }
+  const { allowed, matatu } = await ensureMatatuAccess(req.user.id, matatuId);
+  if (!allowed || !matatu) { res.status(403).json({ error:"Forbidden" }); return null; }
+  return matatu;
+}
+
+router.get("/matatu/:id/staff", async (req,res)=>{
+  try{
+    const matatu = await ensureMatatuWithAccess(req,res); if(!matatu) return;
+    const { data, error } = await supabaseAdmin
+      .from("staff_profiles")
+      .select("*")
+      .eq("matatu_id", matatu.id)
+      .order("created_at", { ascending:false });
+    if (error) throw error;
+    res.json({ items: data||[] });
+  }catch(e){ res.status(500).json({ error: e.message || "Failed to load staff" }); }
+});
+
+router.post("/matatu/:id/staff", async (req,res)=>{
+  try{
+    const matatu = await ensureMatatuWithAccess(req,res); if(!matatu) return;
+    const name  = (req.body?.name || "").trim();
+    const phone = (req.body?.phone || "").trim() || null;
+    const email = (req.body?.email || "").trim() || null;
+    const role  = (req.body?.role || "STAFF").toString().toUpperCase();
+    if (!name) return res.status(400).json({ error:"name required" });
+
+    let userId = req.body?.user_id || null;
+    if (!userId && email){
+      const created = await supabaseAdmin.auth.admin.createUser({ email, email_confirm: true, password: Math.random().toString(36).slice(2) + 'X1!' });
+      if (created.error){
+        let page=1, found=null;
+        while(page<=25){
+          const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
+          if (error) break;
+          found = (data?.users||[]).find(u => (u.email||"").toLowerCase() === email.toLowerCase());
+          if (found) break; page++;
+        }
+        if (found) userId = found.id; else throw created.error;
+      }else{
+        userId = created.data?.user?.id || null;
+      }
+    }
+
+    if (userId){
+      const { error: urErr } = await supabaseAdmin
+        .from('user_roles')
+        .upsert({ user_id: userId, role: role === 'DRIVER' ? 'STAFF' : role, sacco_id: matatu.sacco_id || null, matatu_id: matatu.id }, { onConflict: 'user_id' });
+      if (urErr) throw urErr;
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from('staff_profiles')
+      .insert({ sacco_id: matatu.sacco_id || null, matatu_id: matatu.id, name, phone, email, role: role || 'STAFF', user_id: userId })
+      .select().single();
+    if (error) throw error;
+    res.json(data);
+  }catch(e){ res.status(500).json({ error: e.message || 'Failed to add staff' }); }
+});
+
+router.delete('/matatu/:id/staff/:user_id', async (req,res)=>{
+  try{
+    const matatu = await ensureMatatuWithAccess(req,res); if(!matatu) return;
+    const uid = req.params.user_id;
+    if (!uid) return res.status(400).json({ error:'user_id required' });
+    await supabaseAdmin.from('staff_profiles').delete().eq('matatu_id', matatu.id).eq('user_id', uid);
+    await supabaseAdmin.from('user_roles').delete().eq('matatu_id', matatu.id).eq('user_id', uid);
+    res.json({ deleted: 1 });
+  }catch(e){ res.status(500).json({ error: e.message || 'Failed to remove staff' }); }
+});
 module.exports = router;
