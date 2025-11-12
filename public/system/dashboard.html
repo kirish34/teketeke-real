@@ -76,8 +76,10 @@
       <input id="mt_till" placeholder="Till number" />
       <select id="mt_sacco">
         <option value="">Select SACCO</option>
-      </select>`r`n      <select id="mt_body_type"><option value="">Matatu type</option><option value="VAN">Van</option><option value="MINI_BUS">Mini Bus</option><option value="BUS">Bus</option></select>
-    </div>`r`n
+      </select>
+      <select id="mt_body_type"><option value="">Matatu type</option><option value="VAN">Van</option><option value="MINI_BUS">Mini Bus</option><option value="BUS">Bus</option></select>
+    </div>
+
 
     <div class="hint" id="mt_sacco_hint">Select a SACCO to link this matatu.</div>
 
@@ -697,7 +699,8 @@
         const saccoEl = $(cfg.saccoId);
         const ownerEl = cfg.ownerId ? $(cfg.ownerId) : null;
         const phoneEl = cfg.phoneId ? $(cfg.phoneId) : null;
-        const tillEl = cfg.tillId ? $(cfg.tillId) : null;`r`n        const bodyEl = cfg.bodyId ? $(cfg.bodyId) : null;
+        const tillEl = cfg.tillId ? $(cfg.tillId) : null;
+        const bodyEl = cfg.bodyId ? $(cfg.bodyId) : null;
 
         const number_plate = (plateEl?.value || '').trim().toUpperCase();
         const saccoValue = (saccoEl?.value || '').trim();
@@ -1038,6 +1041,7 @@
   </script>
 </body>
 </html>
+
 
 
 
