@@ -508,7 +508,8 @@
               <td>${row.contact_name||''}</td>
               <td>${row.contact_phone||''}</td>
               <td>${row.contact_email||''}</td>
-              <td>${row.id||''}</td>
+              <td class="mono">${row.id||''}</td>
+              <td><button class="btn ghost" data-del-sacco="${row.id}">Delete</button></td>
             </tr>`).join('') : '<tr><td colspan="6" class="muted">No SACCOs yet</td></tr>';
           populateMatatuSaccoSelect();
           if (state.vehiclesLoaded) renderVehicleTables();
@@ -595,21 +596,24 @@
             <td>${row.owner_name||''}</td>
             <td>${row.vehicle_type||''}</td>
             <td>${saccoLabel(row.sacco_id) || 'N/A'}</td>
-            <td>${row.id||''}</td>
+            <td class="mono">${row.id||''}</td>
+            <td><button class="btn ghost" data-del-matatu="${row.id}">Delete</button></td>
           </tr>`).join('') : '<tr><td colspan="6" class="muted">No matatus yet</td></tr>';
 
         $('taxi_list').innerHTML = taxis.length ? taxis.map(row=>`
           <tr>
             <td>${row.number_plate||''}</td>
             <td>${saccoLabel(row.sacco_id) || 'N/A'}</td>
-            <td>${row.id||''}</td>
+            <td class="mono">${row.id||''}</td>
+            <td><button class="btn ghost" data-del-matatu="${row.id}">Delete</button></td>
           </tr>`).join('') : '<tr><td colspan="4" class="muted">No taxis yet</td></tr>';
 
         $('boda_list').innerHTML = bodas.length ? bodas.map(row=>`
           <tr>
             <td>${row.number_plate||''}</td>
             <td>${saccoLabel(row.sacco_id) || 'N/A'}</td>
-            <td>${row.id||''}</td>
+            <td class="mono">${row.id||''}</td>
+            <td><button class="btn ghost" data-del-matatu="${row.id}">Delete</button></td>
           </tr>`).join('') : '<tr><td colspan="4" class="muted">No boda bodas yet</td></tr>';
       }
 
@@ -758,7 +762,8 @@
           const created = await jpost('/api/admin/register-matatu', payload);
           const vehicleId = created?.id;
           msgEl.className = 'ok';
-          msgEl.textContent = `${cfg.successLabel} created`;
+          msgEl.textContent = `${cfg.successLabel} created`;
+
           if (Array.isArray(cfg.clearIds)) { try{ clearInputs(cfg.clearIds); }catch(_){} }
           await loadVehicles();
           await loadLogins();
