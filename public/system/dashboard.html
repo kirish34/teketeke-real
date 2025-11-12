@@ -733,7 +733,10 @@
           const created = await jpost('/api/admin/register-matatu', payload);
           const vehicleId = created?.id;
           msgEl.className = 'ok';
-          msgEl.textContent = `${cfg.successLabel} created`;\n          if (Array.isArray(cfg.clearIds)) { try{ clearInputs(cfg.clearIds); }catch(_){} }\n          await loadVehicles();\n          await loadLogins();
+          msgEl.textContent = `${cfg.successLabel} created`;
+          if (Array.isArray(cfg.clearIds)) { try{ clearInputs(cfg.clearIds); }catch(_){} }
+          await loadVehicles();
+          await loadLogins();
         }catch(err){
           msgEl.className = 'err';
           msgEl.textContent = parseErr(err);
