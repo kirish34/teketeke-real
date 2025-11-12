@@ -95,7 +95,7 @@
 
     <table>
       <thead><tr><th>Plate</th><th>Owner</th><th>Type</th><th>SACCO</th><th>ID</th><th width="80">Actions</th></tr></thead>
-      <tbody id="mt_list"><tr><td colspan="5" class="muted">Loading…</td></tr></tbody>
+      <tbody id="mt_list"><tr><td colspan="6" class="muted">Loading…</td></tr></tbody>
     </table>
   </section>
 
@@ -117,7 +117,7 @@
 
     <table>
       <thead><tr><th>Plate</th><th>SACCO</th><th>ID</th><th width="80">Actions</th></tr></thead>
-      <tbody id="taxi_list"><tr><td colspan="3" class="muted">Loading…</td></tr></tbody>
+      <tbody id="taxi_list"><tr><td colspan="4" class="muted">Loading…</td></tr></tbody>
     </table>
   </section>
 
@@ -139,7 +139,7 @@
 
     <table>
       <thead><tr><th>Plate</th><th>SACCO</th><th>ID</th><th width="80">Actions</th></tr></thead>
-      <tbody id="boda_list"><tr><td colspan="3" class="muted">Loading…</td></tr></tbody>
+      <tbody id="boda_list"><tr><td colspan="4" class="muted">Loading…</td></tr></tbody>
     </table>
   </section>
 
@@ -386,7 +386,7 @@
 
       async function jdel(url){
         const token = await tkn();
-        const r = await fetch(url, { method:'DELETE', headers:{ Authorization:Bearer , Accept:'application/json' }});
+        const r = await fetch(url, { method:'DELETE', headers:{ Authorization:`Bearer ${token}`, Accept:'application/json' }});
         const tx = await r.text();
         if (!r.ok) throw tx || r.statusText;
         try { return JSON.parse(tx); } catch { return {}; }
@@ -509,7 +509,7 @@
               <td>${row.contact_phone||''}</td>
               <td>${row.contact_email||''}</td>
               <td>${row.id||''}</td>
-            </tr>`).join('') : '<tr><td colspan="5" class="muted">No SACCOs yet</td></tr>';
+            </tr>`).join('') : '<tr><td colspan="6" class="muted">No SACCOs yet</td></tr>';
           populateMatatuSaccoSelect();
           if (state.vehiclesLoaded) renderVehicleTables();
         }catch(e){
@@ -517,7 +517,7 @@
           populateLoginSelects();
           populateMatatuSaccoSelect();
           if (state.vehiclesLoaded) renderVehicleTables();
-          $('sc_list').innerHTML = `<tr><td colspan="5" class="err">${parseErr(e)}</td></tr>`;
+          $('sc_list').innerHTML = `<tr><td colspan="6" class="err">${parseErr(e)}</td></tr>`;
         }
       }
 
@@ -596,21 +596,21 @@
             <td>${row.vehicle_type||''}</td>
             <td>${saccoLabel(row.sacco_id) || 'N/A'}</td>
             <td>${row.id||''}</td>
-          </tr>`).join('') : '<tr><td colspan="5" class="muted">No matatus yet</td></tr>';
+          </tr>`).join('') : '<tr><td colspan="6" class="muted">No matatus yet</td></tr>';
 
         $('taxi_list').innerHTML = taxis.length ? taxis.map(row=>`
           <tr>
             <td>${row.number_plate||''}</td>
             <td>${saccoLabel(row.sacco_id) || 'N/A'}</td>
             <td>${row.id||''}</td>
-          </tr>`).join('') : '<tr><td colspan="3" class="muted">No taxis yet</td></tr>';
+          </tr>`).join('') : '<tr><td colspan="4" class="muted">No taxis yet</td></tr>';
 
         $('boda_list').innerHTML = bodas.length ? bodas.map(row=>`
           <tr>
             <td>${row.number_plate||''}</td>
             <td>${saccoLabel(row.sacco_id) || 'N/A'}</td>
             <td>${row.id||''}</td>
-          </tr>`).join('') : '<tr><td colspan="3" class="muted">No boda bodas yet</td></tr>';
+          </tr>`).join('') : '<tr><td colspan="4" class="muted">No boda bodas yet</td></tr>';
       }
 
             // Delete handlers (event delegation)
@@ -619,7 +619,7 @@
         if (sacBtn){
           const id = sacBtn.getAttribute('data-del-sacco');
           if (id && confirm('Delete this SACCO? This cannot be undone.')){
-            try{ await jdel(/api/admin/delete-sacco/); await loadSaccos(); toast('SACCO deleted'); }catch(e){ alert(parseErr(e)); }
+            try{ await jdel(`/api/admin/delete-sacco/${id}`); await loadSaccos(); toast('SACCO deleted'); }catch(e){ alert(parseErr(e)); }
           }
           return;
         }
@@ -627,7 +627,7 @@
         if (mtBtn){
           const id = mtBtn.getAttribute('data-del-matatu');
           if (id && confirm('Delete this vehicle? This cannot be undone.')){
-            try{ await jdel(/api/admin/delete-matatu/); await loadVehicles(); toast('Vehicle deleted'); }catch(e){ alert(parseErr(e)); }
+            try{ await jdel(`/api/admin/delete-matatu/${id}`); await loadVehicles(); toast('Vehicle deleted'); }catch(e){ alert(parseErr(e)); }
           }
         }
       });async function loadVehicles(){
@@ -642,8 +642,8 @@
           state.vehicles = [];
           state.vehiclesLoaded = false;
           populateLoginSelects();
-          const errMatatu = `<tr><td colspan="5" class="err">${parseErr(e)}</td></tr>`;
-          const errVehicle = `<tr><td colspan="3" class="err">${parseErr(e)}</td></tr>`;
+          const errMatatu = `<tr><td colspan="6" class="err">${parseErr(e)}</td></tr>`;
+          const errVehicle = `<tr><td colspan="4" class="err">${parseErr(e)}</td></tr>`;
           $('mt_list').innerHTML = errMatatu;
           $('taxi_list').innerHTML = errVehicle;
           $('boda_list').innerHTML = errVehicle;
