@@ -469,6 +469,65 @@ router.post("/matatu/:id/staff", async (req,res)=>{
   }catch(e){ res.status(500).json({ error: e.message || 'Failed to add staff' }); }
 });
 
+router.patch('/matatu/:id/staff/:staff_id', async (req,res)=>{
+  try{
+    const matatu = await ensureMatatuWithAccess(req,res); if(!matatu) return;
+    const staffId = req.params.staff_id;
+    if (!staffId) return res.status(400).json({ error:'staff_id required' });
+    const updates = {};
+
+    if ('name' in req.body){
+      const name = (req.body?.name || '').toString().trim();
+      if (!name) return res.status(400).json({ error:'name required' });
+      updates.name = name;
+    }
+    if ('phone' in req.body){
+      const phone = (req.body?.phone || '').toString().trim();
+      updates.phone = phone || null;
+    }
+    if ('email' in req.body){
+      const email = (req.body?.email || '').toString().trim();
+      updates.email = email || null;
+    }
+
+    let requestedRole = null;
+    if ('role' in req.body){
+      requestedRole = (req.body?.role || '').toString().toUpperCase().trim();
+      if (!requestedRole) return res.status(400).json({ error:'role required' });
+      updates.role = requestedRole;
+    }
+
+    if (!Object.keys(updates).length){
+      return res.status(400).json({ error:'No updates provided' });
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from('staff_profiles')
+      .update(updates)
+      .eq('id', staffId)
+      .eq('matatu_id', matatu.id)
+      .select()
+      .single();
+
+    if (error){
+      if (error.code === PG_ROW_NOT_FOUND) return res.status(404).json({ error:'Staff member not found' });
+      throw error;
+    }
+
+    if (requestedRole && data?.user_id){
+      const normalizedRole = requestedRole === 'DRIVER' ? 'STAFF' : requestedRole;
+      const { error: urErr } = await supabaseAdmin
+        .from('user_roles')
+        .update({ role: normalizedRole })
+        .eq('user_id', data.user_id)
+        .eq('matatu_id', matatu.id);
+      if (urErr) throw urErr;
+    }
+
+    res.json(data);
+  }catch(e){ res.status(500).json({ error: e.message || 'Failed to update staff' }); }
+});
+
 router.delete('/matatu/:id/staff/:user_id', async (req,res)=>{
   try{
     const matatu = await ensureMatatuWithAccess(req,res); if(!matatu) return;

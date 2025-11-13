@@ -64,6 +64,12 @@
     .chooser-item strong{font-size:16px;color:var(--ink)}
     .chooser-item.active{border-color:var(--brand);background:#e6f0ff}
     .chooser-meta{font-size:13px;color:var(--muted)}
+    .staff-editor-overlay{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:20px;z-index:40}
+    .staff-editor-overlay.show{display:flex}
+    .staff-editor-card{background:#fff;border-radius:16px;box-shadow:0 24px 80px rgba(2,6,23,.35);padding:24px;max-width:500px;width:100%;display:flex;flex-direction:column;gap:12px}
+    .staff-editor-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+    .staff-editor-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:4px}
+    .staff-editor-card .field{margin-top:8px}
   </style>
   <!-- App bootstrap (unchanged paths) -->
 <script>
@@ -84,6 +90,46 @@
           <button id="chooserClose" class="btn ghost" type="button">Close</button>
         </div>
         <div id="chooserList" class="chooser-list"></div>
+      </div>
+    </div>
+    <div id="staffEditor" class="staff-editor-overlay" aria-hidden="true">
+      <div class="staff-editor-card" role="dialog" aria-modal="true" aria-labelledby="st_edit_title">
+        <div class="staff-editor-head">
+          <div>
+            <h3 id="st_edit_title" style="margin:0">Edit Staff Member</h3>
+            <p id="st_edit_plate_line" class="muted" style="margin:2px 0 0;font-size:13px">Matatu not selected</p>
+          </div>
+          <button id="staffEditorClose" class="btn ghost" type="button">Close</button>
+        </div>
+        <div class="field">
+          <label>Full name
+            <input id="st_edit_name" placeholder="Full name"/>
+          </label>
+        </div>
+        <div class="field">
+          <label>Phone
+            <input id="st_edit_phone" placeholder="07XXXXXXXX"/>
+          </label>
+        </div>
+        <div class="field">
+          <label>Email
+            <input id="st_edit_email" placeholder="email@example.com"/>
+          </label>
+        </div>
+        <div class="field">
+          <label>Role
+            <select id="st_edit_role">
+              <option value="MATATU_STAFF">MATATU_STAFF</option>
+              <option value="DRIVER">DRIVER</option>
+              <option value="SACCO_STAFF">SACCO_STAFF</option>
+            </select>
+          </label>
+        </div>
+        <div id="st_edit_msg" class="muted" style="min-height:18px;font-size:13px;"></div>
+        <div class="staff-editor-actions">
+          <button id="st_edit_cancel" class="btn ghost" type="button">Cancel</button>
+          <button id="st_edit_save" class="btn ok" type="button">Save changes</button>
+        </div>
       </div>
     </div>
     <header class="hero">
@@ -356,7 +402,9 @@ requireRole('OWNER', { statusEl: 'auth_state', roleLabel: 'Matatu Owner' }).then
     }
     async function jget(p){ const r=await fetch(p,{headers:await H()}); return handle(r); }
     async function jpost(p,b){ const r=await fetch(p,{method:'POST',headers:await H(),body:JSON.stringify(b||{})}); return handle(r); }
-    \r\n    async function jdel(p){ const r = await fetch(p,{method:'DELETE',headers:await H()}); return handle(r); }\r\nasync function jrpc(fn,args){ return jpost('/rpc/'+fn, args||{}); }
+    async function jpatch(p,b){ const r=await fetch(p,{method:'PATCH',headers:await H(),body:JSON.stringify(b||{})}); return handle(r); }
+    async function jdel(p){ const r = await fetch(p,{method:'DELETE',headers:await H()}); return handle(r); }
+    async function jrpc(fn,args){ return jpost('/rpc/'+fn, args||{}); }
     // tabs
     document.querySelectorAll('.tab').forEach(t=>{
       t.onclick=()=>{
@@ -378,6 +426,18 @@ requireRole('OWNER', { statusEl: 'auth_state', roleLabel: 'Matatu Owner' }).then
     let MATATU_ID = '';
     let MATATU_CTX = null;
     const MY_VEHICLES = [];
+    const staffEditorOverlay = $('staffEditor');
+    const staffEditorPlateLine = $('st_edit_plate_line');
+    const stEditName = $('st_edit_name');
+    const stEditPhone = $('st_edit_phone');
+    const stEditEmail = $('st_edit_email');
+    const stEditRole = $('st_edit_role');
+    const stEditMsg = $('st_edit_msg');
+    const stEditSave = $('st_edit_save');
+    const stEditCancel = $('st_edit_cancel');
+    const staffEditorClose = $('staffEditorClose');
+    let STAFF_ROWS = [];
+    let STAFF_EDITING = null;
     const chooser = document.getElementById('matatuChooser');
     const chooserList = document.getElementById('chooserList');
     function closeChooser(){
@@ -517,8 +577,9 @@ requireRole('OWNER', { statusEl: 'auth_state', roleLabel: 'Matatu Owner' }).then
     };
     // ================= STAFF =================
     function renderStaff(rows){
+      STAFF_ROWS = rows || [];
       const T = $('st_tbody'); T.innerHTML = '';
-      (rows||[]).forEach(row=>{
+      STAFF_ROWS.forEach(row=>{
         const tr = document.createElement('tr');
         const uid = row.user_id || '';
         const canDelete = !!uid;
@@ -528,13 +589,24 @@ requireRole('OWNER', { statusEl: 'auth_state', roleLabel: 'Matatu Owner' }).then
           <td>${row.email || ''}</td>
           <td>${row.role || ''}</td>
           <td class="mono">${uid || row.id || ''}</td>
-          <td>${canDelete ? `<button class="btn bad" data-id="${uid}">Remove</button>` : '<span class="muted">—</span>'}</td>
+          <td>
+            <div class="row" style="gap:6px;flex-wrap:wrap">
+              <button type="button" class="btn ghost" data-edit="${row.id}">Edit</button>
+              ${canDelete ? `<button type="button" class="btn bad" data-id="${uid}">Remove</button>` : '<span class="muted">—</span>'}
+            </div>
+          </td>
         `;
         T.appendChild(tr);
       });
       T.onclick = async (e)=>{
-        const b = e.target.closest('button'); if(!b) return;
-        const uid = b.dataset.id;
+        const btn = e.target.closest('button'); if(!btn) return;
+        if (btn.dataset.edit){
+          const staffRow = STAFF_ROWS.find(r => String(r.id) === btn.dataset.edit);
+          if (staffRow) openStaffEditor(staffRow);
+          return;
+        }
+        const uid = btn.dataset.id;
+        if (!uid) return;
         if (!confirm('Remove staff ('+uid+')?')) return;
         try{
           await jdel(`/u/matatu/${encodeURIComponent(MATATU_ID)}/staff/${encodeURIComponent(uid)}`);
@@ -543,6 +615,69 @@ requireRole('OWNER', { statusEl: 'auth_state', roleLabel: 'Matatu Owner' }).then
         }catch(err){ alert(err.message||err); log('? Remove failed', { error: String(err) }); }
       };
     }
+
+    function openStaffEditor(row){
+      if(!row) return;
+      STAFF_EDITING = row;
+      const label = MATATU_CTX?.number_plate?.toUpperCase() || MATATU_ID || 'Matatu selected';
+      if (staffEditorPlateLine) staffEditorPlateLine.textContent = `Matatu: ${label}`;
+      if (stEditName) stEditName.value = row.name || row.email || '';
+      if (stEditPhone) stEditPhone.value = row.phone || '';
+      if (stEditEmail) stEditEmail.value = row.email || '';
+      if (stEditRole) stEditRole.value = row.role || 'MATATU_STAFF';
+      if (stEditMsg) stEditMsg.textContent = '';
+      if (staffEditorOverlay){
+        staffEditorOverlay.classList.add('show');
+        staffEditorOverlay.setAttribute('aria-hidden','false');
+      }
+      stEditName?.focus();
+    }
+
+    function closeStaffEditor(){
+      STAFF_EDITING = null;
+      if (staffEditorOverlay){
+        staffEditorOverlay.classList.remove('show');
+        staffEditorOverlay.setAttribute('aria-hidden','true');
+      }
+      if (stEditMsg) stEditMsg.textContent = '';
+    }
+
+    async function saveStaffEdit(){
+      if (!STAFF_EDITING) return;
+      if (!MATATU_ID) return alert('Find a Matatu first');
+      const name = (stEditName?.value || '').trim();
+      if (!name) return alert('Enter full name');
+      const role = (stEditRole?.value || 'MATATU_STAFF').toString().toUpperCase();
+      const payload = {
+        name,
+        phone: (stEditPhone?.value || '').trim() || null,
+        email: (stEditEmail?.value || '').trim() || null,
+        role
+      };
+      if (stEditSave) stEditSave.disabled = true;
+      if (stEditMsg) stEditMsg.textContent = 'Saving...';
+      try{
+        await jpatch(`/u/matatu/${encodeURIComponent(MATATU_ID)}/staff/${encodeURIComponent(STAFF_EDITING.id)}`, payload);
+        log('?? Staff updated', { id: STAFF_EDITING.id, role });
+        closeStaffEditor();
+        await loadStaff();
+      }catch(err){
+        const errMsg = err?.message || err || 'Update failed';
+        alert(errMsg);
+        if (stEditMsg) stEditMsg.textContent = errMsg;
+      }finally{
+        if (stEditSave) stEditSave.disabled = false;
+      }
+    }
+
+    if (staffEditorOverlay){
+      staffEditorOverlay.addEventListener('click',(e)=>{ if (e.target === staffEditorOverlay) closeStaffEditor(); });
+    }
+    staffEditorClose?.addEventListener('click', closeStaffEditor);
+    stEditCancel?.addEventListener('click', closeStaffEditor);
+    stEditSave?.addEventListener('click', saveStaffEdit);
+    document.addEventListener('keydown',(e)=>{ if (e.key === 'Escape' && staffEditorOverlay?.classList.contains('show')) closeStaffEditor(); });
+
     async function loadStaff(){
       if (!MATATU_ID) return alert('Find a Matatu first');
       let rows = [];
