@@ -345,6 +345,47 @@
     <!-- Tools / Logs -->
     <section id="panel-tools" class="panel">
       <div class="card">
+        <h3 style="margin-top:0">Assign Staff Access</h3>
+        <div class="row" style="align-items:flex-start">
+          <div class="field">
+            <label>Staff name
+              <input id="tools_assign_name" placeholder="Full name"/>
+            </label>
+          </div>
+          <div class="field">
+            <label>Email
+              <input id="tools_assign_email" placeholder="email@example.com"/>
+            </label>
+          </div>
+          <div class="field">
+            <label>Phone
+              <input id="tools_assign_phone" placeholder="07XXXXXXXX"/>
+            </label>
+          </div>
+          <div class="field">
+            <label>Role
+              <select id="tools_assign_role">
+                <option value="MATATU_STAFF">MATATU_STAFF</option>
+                <option value="DRIVER">DRIVER</option>
+                <option value="SACCO_STAFF">SACCO_STAFF</option>
+              </select>
+            </label>
+          </div>
+          <button class="btn" id="tools_assign_btn" type="button">Create login</button>
+        </div>
+        <div class="muted" id="tools_assign_status" style="margin-top:10px"></div>
+        <div class="muted" id="tools_matatu_line" style="margin-top:6px;font-size:13px"></div>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">Assigned Staff</h3>
+        <div class="table-wrap" id="tools_staff_list">
+          <table>
+            <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Role</th><th class="mono">User / ID</th></tr></thead>
+            <tbody id="tools_staff_rows"><tr><td colspan="5" class="muted">Select a matatu and reload staff to see the list.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
         <h3 style="margin-top:0">Logs</h3>
         <div id="log"></div>
       </div>
@@ -438,6 +479,14 @@ requireRole('OWNER', { statusEl: 'auth_state', roleLabel: 'Matatu Owner' }).then
     const staffEditorClose = $('staffEditorClose');
     let STAFF_ROWS = [];
     let STAFF_EDITING = null;
+    const toolsAssignName = $('tools_assign_name');
+    const toolsAssignEmail = $('tools_assign_email');
+    const toolsAssignPhone = $('tools_assign_phone');
+    const toolsAssignRole = $('tools_assign_role');
+    const toolsAssignBtn = $('tools_assign_btn');
+    const toolsAssignStatus = $('tools_assign_status');
+    const toolsStaffRows = $('tools_staff_rows');
+    const toolsMatatuLine = $('tools_matatu_line');
     const chooser = document.getElementById('matatuChooser');
     const chooserList = document.getElementById('chooserList');
     function closeChooser(){
@@ -515,6 +564,7 @@ requireRole('OWNER', { statusEl: 'auth_state', roleLabel: 'Matatu Owner' }).then
         $('tx_reload')?.click();
       }
       renderChooser();
+      updateToolsMatatuLine(mat);
       log('? Selected matatu', { id: MATATU_ID, plate });
     }
     document.getElementById('switchMatatu')?.addEventListener('click', async ()=>{
@@ -614,6 +664,35 @@ requireRole('OWNER', { statusEl: 'auth_state', roleLabel: 'Matatu Owner' }).then
           $('st_reload').click();
         }catch(err){ alert(err.message||err); log('? Remove failed', { error: String(err) }); }
       };
+      renderToolsStaff(STAFF_ROWS);
+    }
+
+    function renderToolsStaff(rows){
+      if (!toolsStaffRows) return;
+      if (!rows.length){
+        toolsStaffRows.innerHTML = '<tr><td colspan="5" class="muted">No staff assigned yet.</td></tr>';
+        return;
+      }
+      toolsStaffRows.innerHTML = rows.map(row=>`
+        <tr>
+          <td>${row.name || ''}</td>
+          <td>${row.phone || ''}</td>
+          <td>${row.email || ''}</td>
+          <td>${row.role || ''}</td>
+          <td class="mono">${row.user_id || row.id || ''}</td>
+        </tr>
+      `).join('');
+    }
+
+    function updateToolsMatatuLine(mat){
+      if (!toolsMatatuLine) return;
+      if (mat || MATATU_ID){
+        const plate = (mat?.number_plate || MATATU_CTX?.number_plate || '').toUpperCase() || 'Matatu';
+        toolsMatatuLine.textContent = `${plate} (${mat?.id||MATATU_ID}) selected`;
+      } else {
+        toolsMatatuLine.textContent = 'Select a matatu to enable staff assignments.';
+      }
+      if (toolsAssignStatus) toolsAssignStatus.textContent = '';
     }
 
     function openStaffEditor(row){
@@ -711,6 +790,34 @@ requireRole('OWNER', { statusEl: 'auth_state', roleLabel: 'Matatu Owner' }).then
       }catch(e){ alert(e.message||e); }
     };
     $('st_export').onclick = ()=> exportTableToCSV('matatu-staff.csv', 'st_tbody');
+    toolsAssignBtn?.addEventListener('click', async ()=>{
+      if (!MATATU_ID){
+        if (toolsAssignStatus) toolsAssignStatus.textContent = 'Select a matatu first';
+        return;
+      }
+      const name = (toolsAssignName?.value || '').trim();
+      const email = (toolsAssignEmail?.value || '').trim();
+      const phone = (toolsAssignPhone?.value || '').trim();
+      const role = (toolsAssignRole?.value || 'MATATU_STAFF').toUpperCase();
+      if (!name || !email){
+        if (toolsAssignStatus) toolsAssignStatus.textContent = 'Name and email are required';
+        return;
+      }
+      if (toolsAssignStatus) toolsAssignStatus.textContent = 'Saving...';
+      try{
+        await jpost(`/u/matatu/${encodeURIComponent(MATATU_ID)}/staff`, { name, phone, email, role });
+        if (toolsAssignStatus) toolsAssignStatus.textContent = 'Staff login created; reload staff to see it.';
+        log('?? Staff login created', { matatu_id: MATATU_ID, email, role });
+        if (toolsAssignName) toolsAssignName.value = '';
+        if (toolsAssignEmail) toolsAssignEmail.value = '';
+        if (toolsAssignPhone) toolsAssignPhone.value = '';
+        await loadStaff();
+      }catch(err){
+        const message = err?.message || err || 'Failed to assign staff';
+        if (toolsAssignStatus) toolsAssignStatus.textContent = message;
+        log('? Assign staff failed', { error: message });
+      }
+    });
     // ================= TRANSACTIONS =================
     function renderTx(rows){
       const T = $('tx_tbody'); T.innerHTML='';
@@ -750,6 +857,7 @@ requireRole('OWNER', { statusEl: 'auth_state', roleLabel: 'Matatu Owner' }).then
     $('tx_reload').onclick = loadTx;
     $('tx_export').onclick = ()=> exportTableToCSV('matatu-transactions.csv', 'tx_tbody');
     // init: idle until user selects a plate
+    updateToolsMatatuLine();
     log('Ready. Loading assigned matatus...');
     loadMyMatatus();
 }).catch(()=>{});
