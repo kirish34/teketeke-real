@@ -1,4 +1,4 @@
-﻿const express = require('express');
+const express = require('express');
 const { supabaseAdmin } = require('../supabase');
 const { requireUser } = require('../middleware/auth');
 const router = express.Router();
@@ -84,6 +84,8 @@ async function ensureAuthUser(email, password){
 }
 
 async function upsertUserRole({ user_id, role, sacco_id = null, matatu_id = null }){
+  const normalizeRole = (r)=> (r==='DRIVER'||r==='MATATU_STAFF') ? 'STAFF' : r;
+  role = normalizeRole(role);
   const { error } = await supabaseAdmin
     .from('user_roles')
     .upsert({ user_id, role, sacco_id, matatu_id }, { onConflict: 'user_id' });
@@ -371,3 +373,5 @@ router.get('/health', async (_req, res) => {
     return res.status(500).json({ ok:false, error: e.message || 'unknown' });
   }
 });
+
+
