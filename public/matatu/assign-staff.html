@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>TekeTeke Matatu Owner • Assign Staff</title>
+  <link rel="stylesheet" href="/public/css/dashboard-theme.css"/>
+  <script src="/public/js/app-config.js"></script>
+  <script src="/public/js/api.js"></script>
+  <script src="/public/js/role-guard.js"></script>
+  <style>
+    body{margin:0;background:#0f172a;color:#fff}
+    h1{margin:0;font-size:30px;font-weight:700}
+    p{margin:0}
+    .wrap{max-width:1100px;margin:0 auto;padding:30px}
+    .hero{background:linear-gradient(135deg,#0ea5e9,#0284c7);border-radius:24px;padding:28px;box-shadow:0 35px 80px rgba(2,6,23,.45);margin-bottom:22px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start}
+    .hero .card{width:100%;background:rgba(255,255,255,.15);padding:12px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.25);box-sizing:border-box}
+    .card{background:#fff;color:#0f172a;border-radius:14px;padding:18px;margin-bottom:20px;border:1px solid #e2e8f0}
+    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+    .field{display:flex;flex-direction:column;gap:6px;flex:1;min-width:190px}
+    .field input,.field select{padding:10px;border-radius:10px;border:1px solid #cbd5f5}
+    .btn{background:#0ea5e9;color:#fff;border:none;border-radius:10px;padding:10px 14px;cursor:pointer}
+    .subtle{color:#64748b;font-size:13px}
+    table{width:100%;border-collapse:collapse;margin-top:12px}
+    th,td{border:1px solid #e2e8f0;padding:8px;text-align:left}
+    th{background:#eef2ff}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+    #staffList{max-height:320px;overflow:auto}
+    .pill{display:inline-flex;align-items:center;padding:6px 14px;border-radius:999px;background:rgba(15,23,42,.9);border:1px solid rgba(255,255,255,.35);font-weight:600}
+    .muted{color:#475569;font-size:13px}
+    #toast{position:fixed;bottom:24px;right:24px;background:#0f172a;color:#fff;padding:14px 18px;border-radius:999px;box-shadow:0 10px 30px rgba(15,23,42,.5);opacity:0;transition:opacity .3s ease}
+    #toast.show{opacity:1}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <div>
+        <p class="subtle">Matatu Owner Tools</p>
+        <h1>Assign Staff Access</h1>
+        <p class="subtle" id="mutedLine">Give dashboard access to the team that runs this matatu.</p>
+      </div>
+      <div class="hero-card">
+        <p class="subtle">Staff dashboard</p>
+        <div class="pill" id="staffLinkPill">/public/matatu/staff.html</div>
+        <p class="subtle" style="margin-top:6px">Share the link above with staff once they can log in.<br/>They use the same Supabase auth as the owner.</p>
+      </div>
+    </header>
+
+    <div class="card">
+      <h3 style="margin-top:0">Find your Matatu</h3>
+      <div class="row">
+        <div class="field">
+          <label>Plate number
+            <input id="assign_plate" placeholder="e.g. KDA123A"/>
+          </label>
+        </div>
+        <button class="btn" id="assign_search">Load matatu</button>
+        <span id="assign_loaded" class="muted">No matatu loaded</span>
+      </div>
+      <p class="muted" style="margin-top:8px">You can also reuse this page to refresh staff logins for other matatus you own.</p>
+    </div>
+
+    <div class="card" id="assignFormCard" style="display:none">
+      <h3 style="margin-top:0">Create Staff Login</h3>
+      <div class="row">
+        <div class="field">
+          <label>Full name
+            <input id="assign_name" placeholder="Full name"/>
+          </label>
+        </div>
+        <div class="field">
+          <label>Phone
+            <input id="assign_phone" placeholder="07XXXXXXXX"/>
+          </label>
+        </div>
+        <div class="field">
+          <label>Email
+            <input id="assign_email" placeholder="staff@example.com"/>
+          </label>
+        </div>
+        <div class="field">
+          <label>Role
+            <select id="assign_role">
+              <option value="MATATU_STAFF">MATATU_STAFF</option>
+              <option value="DRIVER">DRIVER</option>
+              <option value="SACCO_STAFF">SACCO_STAFF</option>
+            </select>
+          </label>
+        </div>
+        <button class="btn" id="assign_save" type="button">Create login</button>
+      </div>
+      <p id="assign_msg" class="muted" style="margin-top:10px"></p>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">Assigned Staff</h3>
+      <div class="table-wrap" id="staffList">
+        <table>
+          <thead>
+            <tr><th>Name</th><th>Phone</th><th>Email</th><th>Role</th><th class="mono">User/ID</th></tr>
+          </thead>
+          <tbody id="staff_rows">
+            <tr><td colspan="5" class="muted">Select a matatu to load its staff.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+requireRole('OWNER', { statusEl:'staffLinkPill', roleLabel:'Matatu Owner' }).then(()=>{
+  const $ = id => document.getElementById(id);
+  const toast = msg => {
+    const el = $('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(window._toastT);
+    window._toastT = setTimeout(()=>el.classList.remove('show'),2000);
+  };
+  async function handle(r){
+    const txt = await r.text();
+    let data = {};
+    try{ data = txt ? JSON.parse(txt) : {}; }catch{ data = {error: txt || r.statusText}; }
+    if (!r.ok) throw new Error((data && (data.error||data.message)) || r.statusText || 'Request failed');
+    return data;
+  }
+  async function authHeaders(){ const supa = await window.TT?.getSupabase?.(); const session = await supa?.auth?.getSession(); const headers = {'Content-Type':'application/json'}; if (session?.data?.session?.access_token) headers.Authorization = 'Bearer '+session.data.session.access_token; return headers; }
+  async function jget(url){ return handle(await fetch(url,{headers:await authHeaders()})); }
+  async function jpost(url, body){ return handle(await fetch(url,{method:'POST',headers:await authHeaders(),body:JSON.stringify(body||{})})); }
+  async function jpatch(url, body){ return handle(await fetch(url,{method:'PATCH',headers:await authHeaders(),body:JSON.stringify(body||{})})); }
+
+  let currentMatatu = null;
+  const assignCard = $('assignFormCard');
+  const assignStatus = $('assign_msg');
+
+  function updateHeader(mat){
+    const badge = $('assign_loaded');
+    if (!mat){ badge.textContent = 'No matatu loaded'; assignCard.style.display='none'; return; }
+    badge.textContent = `${(mat.number_plate||'Matatu').toUpperCase()} • ${mat.id}`;
+    assignCard.style.display='block';
+    const staffLink = $('staffLinkPill');
+    if (staffLink) staffLink.textContent = '/public/matatu/staff.html';
+  }
+
+  async function loadStaff(){
+    if (!currentMatatu) return;
+    try{
+      const data = await jget(`/u/matatu/${encodeURIComponent(currentMatatu.id)}/staff`);
+      renderStaff(data.items || []);
+    }catch(e){
+      toast(e.message||'Failed to load staff');
+      renderStaff([]);
+    }
+  }
+
+  function renderStaff(rows){
+    const tbody = $('staff_rows');
+    tbody.innerHTML = '';
+    if (!rows.length){
+      tbody.innerHTML = '<tr><td colspan="5" class="muted">No staff assigned yet.</td></tr>';
+      return;
+    }
+    rows.forEach(row=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        `<td>${row.name||''}</td>`+
+        `<td>${row.phone||''}</td>`+
+        `<td>${row.email||''}</td>`+
+        `<td>${row.role||''}</td>`+
+        `<td class="mono">${row.user_id||row.id||''}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  $('assign_search').addEventListener('click', async ()=>{
+    const plate = ($('assign_plate')?.value||'').trim().toUpperCase();
+    if (!plate) return;
+    try{
+      const mat = await jget(`/u/matatu/by-plate?plate=${encodeURIComponent(plate)}`);
+      currentMatatu = mat;
+      updateHeader(mat);
+      await loadStaff();
+    }catch(e){
+      toast(e.message||'Matatu not found');
+      currentMatatu = null;
+      updateHeader(null);
+      renderStaff([]);
+    }
+  });
+
+  $('assign_save').addEventListener('click', async ()=>{
+    if (!currentMatatu) { toast('Select a matatu first'); return; }
+    const name = ($('assign_name')?.value||'').trim();
+    const email = ($('assign_email')?.value||'').trim();
+    const phone = ($('assign_phone')?.value||'').trim();
+    const role = ($('assign_role')?.value||'MATATU_STAFF').toUpperCase();
+    if (!name || !email){ toast('Provide name and email'); return; }
+    assignStatus.textContent = 'Saving...';
+    try{
+      await jpost(`/u/matatu/${encodeURIComponent(currentMatatu.id)}/staff`, { name, phone, email, role });
+      toast('Staff login created');
+      assignStatus.textContent = 'Login created; staff can use the dashboard link above.';
+      $('assign_name').value='';
+      $('assign_phone').value='';
+      $('assign_email').value='';
+      await loadStaff();
+    }catch(e){
+      const message = e.message || 'Failed to assign staff';
+      toast(message);
+      assignStatus.textContent = message;
+    }
+  });
+
+  // Optional: auto load matatu if owner has only one
+  (async function init(){
+    try{
+      const data = await jget('/u/vehicles');
+      if ((data.items||[]).length === 1){
+        currentMatatu = data.items[0];
+        updateHeader(currentMatatu);
+        await loadStaff();
+      }
+    }catch(_){}
+  })();
+
+}).catch(()=>{});
+</script>
+</body>
+</html>
