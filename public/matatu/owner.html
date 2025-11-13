@@ -1,9 +1,9 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>TekeTeke ï¿½ Matatu Owner Dashboard</title>
+  <title>TekeTeke � Matatu Owner Dashboard</title>
   <style>
     :root{
       --brand:#0ea5e9; --brand-700:#0284c7;
@@ -139,7 +139,7 @@
         <p class="timestamp" id="dateTimeLine">--</p>
         <div class="hero-meta">
           <span id="currentMatatuLabel" class="badge">No matatu selected</span>
-          <span id="auth_state" class="pill invert">Checking sign-inï¿½</span>
+          <span id="auth_state" class="pill invert">Checking sign-in�</span>
         </div>
       </div>
       <div class="hero-actions">
@@ -225,17 +225,17 @@
           <button class="btn ghost" id="ov_refresh" style="margin-left:auto">Refresh</button>
         </div>
         <div class="grid">
-          <div class="kv"><div class="k">Plate</div><div class="v" id="ov_plate_v">ï¿½</div></div>
-          <div class="kv"><div class="k">SACCO</div><div class="v" id="ov_sacco_v">ï¿½</div></div>
-          <div class="kv"><div class="k">Matatu ID</div><div class="v mono" id="ov_id_v">ï¿½</div></div>
+          <div class="kv"><div class="k">Plate</div><div class="v" id="ov_plate_v">�</div></div>
+          <div class="kv"><div class="k">SACCO</div><div class="v" id="ov_sacco_v">�</div></div>
+          <div class="kv"><div class="k">Matatu ID</div><div class="v mono" id="ov_id_v">�</div></div>
         </div>        </div>
         <div class="grid" style="margin-top:10px">
-          <div class="kv"><div class="k">Plate</div><div class="v" id="mt_plate_v">ï¿½</div></div>
-          <div class="kv"><div class="k">Owner</div><div class="v" id="mt_owner_v">ï¿½</div></div>
-          <div class="kv"><div class="k">Type</div><div class="v" id="mt_type_v">ï¿½</div></div>
-          <div class="kv"><div class="k">TLB</div><div class="v" id="mt_tlb_v">ï¿½</div></div>
-          <div class="kv"><div class="k">Till</div><div class="v" id="mt_till_v">ï¿½</div></div>
-          <div class="kv"><div class="k">Matatu ID</div><div class="v mono" id="mt_id_v">ï¿½</div></div>
+          <div class="kv"><div class="k">Plate</div><div class="v" id="mt_plate_v">�</div></div>
+          <div class="kv"><div class="k">Owner</div><div class="v" id="mt_owner_v">�</div></div>
+          <div class="kv"><div class="k">Type</div><div class="v" id="mt_type_v">�</div></div>
+          <div class="kv"><div class="k">TLB</div><div class="v" id="mt_tlb_v">�</div></div>
+          <div class="kv"><div class="k">Till</div><div class="v" id="mt_till_v">�</div></div>
+          <div class="kv"><div class="k">Matatu ID</div><div class="v mono" id="mt_id_v">�</div></div>
         </div>
         <div class="note">Details are read-only here. For staff actions, go to the <strong>Staff</strong> tab.</div>
       </div>
@@ -294,7 +294,7 @@
         </div>
         <div class="note">
           Uses RPCs: <span class="mono">owner_add_staff_by_email</span>, <span class="mono">owner_remove_staff</span>.
-          Listing tries <span class="mono">owner_list_matatu_staff</span>, then falls back to <span class="mono">/api/owner/members?matatu_id=ï¿½</span>.
+          Listing tries <span class="mono">owner_list_matatu_staff</span>, then falls back to <span class="mono">/api/owner/members?matatu_id=�</span>.
         </div>
       </div>
     </section>
@@ -490,7 +490,7 @@ requireRole('OWNER', { statusEl: 'auth_state', roleLabel: 'Matatu Owner' }).then
       if(!chooserList) return;
       chooserList.innerHTML = MY_VEHICLES.map(v=>{
         const plate = (v.number_plate||'').toUpperCase();
-        const meta = [v.vehicle_type||'', v.sacco_id||''].filter(Boolean).join(' ï¿½ ');
+        const meta = [v.vehicle_type||'', v.sacco_id||''].filter(Boolean).join(' � ');
         const active = String(v.id) === String(MATATU_ID);
         return `<button type="button" class="chooser-item${active?' active':''}" data-id="${v.id}">
           <div>
@@ -539,7 +539,7 @@ requireRole('OWNER', { statusEl: 'auth_state', roleLabel: 'Matatu Owner' }).then
       const plate = (mat.number_plate||'').toUpperCase();
       const label = MATATU_ID ? `? ${plate || MATATU_ID} (${MATATU_ID})` : (plate || MATATU_ID);
       const heroMatatu = document.getElementById('currentMatatuLabel');
-      if (heroMatatu) heroMatatu.textContent = plate ? `${plate}${MATATU_ID ? ' â€¢ ' + MATATU_ID : ''}` : (MATATU_ID || 'Matatu selected');
+      if (heroMatatu) heroMatatu.textContent = plate ? `${plate}${MATATU_ID ? ' • ' + MATATU_ID : ''}` : (MATATU_ID || 'Matatu selected');
       ['ov_found','mt_found','st_found','tx_found'].forEach(id=>{
         const el = $(id); if(el) el.textContent = label || 'Selected';
       });
@@ -582,18 +582,18 @@ requireRole('OWNER', { statusEl: 'auth_state', roleLabel: 'Matatu Owner' }).then
     }
     // populate overview/vehicle cards
     function fillOverview(m){
-      $('ov_plate_v').textContent = m.number_plate || 'ï¿½';
-      $('ov_sacco_v').textContent = m.sacco_id || 'ï¿½';
-      $('ov_id_v').textContent = m.id || 'ï¿½';
+      $('ov_plate_v').textContent = m.number_plate || '�';
+      $('ov_sacco_v').textContent = m.sacco_id || '�';
+      $('ov_id_v').textContent = m.id || '�';
     }
     function fillVehicle(m){
-      $('mt_plate_v').textContent = m.number_plate || 'ï¿½';
-      $('mt_owner_v').textContent = m.owner_name || 'ï¿½';
-      $('mt_sacco_v').textContent = m.sacco_id || 'ï¿½';
-      $('mt_type_v').textContent  = m.vehicle_type || 'ï¿½';
-      $('mt_tlb_v').textContent   = m.tlb_number || 'ï¿½';
-      $('mt_till_v').textContent  = m.till_number || 'ï¿½';
-      $('mt_id_v').textContent    = m.id || 'ï¿½';
+      $('mt_plate_v').textContent = m.number_plate || '�';
+      $('mt_owner_v').textContent = m.owner_name || '�';
+      $('mt_sacco_v').textContent = m.sacco_id || '�';
+      $('mt_type_v').textContent  = m.vehicle_type || '�';
+      $('mt_tlb_v').textContent   = m.tlb_number || '�';
+      $('mt_till_v').textContent  = m.till_number || '�';
+      $('mt_id_v').textContent    = m.id || '�';
     }
     // -------- Overview find/refresh ----------
     $('ov_find').onclick = async ()=>{
@@ -629,7 +629,7 @@ requireRole('OWNER', { statusEl: 'auth_state', roleLabel: 'Matatu Owner' }).then
           <td>
             <div class="row" style="gap:6px;flex-wrap:wrap">
               <button type="button" class="btn ghost" data-edit="${row.id}">Edit</button>
-              ${canDelete ? `<button type="button" class="btn bad" data-id="${uid}">Remove</button>` : '<span class="muted">—</span>'}
+              ${canDelete ? `<button type="button" class="btn bad" data-id="${uid}">Remove</button>` : '<span class="muted">�</span>'}
             </div>
           </td>
         `;
@@ -647,7 +647,7 @@ requireRole('OWNER', { statusEl: 'auth_state', roleLabel: 'Matatu Owner' }).then
         if (!confirm('Remove staff ('+uid+')?')) return;
         try{
           await jdel(`/u/matatu/${encodeURIComponent(MATATU_ID)}/staff/${encodeURIComponent(uid)}`);
-          log('✓ Removed staff '+uid);
+          log('? Removed staff '+uid);
           $('st_reload').click();
         }catch(err){ alert(err.message||err); log('? Remove failed', { error: String(err) }); }
       };
