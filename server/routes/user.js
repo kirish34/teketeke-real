@@ -434,11 +434,12 @@ router.post("/matatu/:id/staff", async (req,res)=>{
     const phone = (req.body?.phone || "").trim() || null;
     const email = (req.body?.email || "").trim() || null;
     const role  = (req.body?.role || "STAFF").toString().toUpperCase();
+    const password = (req.body?.password || "").toString().trim();
     if (!name) return res.status(400).json({ error:"name required" });
 
     let userId = req.body?.user_id || null;
     if (!userId && email){
-      const created = await supabaseAdmin.auth.admin.createUser({ email, email_confirm: true, password: Math.random().toString(36).slice(2) + 'X1!' });
+      const created = await supabaseAdmin.auth.admin.createUser({ email, email_confirm: true, password: password || Math.random().toString(36).slice(2) + 'X1!' });
       if (created.error){
         let page=1, found=null;
         while(page<=25){

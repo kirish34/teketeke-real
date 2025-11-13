@@ -232,7 +232,6 @@
         <div class="grid" style="margin-top:10px">
           <div class="kv"><div class="k">Plate</div><div class="v" id="mt_plate_v">ï¿½</div></div>
           <div class="kv"><div class="k">Owner</div><div class="v" id="mt_owner_v">ï¿½</div></div>
-          <div class="kv"><div class="k">SACCO</div><div class="v" id="mt_sacco_v">ï¿½</div></div>
           <div class="kv"><div class="k">Type</div><div class="v" id="mt_type_v">ï¿½</div></div>
           <div class="kv"><div class="k">TLB</div><div class="v" id="mt_tlb_v">ï¿½</div></div>
           <div class="kv"><div class="k">Till</div><div class="v" id="mt_till_v">ï¿½</div></div>
@@ -336,6 +335,11 @@
           <div class="field">
             <label>Email
               <input id="tools_assign_email" placeholder="email@example.com"/>
+            </label>
+          </div>
+          <div class="field">
+            <label>Password
+              <input id="tools_assign_password" type="password" placeholder="Choose password"/>
             </label>
           </div>
           <div class="field">
@@ -462,6 +466,7 @@ requireRole('OWNER', { statusEl: 'auth_state', roleLabel: 'Matatu Owner' }).then
     let STAFF_EDITING = null;
     const toolsAssignName = $('tools_assign_name');
     const toolsAssignEmail = $('tools_assign_email');
+    const toolsAssignPassword = $('tools_assign_password');
     const toolsAssignPhone = $('tools_assign_phone');
     const toolsAssignRole = $('tools_assign_role');
     const toolsAssignBtn = $('tools_assign_btn');
@@ -786,11 +791,15 @@ requireRole('OWNER', { statusEl: 'auth_state', roleLabel: 'Matatu Owner' }).then
       }
       if (toolsAssignStatus) toolsAssignStatus.textContent = 'Saving...';
       try{
-        await jpost(`/u/matatu/${encodeURIComponent(MATATU_ID)}/staff`, { name, phone, email, role });
+        const payload = { name, phone, email, role };
+        const password = (toolsAssignPassword?.value || '').trim();
+        if (password) payload.password = password;
+        await jpost(`/u/matatu/${encodeURIComponent(MATATU_ID)}/staff`, payload);
         if (toolsAssignStatus) toolsAssignStatus.textContent = 'Staff login created; reload staff to see it.';
         log('?? Staff login created', { matatu_id: MATATU_ID, email, role });
         if (toolsAssignName) toolsAssignName.value = '';
         if (toolsAssignEmail) toolsAssignEmail.value = '';
+        if (toolsAssignPassword) toolsAssignPassword.value = '';
         if (toolsAssignPhone) toolsAssignPhone.value = '';
         await loadStaff();
       }catch(err){
