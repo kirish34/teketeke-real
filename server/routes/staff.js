@@ -45,18 +45,45 @@ router.post('/cash', requireUser, validate(staffCashSchema), async (req, res) =>
 
     // Fallback: verify authorization and upsert using service role to avoid RLS recursion issues
     if (supabaseAdmin) {
-      // Check this user is allowed to write for the sacco (system admin or staff of sacco)
+      // Check this user is allowed to write for the sacco
+      // 1) staff_profiles (SYSTEM_ADMIN or matching sacco_id)
+      // 2) user_roles with matching sacco_id (or matatu.role whose sacco matches)
       let allowed = false;
       try {
         const { data: profs } = await supabaseAdmin
           .from('staff_profiles')
           .select('role,sacco_id')
           .eq('user_id', req.user.id);
-        allowed = Array.isArray(profs) && profs.some(r => r.role === 'SYSTEM_ADMIN' || String(r.sacco_id) === String(sacco_id));
+        if (Array.isArray(profs)) {
+          allowed = profs.some(r => r.role === 'SYSTEM_ADMIN' || String(r.sacco_id) === String(sacco_id));
+        }
       } catch (_) {}
 
       if (!allowed) {
-        // If not allowed, return original error if present, else 403
+        try {
+          const { data: roles } = await supabaseAdmin
+            .from('user_roles')
+            .select('role,sacco_id,matatu_id')
+            .eq('user_id', req.user.id);
+          if (Array.isArray(roles)) {
+            allowed = roles.some(r => String(r.sacco_id || '') === String(sacco_id));
+            if (!allowed) {
+              const matatuIds = (roles || []).map(r => r.matatu_id).filter(Boolean);
+              if (matatuIds.length) {
+                const { data: mats } = await supabaseAdmin
+                  .from('matatus')
+                  .select('id,sacco_id')
+                  .in('id', matatuIds);
+                if (Array.isArray(mats)) {
+                  allowed = mats.some(m => String(m.sacco_id) === String(sacco_id));
+                }
+              }
+            }
+          }
+        } catch (_) {}
+      }
+
+      if (!allowed) {
         const msg = ins?.error?.message || 'Forbidden';
         return res.status(403).json({ error: msg });
       }
