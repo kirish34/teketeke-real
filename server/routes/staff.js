@@ -30,6 +30,28 @@ router.post('/cash', requireUser, validate(staffCashSchema), async (req, res) =>
     if (kind === 'DAILY_FEE') kind = 'SACCO_FEE';
     if (payer_phone && /^07\d{8}$/.test(payer_phone)) payer_phone = '254' + payer_phone.slice(1);
 
+    // Attempt to resolve friendly staff name (optional)
+    let created_by_name = null;
+    try {
+      if (supabaseAdmin) {
+        const { data: prof } = await supabaseAdmin
+          .from('staff_profiles')
+          .select('name')
+          .eq('user_id', req.user.id)
+          .eq('sacco_id', sacco_id)
+          .maybeSingle();
+        created_by_name = prof?.name || null;
+      } else {
+        const { data: prof } = await req.supa
+          .from('staff_profiles')
+          .select('name')
+          .eq('user_id', req.user.id)
+          .eq('sacco_id', sacco_id)
+          .maybeSingle();
+        created_by_name = prof?.name || null;
+      }
+    } catch(_) { /* optional */ }
+
     const row = {
       sacco_id,
       matatu_id: matatu_id || null,
@@ -38,11 +60,22 @@ router.post('/cash', requireUser, validate(staffCashSchema), async (req, res) =>
       service_fee_kes: 0,
       status: 'SUCCESS',
       passenger_msisdn: payer_phone || null,
-      notes: (notes || payer_name || '').toString()
+      notes: (notes || payer_name || '').toString(),
+      created_by: req.user?.id || null,
+      created_by_email: req.user?.email || null,
+      created_by_name: created_by_name || (req.user?.email ? String(req.user.email).split('@')[0] : null)
     };
 
     // First try with user-scoped client (RLS)
+    // Try inserting with audit columns; if schema not migrated yet, retry without them
     let ins = await req.supa.from('transactions').insert(row).select('*').single();
+    if (ins.error && /column .* does not exist/i.test(String(ins.error.message||''))) {
+      const fallbackRow = { ...row };
+      delete fallbackRow.created_by;
+      delete fallbackRow.created_by_email;
+      delete fallbackRow.created_by_name;
+      ins = await req.supa.from('transactions').insert(fallbackRow).select('*').single();
+    }
     if (!ins.error && ins.data) return res.json(ins.data);
 
     // Fallback: verify authorization and upsert using service role to avoid RLS recursion issues
@@ -90,7 +123,14 @@ router.post('/cash', requireUser, validate(staffCashSchema), async (req, res) =>
         return res.status(403).json({ error: msg });
       }
 
-      const alt = await supabaseAdmin.from('transactions').insert(row).select('*').single();
+      let alt = await supabaseAdmin.from('transactions').insert(row).select('*').single();
+      if (alt.error && /column .* does not exist/i.test(String(alt.error.message||''))) {
+        const fb = { ...row };
+        delete fb.created_by;
+        delete fb.created_by_email;
+        delete fb.created_by_name;
+        alt = await supabaseAdmin.from('transactions').insert(fb).select('*').single();
+      }
       if (alt.error) return res.status(500).json({ error: alt.error.message || 'Failed to record cash entry' });
       return res.json(alt.data);
     }

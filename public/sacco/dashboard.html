@@ -42,6 +42,7 @@
     <div class="tab active" data-panel="p_matatus" role="tab" aria-selected="true">Matatus</div>
     <div class="tab" data-panel="p_summary" role="tab" aria-selected="false">Collections</div>
     <div class="tab" data-panel="p_tx" role="tab" aria-selected="false">Transactions</div>
+    <div class="tab" data-panel="p_staffcol" role="tab" aria-selected="false">Staff Collections</div>
     <div class="tab" data-panel="p_ops" role="tab" aria-selected="false">Payments (STK)</div>
     <div class="tab" data-panel="p_staff" role="tab" aria-selected="false">Staff</div>
     <div class="tab" data-panel="p_loans" role="tab" aria-selected="false">Loans</div>
@@ -60,6 +61,29 @@
       </thead>
       <tbody id="matatuTbody"></tbody>
     </table>
+  </section>
+
+  <!-- Staff Collections -->
+  <section id="p_staffcol" class="panel">
+    <div class="card">
+      <div class="row"><h3 style="margin:0">Summary by Staff</h3><button id="sc_refresh" class="ghost right">Reload</button></div>
+      <div class="muted" style="margin:6px 0">Using the date range above. Includes SUCCESS transactions only.</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Staff</th><th>Email</th><th>Daily Fee</th><th>Savings</th><th>Loan Repay</th><th>Total</th></tr></thead>
+          <tbody id="sc_sum_tbody"><tr><td colspan="6" class="muted">Loading.</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <h3>Breakdown by Staff & Matatu</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Staff</th><th>Matatu</th><th>Kind</th><th>Amount</th><th>Count</th></tr></thead>
+          <tbody id="sc_col_tbody"><tr><td colspan="5" class="muted">Loading.</td></tr></tbody>
+        </table>
+      </div>
+    </div>
   </section>
 
   <!-- Collections summary -->
@@ -399,6 +423,63 @@
       renderChart('summaryChart','SACCO Fee (KES)',g.labels,g.values);
     }
 
+    async function loadStaffCollections(){
+      if(!currentSacco) return;
+      const res = await jget(`/u/sacco/${currentSacco}/transactions?limit=2000`);
+      const fromIso=$('fromDate').value, toIso=$('toDate').value;
+      const items=(res.items||[]).filter(tx=>withinRange(tx.created_at,fromIso,toIso) && (tx.status||'')==='SUCCESS');
+
+      const staffMap = new Map(); // key -> {name,email,df,sav,loan,total}
+      const brk = new Map(); // key -> {staff, plate, kind, amount, count}
+
+      const staffKey = (tx)=>{
+        const name = tx.created_by_name || '';
+        const email = tx.created_by_email || '';
+        const id = tx.created_by || '';
+        return id || email || name || '—';
+      };
+      const staffLabel = (tx)=> (tx.created_by_name || tx.created_by_email || '—');
+      const plateFor = (id)=> (matatuMap.get(id)||id||'');
+
+      items.forEach(tx=>{
+        // classify kind
+        const k = tx.kind === 'SACCO_FEE' ? 'df' : (tx.kind === 'SAVINGS' ? 'sav' : (tx.kind === 'LOAN_REPAY' ? 'loan' : null));
+        if (!k) return;
+        const amt = Number(tx.fare_amount_kes||0);
+        const key = staffKey(tx);
+        const label = staffLabel(tx);
+        const email = tx.created_by_email || '';
+        const row = staffMap.get(key) || { name: label, email, df:0, sav:0, loan:0, total:0 };
+        row[k] += amt; row.total += amt; row.email = email || row.email; row.name = label || row.name;
+        staffMap.set(key, row);
+
+        const bkey = `${key}|${tx.matatu_id||''}|${tx.kind}`;
+        const brow = brk.get(bkey) || { staff: label, plate: plateFor(tx.matatu_id), kind: tx.kind, amount:0, count:0 };
+        brow.amount += amt; brow.count += 1; brk.set(bkey, brow);
+      });
+
+      // Render summary
+      const sumBody = $('sc_sum_tbody'); sumBody.innerHTML='';
+      const rows = Array.from(staffMap.values()).sort((a,b)=> b.total - a.total);
+      rows.forEach(r=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML = `<td>${r.name||'—'}</td><td class="mono">${r.email||''}</td>`+
+                       `<td>${fmtKES(r.df)}</td><td>${fmtKES(r.sav)}</td><td>${fmtKES(r.loan)}</td><td><strong>${fmtKES(r.total)}</strong></td>`;
+        sumBody.appendChild(tr);
+      });
+      if (!rows.length) sumBody.innerHTML = '<tr><td colspan="6" class="muted">No data in range.</td></tr>';
+
+      // Render breakdown
+      const colBody = $('sc_col_tbody'); colBody.innerHTML='';
+      const brows = Array.from(brk.values()).sort((a,b)=> b.amount - a.amount);
+      brows.forEach(r=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML = `<td>${r.staff||'—'}</td><td class="mono">${r.plate||''}</td><td>${r.kind}</td><td>${fmtKES(r.amount)}</td><td>${r.count}</td>`;
+        colBody.appendChild(tr);
+      });
+      if (!brows.length) colBody.innerHTML = '<tr><td colspan="5" class="muted">No data in range.</td></tr>';
+    }
+
     // STK
     $('stkGo').onclick = async ()=>{
       try{
@@ -497,11 +578,12 @@
       updateHeadlineFor(currentSacco);
       await Promise.all([ loadMatatus(), loadTxAndTotals(), loadStaff(), loadLoans() ]);
     };
-    $('applyRange').onclick = ()=> loadTxAndTotals();
+    $('applyRange').onclick = ()=> { loadTxAndTotals(); loadStaffCollections(); };
     $('matatuSearch').oninput = ()=> { clearTimeout(window._mtT); window._mtT = setTimeout(loadMatatus, 200); };
     $('reloadMatatus').onclick = loadMatatus;
     $('txStatus').onchange = loadTxAndTotals;
-    $('reloadTx').onclick = loadTxAndTotals;
+    $('reloadTx').onclick = ()=> { loadTxAndTotals(); loadStaffCollections(); };
+    $('sc_refresh').onclick = loadStaffCollections;
 
     // Export CSV
     $('exportTx').onclick = ()=>{
@@ -520,7 +602,7 @@
       try{
         
         await loadSaccos();
-        await Promise.all([ loadMatatus(), loadTxAndTotals(), loadStaff(), loadLoans() ]);
+        await Promise.all([ loadMatatus(), loadTxAndTotals(), loadStaffCollections(), loadStaff(), loadLoans() ]);
       }catch(e){
         $('statusMsg').textContent = e.message;
         console.error(e);
