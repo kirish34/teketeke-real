@@ -381,6 +381,7 @@ requireRole('OWNER', { statusEl: 'auth_state', roleLabel: 'Matatu Owner' }).then
     try{ ensureAuthOrRoot(); protect('MATATU_OWNER'); }catch(_){}
     // ---------- helpers (no manual token/API base) ----------
     const $ = (id)=>document.getElementById(id);
+    const setText = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
     let _AUTH_TOKEN = null;
     async function getAuthToken(){
       if (_AUTH_TOKEN) return _AUTH_TOKEN;
@@ -582,18 +583,18 @@ requireRole('OWNER', { statusEl: 'auth_state', roleLabel: 'Matatu Owner' }).then
     }
     // populate overview/vehicle cards
     function fillOverview(m){
-      $('ov_plate_v').textContent = m.number_plate || '�';
-      $('ov_sacco_v').textContent = m.sacco_id || '�';
-      $('ov_id_v').textContent = m.id || '�';
+      setText('ov_plate_v', m.number_plate || '-');
+      setText('ov_sacco_v', m.sacco_id || '-');
+      setText('ov_id_v',    m.id || '-');
     }
     function fillVehicle(m){
-      $('mt_plate_v').textContent = m.number_plate || '�';
-      $('mt_owner_v').textContent = m.owner_name || '�';
-      $('mt_sacco_v').textContent = m.sacco_id || '�';
-      $('mt_type_v').textContent  = m.vehicle_type || '�';
-      $('mt_tlb_v').textContent   = m.tlb_number || '�';
-      $('mt_till_v').textContent  = m.till_number || '�';
-      $('mt_id_v').textContent    = m.id || '�';
+      setText('mt_plate_v', m.number_plate || '-');
+      setText('mt_owner_v', m.owner_name || '-');
+      setText('mt_sacco_v', m.sacco_id || '-');
+      setText('mt_type_v',  m.vehicle_type || '-');
+      setText('mt_tlb_v',   m.tlb_number || '-');
+      setText('mt_till_v',  m.till_number || '-');
+      setText('mt_id_v',    m.id || '-');
     }
     // -------- Overview find/refresh ----------
     $('ov_find').onclick = async ()=>{
