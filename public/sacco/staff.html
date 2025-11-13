@@ -280,7 +280,6 @@
     const svSet = new Set(svPaid.map(x=>x.matatu_id));
     renderPaidList('sv_paid', svPaid);
     renderDueList('sv_due', svSet, 'SAVINGS', '');
-    $1
   }
 
   async function loadRecentTx(){
