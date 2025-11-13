@@ -359,18 +359,57 @@ router.post('/sacco/:id/staff', async (req,res)=>{
   try{
     const { allowed } = await ensureSaccoAccess(req.user.id, saccoId);
     if (!allowed) return res.status(403).json({ error:'Forbidden' });
-    const row = {
-      sacco_id: saccoId,
-      name: (req.body?.name || '').trim(),
-      phone: (req.body?.phone || '').trim() || null,
-      email: (req.body?.email || '').trim() || null,
-      role: req.body?.role || 'SACCO_STAFF',
-      user_id: req.body?.user_id || null
-    };
-    if (!row.name) return res.status(400).json({ error:'name required' });
+    const name = (req.body?.name || '').trim();
+    if (!name) return res.status(400).json({ error:'name required' });
+
+    const email = (req.body?.email || '').trim() || null;
+    const phone = (req.body?.phone || '').trim() || null;
+    const roleReq = (req.body?.role || 'SACCO_STAFF').toString().toUpperCase();
+    const password = (req.body?.password || '').toString().trim();
+
+    let userId = req.body?.user_id || null;
+
+    // If email provided but no user_id, create or resolve Supabase Auth user using service role
+    if (!userId && email) {
+      try {
+        const created = await supabaseAdmin.auth.admin.createUser({
+          email,
+          email_confirm: true,
+          password: password || (Math.random().toString(36).slice(2) + 'X1!')
+        });
+        if (created.error) {
+          // If user exists, try to fetch by listing
+          let page = 1, found = null;
+          while (page <= 25) {
+            const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
+            if (error) break;
+            found = (data?.users||[]).find(u => (u.email||'').toLowerCase() === email.toLowerCase());
+            if (found) break;
+            page += 1;
+          }
+          if (found) userId = found.id; else throw created.error;
+        } else {
+          userId = created.data?.user?.id || null;
+        }
+      } catch (e) {
+        return res.status(500).json({ error: e.message || 'Failed to create auth user' });
+      }
+    }
+
+    // Map role values into canonical values used in user_roles
+    const normalizedRole = (roleReq === 'DRIVER' || roleReq === 'MATATU_STAFF') ? 'STAFF' : roleReq;
+
+    // If we have a user, upsert user_roles so they gain access to this SACCO
+    if (userId) {
+      const { error: urErr } = await supabaseAdmin
+        .from('user_roles')
+        .upsert({ user_id: userId, role: normalizedRole, sacco_id: saccoId, matatu_id: null }, { onConflict: 'user_id' });
+      if (urErr) return res.status(500).json({ error: urErr.message || 'Failed to upsert user role' });
+    }
+
     const { data, error } = await supabaseAdmin
       .from('staff_profiles')
-      .insert(row)
+      .insert({ sacco_id: saccoId, name, phone, email, role: roleReq, user_id: userId })
       .select()
       .single();
     if (error) throw error;

@@ -128,6 +128,10 @@
           <option value="SACCO_ADMIN">SACCO_ADMIN</option>
         </select>
       </div>
+      <div class="row" style="margin-top:8px">
+        <input id="stPass" type="password" placeholder="Password (optional if not creating login)" style="max-width:320px"/>
+        <span class="muted" style="align-self:center">Provide email + password to create a login.</span>
+      </div>
       <button id="stAdd">Add Staff</button>
     </div>
     <div class="card" style="margin-top:12px">
@@ -423,26 +427,28 @@
         $('staffTbody').innerHTML = `<tr><td colspan="5" class="err">${parseErr(e)}</td></tr>`;
       }
     }
-    $('stAdd').onclick = async ()=>{
-      if(!currentSacco) return alert('Pick a SACCO first');
-      const body = {
-        sacco_id: currentSacco,
-        name:  $('stName').value.trim(),
-        phone: $('stPhone').value.trim(),
-        email: $('stEmail').value.trim(),
-        role:  $('stRole').value
+      $('stAdd').onclick = async ()=>{
+        if(!currentSacco) return alert('Pick a SACCO first');
+        const body = {
+          sacco_id: currentSacco,
+          name:  $('stName').value.trim(),
+          phone: $('stPhone').value.trim(),
+          email: $('stEmail').value.trim(),
+          role:  $('stRole').value,
+          password: $('stPass').value
+        };
+        try{
+          await parse(await fetch(`/u/sacco/${currentSacco}/staff`,{
+            method:'POST',
+            headers:{ 'Content-Type':'application/json', Accept:'application/json' },
+            body: JSON.stringify(body)
+          }));
+          $('stName').value = $('stPhone').value = $('stEmail').value = '';
+          $('stPass').value = '';
+          await loadStaff();
+          alert('Staff added');
+        }catch(e){ alert(e.message); }
       };
-      try{
-        await parse(await fetch(`/u/sacco/${currentSacco}/staff`,{
-          method:'POST',
-          headers:{ 'Content-Type':'application/json', Accept:'application/json' },
-          body: JSON.stringify(body)
-        }));
-        $('stName').value = $('stPhone').value = $('stEmail').value = '';
-        await loadStaff();
-        alert('Staff added');
-      }catch(e){ alert(e.message); }
-    };
 
     // Loans
     async function loadLoans(){
