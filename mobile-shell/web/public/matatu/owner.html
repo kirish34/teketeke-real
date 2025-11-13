@@ -322,39 +322,7 @@
 
         </div>
 
-        <div class="note">Use the <strong>Staff</strong> tab to add/remove staff once your vehicle is selected.</div>
 
-      </div>
-
-    </section>
-
-
-
-    <!-- Vehicle -->
-
-    <section id="panel-vehicle" class="panel">
-
-      <div class="card">
-
-        <h3 style="margin-top:0">My Matatu</h3>
-
-        <div class="row">
-
-          <div class="field" style="flex:1;min-width:260px">
-
-            <label>Find by Plate
-
-              <input id="mt_plate" placeholder="e.g. KDA123A"/>
-
-            </label>
-
-          </div>
-
-          <button class="btn" id="mt_find">Find</button>
-
-          <span id="mt_found" class="muted"></span>
-
-        </div>
 
 
 
@@ -378,45 +346,7 @@
 
 
 
-        <div class="note">Details are read-only here. For staff actions, go to the <strong>Staff</strong> tab.</div>
 
-      </div>
-
-    </section>
-
-
-
-    <!-- Staff -->
-
-    <section id="panel-staff" class="panel">
-
-      <div class="card">
-
-        <h3 style="margin-top:0">Manage Staff</h3>
-
-
-
-        <!-- Find matatu -->
-
-        <div class="row">
-
-          <div class="field" style="flex:1;min-width:260px">
-
-            <label>Find Matatu by Plate
-
-              <input id="st_plate" placeholder="e.g. KDA123A"/>
-
-            </label>
-
-          </div>
-
-          <button class="btn" id="st_find">Find</button>
-
-          <span id="st_found" class="muted"></span>
-
-          <button class="btn ghost" id="st_reload" title="Reload staff list" style="margin-left:auto">Reload</button>
-
-        </div>
 
 
 
@@ -537,14 +467,6 @@
         </div>
 
 
-
-        <div class="note">
-
-          This tries your RPC <span class="mono">owner_transactions_today</span> (if you created it).  
-
-          If missing, it falls back to <span class="mono">/api/owner/transactions?matatu_id=�</span>.
-
-        </div>
 
       </div>
 
@@ -1247,7 +1169,6 @@ requireRole('OWNER', { statusEl: 'auth_state', roleLabel: 'Matatu Owner' }).then
 </body>
 
 </html>
-
 
 
 
