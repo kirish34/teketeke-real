@@ -476,9 +476,10 @@ router.post("/matatu/:id/staff", async (req,res)=>{
     }
 
     if (userId){
+      const normalizedRole = (role === 'DRIVER' || role === 'MATATU_STAFF') ? 'STAFF' : role;
       const { error: urErr } = await supabaseAdmin
         .from('user_roles')
-        .upsert({ user_id: userId, role: role === 'DRIVER' ? 'STAFF' : role, sacco_id: matatu.sacco_id || null, matatu_id: matatu.id }, { onConflict: 'user_id' });
+        .upsert({ user_id: userId, role: normalizedRole, sacco_id: matatu.sacco_id || null, matatu_id: matatu.id }, { onConflict: 'user_id' });
       if (urErr) throw urErr;
     }
 
@@ -537,7 +538,7 @@ router.patch('/matatu/:id/staff/:staff_id', async (req,res)=>{
     }
 
     if (requestedRole && data?.user_id){
-      const normalizedRole = requestedRole === 'DRIVER' ? 'STAFF' : requestedRole;
+      const normalizedRole = (requestedRole === 'DRIVER' || requestedRole === 'MATATU_STAFF') ? 'STAFF' : requestedRole;
       const { error: urErr } = await supabaseAdmin
         .from('user_roles')
         .update({ role: normalizedRole })
