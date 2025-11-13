@@ -404,6 +404,7 @@ requireRole('OWNER', { statusEl: 'auth_state', roleLabel: 'Matatu Owner' }).then
     }
     function log(msg, obj){
       const el = $('log');
+      if (!el) return;
       const time = new Date().toLocaleTimeString();
       el.textContent = `[${time}] ${msg}` + (obj ? `\n${JSON.stringify(obj,null,2)}` : "") + "\n\n" + (el.textContent||'');
     }
