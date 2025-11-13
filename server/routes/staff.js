@@ -12,9 +12,11 @@ const staffCashSchema = z.object({
   kind: z.enum(['SACCO_FEE','SAVINGS','LOAN_REPAY','CASH','DAILY_FEE']).default('SACCO_FEE'),
   amount: z.number().int().positive().max(1_000_000),
   payer_name: z.string().min(0).max(120).optional().default(''),
-  // Allow either E.164 2547xxxxxxxx, local 07xxxxxxxx, or empty
-  payer_phone: z.string()
-    .regex(/^(2547\d{8}|07\d{8})$/u, 'Phone must be 2547xxxxxxxx or 07xxxxxxxx')
+  // Allow either E.164 2547xxxxxxxx, local 07xxxxxxxx, or empty string
+  payer_phone: z.union([
+      z.literal(''),
+      z.string().regex(/^(2547\d{8}|07\d{8})$/u, 'Phone must be 2547xxxxxxxx or 07xxxxxxxx')
+    ])
     .optional()
     .default(''),
   notes: z.string().max(500).optional().default('')
