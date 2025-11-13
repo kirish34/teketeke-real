@@ -376,7 +376,9 @@
         const m = window._matatuFull?.get(id) || null;
         const owner = (m && (m.owner_name||'')) || '';
         const b = $('lnBorrower');
-        b.value = owner;`r`n        try { updateLoanSummary && updateLoanSummary(); } catch(_){ }`r`n      };
+        b.value = owner;
+        try { updateLoanSummary && updateLoanSummary(); } catch(_){ }
+      };
     }
 
     function withinRange(ts,fromIso,toIso){
