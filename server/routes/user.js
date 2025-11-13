@@ -124,6 +124,27 @@ router.get('/my-saccos', async (req, res) => {
     res.status(500).json({ error: error.message || 'Failed to load saccos' });
   }
 });
+// Return vehicles that the signed-in user can manage.
+router.get('/vehicles', async (req, res) => {
+  try {
+    const ctx = await getSaccoContext(req.user.id);
+    if (ctx.matatu && ctx.matatu.id) {
+      return res.json({ items: [ctx.matatu] });
+    }
+    if (ctx.saccoId) {
+      const { data, error } = await supabaseAdmin
+        .from('matatus')
+        .select('*')
+        .eq('sacco_id', ctx.saccoId)
+        .order('number_plate', { ascending: true });
+      if (error) throw error;
+      return res.json({ items: data || [] });
+    }
+    return res.json({ items: [] });
+  } catch (e) {
+    res.status(500).json({ error: e.message || 'Failed to load vehicles' });
+  }
+});
 
 router.get('/sacco/:id/matatus', async (req, res) => {
   const saccoId = req.params.id;
