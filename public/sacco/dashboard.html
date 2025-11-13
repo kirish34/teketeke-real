@@ -172,8 +172,8 @@
     <div class="card">
       <h3>Create Loan</h3>
       <div class="form-grid">
-        <input id="lnBorrower" placeholder="Borrower name"/>
-        <select id="lnMatatu" class="w-2"><option value="">— optional — Matatu</option></select>
+          <input id="lnBorrower" placeholder="Owner (auto)" readonly title="Borrower is the selected matatu owner"/>
+          <select id="lnMatatu" class="w-2"><option value="">— choose Matatu —</option></select>
         <input id="lnPrincipal" type="number" placeholder="Principal (KES)"/>
         <input id="lnRate" type="number" placeholder="Interest % p.a"/>
         <input id="lnTerm" type="number" placeholder="Term (months)"/>
@@ -340,6 +340,8 @@
       if(!currentSacco) return;
       const data = await jget(`/u/sacco/${currentSacco}/matatus`);
       matatuMap = new Map((data.items||[]).map(m=>[m.id,m.number_plate||'']));
+      // Keep full matatu details for loan owner validation
+      window._matatuFull = new Map((data.items||[]).map(m=>[m.id, m]));
       const q = $('matatuSearch').value.trim().toUpperCase();
       const rows = (data.items||[]).filter(m => !q || (m.number_plate||'').toUpperCase().includes(q));
       const T = $('matatuTbody'); T.innerHTML = '';
@@ -355,12 +357,20 @@
 
       // loans matatu select
       const sel = $('lnMatatu');
-      sel.innerHTML = '<option value="">— optional — Matatu</option>';
+      sel.innerHTML = '<option value="">— choose Matatu —</option>';
       (data.items||[]).forEach(m=>{
         const o=document.createElement('option');
-        o.value=m.id; o.textContent=m.number_plate;
+        o.value=m.id; o.textContent=m.number_plate + (m.owner_name ? ` — ${m.owner_name}` : '');
         sel.appendChild(o);
       });
+      // When matatu changes, auto-fill borrower as the owner and lock it
+      sel.onchange = ()=>{
+        const id = sel.value;
+        const m = window._matatuFull?.get(id) || null;
+        const owner = (m && (m.owner_name||'')) || '';
+        const b = $('lnBorrower');
+        b.value = owner;
+      };
     }
 
     function withinRange(ts,fromIso,toIso){
@@ -551,10 +561,15 @@
     }
     $('lnAdd').onclick = async ()=>{
       if(!currentSacco) return alert('Pick a SACCO first');
+      const matatuId = $('lnMatatu').value;
+      if(!matatuId) return alert('Select a Matatu — loans must be tied to the vehicle owner');
+      const m = (window._matatuFull && window._matatuFull.get(matatuId)) || null;
+      const ownerName = (m && (m.owner_name||'')) || '';
+      $('lnBorrower').value = ownerName; // enforce borrower = owner
       const body = {
         sacco_id: currentSacco,
-        borrower_name: $('lnBorrower').value.trim(),
-        matatu_id:     $('lnMatatu').value || null,
+        borrower_name: ownerName,
+        matatu_id:     matatuId,
         principal_kes: Number($('lnPrincipal').value||0),
         interest_rate_pct: Number($('lnRate').value||0),
         term_months:   Number($('lnTerm').value||0)
