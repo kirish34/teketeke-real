@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { requireUser } = require('../middleware/auth');
+const { supabaseAdmin } = require('../supabase');
 const { validate } = require('../middleware/validate');
 const { z } = require('zod');
 
@@ -24,13 +25,8 @@ router.post('/cash', requireUser, validate(staffCashSchema), async (req, res) =>
   try {
     let { sacco_id, matatu_id, kind, amount, payer_name, payer_phone, notes } = req.body;
 
-    // Map Daily Fee alias to canonical kind used in DB
     if (kind === 'DAILY_FEE') kind = 'SACCO_FEE';
-
-    // Normalize phone to E.164 2547xxxxxxxx if user typed 07xxxxxxxx
-    if (payer_phone && /^07\d{8}$/.test(payer_phone)) {
-      payer_phone = '254' + payer_phone.slice(1);
-    }
+    if (payer_phone && /^07\d{8}$/.test(payer_phone)) payer_phone = '254' + payer_phone.slice(1);
 
     const row = {
       sacco_id,
@@ -43,13 +39,35 @@ router.post('/cash', requireUser, validate(staffCashSchema), async (req, res) =>
       notes: (notes || payer_name || '').toString()
     };
 
-    const { data, error } = await req.supa
-      .from('transactions')
-      .insert(row)
-      .select('*')
-      .single();
-    if (error) return res.status(403).json({ error: error.message });
-    res.json(data);
+    // First try with user-scoped client (RLS)
+    let ins = await req.supa.from('transactions').insert(row).select('*').single();
+    if (!ins.error && ins.data) return res.json(ins.data);
+
+    // Fallback: verify authorization and upsert using service role to avoid RLS recursion issues
+    if (supabaseAdmin) {
+      // Check this user is allowed to write for the sacco (system admin or staff of sacco)
+      let allowed = false;
+      try {
+        const { data: profs } = await supabaseAdmin
+          .from('staff_profiles')
+          .select('role,sacco_id')
+          .eq('user_id', req.user.id);
+        allowed = Array.isArray(profs) && profs.some(r => r.role === 'SYSTEM_ADMIN' || String(r.sacco_id) === String(sacco_id));
+      } catch (_) {}
+
+      if (!allowed) {
+        // If not allowed, return original error if present, else 403
+        const msg = ins?.error?.message || 'Forbidden';
+        return res.status(403).json({ error: msg });
+      }
+
+      const alt = await supabaseAdmin.from('transactions').insert(row).select('*').single();
+      if (alt.error) return res.status(500).json({ error: alt.error.message || 'Failed to record cash entry' });
+      return res.json(alt.data);
+    }
+
+    // No admin client available — surface the original error
+    return res.status(403).json({ error: ins?.error?.message || 'Forbidden' });
   } catch (e) {
     res.status(500).json({ error: e.message || 'Failed to record cash entry' });
   }
