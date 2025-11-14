@@ -1,8 +1,20 @@
 <!doctype html>
-<html lang="en">
+<html lan      if(!currentSacco) return alert('Pick a SACCO first');
+      const matatuId = lnMatatu.value;
+      if(!matatuId) return alert('Select a Matatu — loans must be tied to the vehicle owner');
+      const m = (window._matatuFull && window._matatuFull.get(matatuId)) || null;
+      const ownerName = (m && (m.owner_name||'')) || '';
+      lnBorrower.value = ownerName; // enforce borrower = owner
+      // Enforce model interest and max duration (6 months)
+      const model = document.getElementById('lnModel')?.value || 'MONTHLY';
+      if (model === 'DAILY') { document.getElementById('lnRate').value = '10'; }
+      else if (model === 'WEEKLY') { document.getElementById('lnRate').value = '20'; }
+      else { document.getElementById('lnRate').value = '30'; }
+      let t = Number(document.getElementById('lnTerm').value||1);
+      if (t > 6) t = 6; if (t < 1) t = 1; document.getElementById('lnTerm').value = String(t);g="en">
 <head>
   <meta charset="utf-8"/>
-  <title>TekeTeke � SACCO Dashboard</title>
+  <title>TekeTeke ï¿½ SACCO Dashboard</title>
 
   <link rel="stylesheet" href="/public/css/dashboard-theme.css"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -51,7 +63,7 @@
   <!-- Matatus -->
   <section id="p_matatus" class="panel active">
     <div class="row">
-      <input id="matatuSearch" placeholder="Search plate�"/>
+      <input id="matatuSearch" placeholder="Search plateï¿½"/>
       <button class="ghost" id="reloadMatatus">Reload</button>
       <span class="right k" id="matatuCount"></span>
     </div>
@@ -172,13 +184,13 @@
     <div class="card">
       <h3>Create Loan</h3>
       <div class="form-grid">
-          <select id="lnMatatu" class="w-2"><option value="">� choose Matatu �</option></select>
+          <select id="lnMatatu" class="w-2"><option value="">ï¿½ choose Matatu ï¿½</option></select>
           <input id="lnBorrower" placeholder="Owner (auto)" readonly title="Borrower is the selected matatu owner"/>
         <input id="lnPrincipal" type="number" placeholder="Principal (KES)"/>
         <select id="lnModel">
-          <option value="DAILY">Daily collection (5% interest, max 1 month)</option>
-          <option value="WEEKLY">Weekly collection (10% interest, max 3 months)</option>
-          <option value="MONTHLY">Monthly collection (custom interest)</option>
+          <option value="DAILY">Daily collection (10% per month, max 6 months)</option>
+          <option value="WEEKLY">Weekly collection (20% per month, max 6 months)</option>
+          <option value="MONTHLY">Monthly collection (30% per month, max 6 months)</option>
         </select>
         <input id="lnStart" type="date" placeholder="Start date"/>
         <input id="lnRate" type="number" placeholder="Interest %"/>
@@ -364,10 +376,10 @@
 
       // loans matatu select
       const sel = $('lnMatatu');
-      sel.innerHTML = '<option value="">� choose Matatu �</option>';
+      sel.innerHTML = '<option value="">ï¿½ choose Matatu ï¿½</option>';
       (data.items||[]).forEach(m=>{
         const o=document.createElement('option');
-        o.value=m.id; o.textContent=m.number_plate + (m.owner_name ? ` � ${m.owner_name}` : '');
+        o.value=m.id; o.textContent=m.number_plate + (m.owner_name ? ` ï¿½ ${m.owner_name}` : '');
         sel.appendChild(o);
       });
       // When matatu changes, auto-fill borrower as the owner and lock it
@@ -454,9 +466,9 @@
         const name = tx.created_by_name || '';
         const email = tx.created_by_email || '';
         const id = tx.created_by || '';
-        return id || email || name || '�';
+        return id || email || name || 'ï¿½';
       };
-      const staffLabel = (tx)=> (tx.created_by_name || tx.created_by_email || '�');
+      const staffLabel = (tx)=> (tx.created_by_name || tx.created_by_email || 'ï¿½');
       const plateFor = (id)=> (matatuMap.get(id)||id||'');
 
       items.forEach(tx=>{
@@ -481,7 +493,7 @@
       const rows = Array.from(staffMap.values()).sort((a,b)=> b.total - a.total);
       rows.forEach(r=>{
         const tr=document.createElement('tr');
-        tr.innerHTML = `<td>${r.name||'�'}</td><td class="mono">${r.email||''}</td>`+
+        tr.innerHTML = `<td>${r.name||'ï¿½'}</td><td class="mono">${r.email||''}</td>`+
                        `<td>${fmtKES(r.df)}</td><td>${fmtKES(r.sav)}</td><td>${fmtKES(r.loan)}</td><td><strong>${fmtKES(r.total)}</strong></td>`;
         sumBody.appendChild(tr);
       });
@@ -492,7 +504,7 @@
       const brows = Array.from(brk.values()).sort((a,b)=> b.amount - a.amount);
       brows.forEach(r=>{
         const tr=document.createElement('tr');
-        tr.innerHTML = `<td>${r.staff||'�'}</td><td class="mono">${r.plate||''}</td><td>${r.kind}</td><td>${fmtKES(r.amount)}</td><td>${r.count}</td>`;
+        tr.innerHTML = `<td>${r.staff||'ï¿½'}</td><td class="mono">${r.plate||''}</td><td>${r.kind}</td><td>${fmtKES(r.amount)}</td><td>${r.count}</td>`;
         colBody.appendChild(tr);
       });
       if (!brows.length) colBody.innerHTML = '<tr><td colspan="5" class="muted">No data in range.</td></tr>';
@@ -560,9 +572,22 @@
       const model = document.getElementById('lnModel')?.value || 'MONTHLY';
       const rateEl = document.getElementById('lnRate'); const termEl = document.getElementById('lnTerm'); const startEl=document.getElementById('lnStart');
       if (!startEl) return;
-      if (model === 'DAILY'){ rateEl.value = '5'; rateEl.readOnly = true; termEl.value = '1'; termEl.readOnly = true; }
-      else if (model === 'WEEKLY'){ rateEl.value = '10'; rateEl.readOnly = true; termEl.readOnly = false; if (!termEl.value) termEl.value='1'; if (Number(termEl.value)>3) termEl.value='3'; }
-      else { rateEl.readOnly = false; termEl.readOnly = false; }
+      if (model === 'DAILY'){
+        rateEl.value = '10'; rateEl.readOnly = true; termEl.readOnly = false;
+        if (!termEl.value) termEl.value='1';
+        if (Number(termEl.value)>6) termEl.value='6';
+        if (Number(termEl.value)<1) termEl.value='1';
+      } else if (model === 'WEEKLY'){
+        rateEl.value = '20'; rateEl.readOnly = true; termEl.readOnly = false;
+        if (!termEl.value) termEl.value='1';
+        if (Number(termEl.value)>6) termEl.value='6';
+        if (Number(termEl.value)<1) termEl.value='1';
+      } else { // MONTHLY
+        rateEl.value = '30'; rateEl.readOnly = true; termEl.readOnly = false;
+        if (!termEl.value) termEl.value='1';
+        if (Number(termEl.value)>6) termEl.value='6';
+        if (Number(termEl.value)<1) termEl.value='1';
+      }
       const rate = Number(rateEl.value||0); const term = Math.max(1, Number(termEl.value||1));
       const start = startEl.value || new Date().toISOString().slice(0,10);
       const end = addMonths(new Date(start), term);
@@ -572,7 +597,7 @@
       if (model === 'WEEKLY') installments = weeksInRange(new Date(start), end);
       const per = installments>0 ? (total/installments) : total;
       const sumEl = document.getElementById('lnSummary');
-      if (sumEl) sumEl.textContent = `Total due: KES ${Number(total||0).toLocaleString('en-KE',{minimumFractionDigits:2,maximumFractionDigits:2})} — ${installments} ${model.toLowerCase()} installment(s) @ KES ${Number(per||0).toLocaleString('en-KE',{minimumFractionDigits:2,maximumFractionDigits:2})} each`;
+      if (sumEl) sumEl.textContent = `Total due: KES ${Number(total||0).toLocaleString('en-KE',{minimumFractionDigits:2,maximumFractionDigits:2})} â€” ${installments} ${model.toLowerCase()} installment(s) @ KES ${Number(per||0).toLocaleString('en-KE',{minimumFractionDigits:2,maximumFractionDigits:2})} each`;
     }
     ;['lnModel','lnPrincipal','lnRate','lnTerm','lnStart'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('input', updateLoanSummary); });
     if (document.getElementById('lnStart')) { document.getElementById('lnStart').value = new Date().toISOString().slice(0,10); }
@@ -598,7 +623,7 @@
     $('lnAdd').onclick = async ()=>{
       if(!currentSacco) return alert('Pick a SACCO first');
       const matatuId = $('lnMatatu').value;
-      if(!matatuId) return alert('Select a Matatu � loans must be tied to the vehicle owner');
+      if(!matatuId) return alert('Select a Matatu ï¿½ loans must be tied to the vehicle owner');
       const m = (window._matatuFull && window._matatuFull.get(matatuId)) || null;
       const ownerName = (m && (m.owner_name||'')) || '';
       $('lnBorrower').value = ownerName; // enforce borrower = owner
