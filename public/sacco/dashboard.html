@@ -5,6 +5,7 @@
   <title>TekeTeke - SACCO Dashboard</title>
 
   <link rel="stylesheet" href="/public/css/dashboard-theme.css"/>
+  <link rel="icon" href="/public/mobile/shared/icons/icon-192.png"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <script src="/public/js/app-config.js"></script>
   <script src="/public/js/api.js"></script>
@@ -343,8 +344,8 @@
       saccoNames.clear();
       items.forEach(s=>{
         const o=document.createElement('option');
-        o.value=m.id; o.textContent=m.number_plate + (m.owner_name ? (' - ' + m.owner_name) : '');
-        o.textContent=s.name||s.sacco_id;
+        o.value = s.sacco_id;
+        o.textContent = s.name || s.sacco_id;
         sel.appendChild(o);
         saccoNames.set(s.sacco_id, s.name || s.sacco_id);
       });
