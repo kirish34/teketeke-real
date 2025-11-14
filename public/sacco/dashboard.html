@@ -578,8 +578,7 @@
   const termEl = document.getElementById('lnTerm');
   const startEl = document.getElementById('lnStart');
   if (!startEl) return;
-  let perMonth = 30; // default monthly
-  if (model === 'DAILY') perMonth = 10; else if (model === 'WEEKLY') perMonth = 20; else perMonth = 30;
+  let perMonth = 30; if (model === 'DAILY') perMonth = 10; else if (model === 'WEEKLY') perMonth = 20;
   let term = Math.max(1, Math.min(6, Number(termEl.value||1)));
   termEl.value = String(term);
   const totalPercent = perMonth * term;
@@ -596,10 +595,10 @@
   } else if (model === 'WEEKLY') {
     const ms = end.getTime() - new Date(start).getTime();
     installments = Math.max(1, Math.ceil(ms/(7*24*3600*1000)));
-  } else { installments = term; }
+  }
   const per = installments>0 ? (total/installments) : total;
   const sumEl = document.getElementById('lnSummary');
-  if (sumEl) sumEl.textContent = `Total due: KES ${Number(total||0).toLocaleString('en-KE',{minimumFractionDigits:2,maximumFractionDigits:2})} - ${installments} ${model.toLowerCase()} installment(s) @ KES ${Number(per||0).toLocaleString('en-KE',{minimumFractionDigits:2,maximumFractionDigits:2})} each`;
+  if (sumEl) sumEl.textContent = 'Total due: KES ' + Number(total||0).toLocaleString('en-KE',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' - ' + installments + ' ' + model.toLowerCase() + ' installment(s) @ KES ' + Number(per||0).toLocaleString('en-KE',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' each';
 }
     ;['lnModel','lnPrincipal','lnRate','lnTerm','lnStart'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('input', updateLoanSummary); });
     if (document.getElementById('lnStart')) { document.getElementById('lnStart').value = new Date().toISOString().slice(0,10); }
