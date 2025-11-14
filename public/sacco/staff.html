@@ -147,16 +147,7 @@
     </div>
   </section>
 
-  <!-- Recent transactions -->
-  <div class="card" style="margin-top:12px">
-    <div class="row"><strong>Recent Transactions</strong><button id="reloadTx" class="ghost right">Reload</button></div>
-    <div class="table-wrap" style="margin-top:8px">
-      <table>
-        <thead><tr><th>When</th><th>Matatu</th><th>MSISDN</th><th>Kind</th><th>Amount</th><th>Status</th><th>ID</th></tr></thead>
-        <tbody id="tbody"></tbody>
-      </table>
-    </div>
-  </div>
+  <!-- Recent transactions removed per requirements -->
 
   <div id="toast" role="status" aria-live="polite"></div>
 
@@ -282,22 +273,7 @@
     renderDueList('sv_due', svSet, 'SAVINGS', '');
   }
 
-  async function loadRecentTx(){
-    if(!SACCO_ID) return;
-    const res=await g(`/u/sacco/${SACCO_ID}/transactions?limit=50`);
-    const T=$('tbody'); T.innerHTML='';
-    (res.items||[]).sort((a,b)=> new Date(b.created_at)-new Date(a.created_at)).forEach(tx=>{
-      const tr=document.createElement('tr');
-      tr.innerHTML = `<td>${new Date(tx.created_at).toLocaleString()}</td>`+
-        `<td class='mono'>${tx.matatu_id||''}</td>`+
-        `<td class='mono'>${tx.passenger_msisdn||''}</td>`+
-        `<td>${tx.kind||''}</td>`+
-        `<td>${fmtKES(tx.fare_amount_kes)}</td>`+
-        `<td>${tx.status||''}</td>`+
-        `<td class='mono'>${tx.id}</td>`;
-      T.appendChild(tr);
-    });
-  }
+  // loadRecentTx() removed
 
   // Simple self-tests (console-only)
   (function runSelfTests(){
@@ -332,9 +308,8 @@
     };
   });
 
-  $('sacco').onchange = async ()=>{ SACCO_ID=$('sacco').value; await loadMatatus(); await renderAll(); await loadRecentTx(); };
-  $('reload').onclick = async ()=>{ await loadSaccos(); await loadMatatus(); await renderAll(); await loadRecentTx(); };
-  $('reloadTx').onclick = loadRecentTx;
+  $('sacco').onchange = async ()=>{ SACCO_ID=$('sacco').value; await loadMatatus(); await renderAll(); };
+  $('reload').onclick = async ()=>{ await loadSaccos(); await loadMatatus(); await renderAll(); };
   $('search').oninput = ()=>{ clearTimeout(window._srch); window._srch = setTimeout(renderAll, 200); };
   
 
