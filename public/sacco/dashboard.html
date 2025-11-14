@@ -694,7 +694,7 @@
       currentSacco = $('saccoSelect').value || null;
       updateHeadlineFor(currentSacco);
       const link = document.getElementById('linkStaffLoans'); if (link) link.href = '/public/sacco/staff-loans.html' + (currentSacco ? ('?sacco='+encodeURIComponent(currentSacco)) : '');
-      await Promise.all([ loadMatatus(), loadTxAndTotals(), loadStaff(), loadLoans(), loadLoanRequests?.() ]);
+      await Promise.all([ loadMatatus(), loadTxAndTotals(), loadStaff(), loadLoans(), loadLoanRequests() ]);
     };
 
     // Loan Requests
@@ -743,16 +743,16 @@
         
         await loadSaccos();
         const link = document.getElementById('linkStaffLoans'); if (link) link.href = '/public/sacco/staff-loans.html' + (currentSacco ? ('?sacco='+encodeURIComponent(currentSacco)) : '');
-        await Promise.all([ loadMatatus(), loadTxAndTotals(), loadStaffCollections(), loadStaff(), loadLoans(), loadLoanRequests?.() ]);
+        await Promise.all([ loadMatatus(), loadTxAndTotals(), loadStaffCollections(), loadStaff(), loadLoans(), loadLoanRequests() ]);
 
     // Approve/Reject loan requests
     (function bindLnReqActions(){
       const T=document.getElementById('lnreqTbody'); if(!T) return;
       T.addEventListener('click', async (e)=>{
         const btn=e.target.closest('button'); if(!btn) return; const act=btn.dataset.act; const id=btn.dataset.id; if(!id) return;
-        if(!confirm(${act==='approve'?'Approve':'Reject'} this request?)) return;
+        if(!confirm(`${act==='approve'?'Approve':'Reject'} this request?`)) return;
         btn.disabled=true; try{
-          await parse(await fetch(/u/sacco//loan-requests/,{ method:'PATCH', headers:{'Content-Type':'application/json',Accept:'application/json'}, body: JSON.stringify({ action: act.toUpperCase() }) }));
+          await parse(await fetch(`/u/sacco/${currentSacco}/loan-requests/${id}`,{ method:'PATCH', headers:{'Content-Type':'application/json',Accept:'application/json'}, body: JSON.stringify({ action: act.toUpperCase() }) }));
           await loadLoanRequests(); await loadLoans();
         }catch(err){ alert(err.message); } finally{ btn.disabled=false; }
       });
@@ -799,8 +799,8 @@
               TB.appendChild(tr);
             });
             const sum = (res.items||[]).reduce((s,t)=>s+Number(t.fare_amount_kes||0),0);
-            document.getElementById('loanHistSum').textContent = `Paid total: KES ${fmtKES(sum)} Â· Remaining: KES ${fmtKES(Math.max(0,(res.total||0)-sum))}`;
-            document.getElementById('loanHistTitle').textContent = `Loan History (${id.slice(0,8)}â€¦)`;
+            document.getElementById('loanHistSum').textContent = Paid total: KES  - Remaining: KES ;
+            document.getElementById('loanHistTitle').textContent = Loan History (...);
           } else if (act==='ln-close'){
             if (!confirm('Mark this loan as CLOSED?')) return;
             btn.disabled=true; await parse(await fetch(`/u/sacco/${currentSacco}/loans/${id}`,{ method:'PATCH', headers:{'Content-Type':'application/json',Accept:'application/json'}, body: JSON.stringify({ status:'CLOSED' }) })); await loadLoans();
@@ -817,6 +817,7 @@
 
 </body>
 </html>
+
 
 
 
