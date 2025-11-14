@@ -96,7 +96,7 @@
           <tr>
             <th>Matatu</th>
             <th>Loan Amount</th>
-            <th>Period (m)</th>
+            <th>Loan Balance</th>
             <th>To Pay Today</th>
             <th>Amount</th>
             <th>Collect</th>
@@ -225,8 +225,11 @@
 
     let loans = { items: [] };
     try{ loans = await g(`/u/sacco/${SACCO_ID}/loans/due-today`); }catch(_){ loans = { items: [] }; }
-    const dueItems = (loans.items||[]).filter(x=>x.due_status==='TODAY');
+    // Only show daily and weekly items that are due today
+    const dueItems = (loans.items||[]).filter(x=>x.due_status==='TODAY' && (x.collection_model==='DAILY' || x.collection_model==='WEEKLY'));
     const LT = $('ln_table'); if (LT){ LT.innerHTML=''; }
+    // All-time (limited by API) successful repayments for quick balance calc
+    const loanRepaysAll = items.filter(tx => tx.kind==='LOAN_REPAY' && tx.status==='SUCCESS');
     dueItems.forEach(l=>{
       const m = MAT_BY_ID.get(l.matatu_id)||{}; const plate = m.number_plate || (l.matatu_id||'');
       const id = l.matatu_id || '';
@@ -234,17 +237,20 @@
       const ratePct = Number(l.interest_rate_pct||0);
       const total = principal * (1 + ratePct/100);
       const model = String(l.collection_model||'MONTHLY');
-      const term = Math.max(1, Number(l.term_months||1));
       const start = l.start_date ? new Date(l.start_date) : new Date();
       const end = addMonths(start, term);
       let installments = term; if (model==='DAILY') installments = countWeekdaysInclusive(start, end); else if (model==='WEEKLY') installments = weeksInRange(start, end);
       const dueToday = installments>0 ? (total/installments) : total;
+      const repaidAll = loanRepaysAll
+        .filter(t => String(t.matatu_id)===String(id) && (!l.start_date || new Date(t.created_at) >= new Date(l.start_date)))
+        .reduce((s,t)=> s + Number(t.fare_amount_kes||0), 0);
+      const loanBalance = Math.max(0, total - repaidAll);
       const balToday = Math.max(0, dueToday - Number(paidSum.get(id)||0));
       const amtId = `ln_amt_${id}`;
       const tr=document.createElement('tr');
       tr.innerHTML = `<td>${plate}</td>`+
         `<td>${fmtKES(principal)}</td>`+
-        `<td>${term}</td>`+
+        `<td>${fmtKES(loanBalance)}</td>`+
         `<td>${fmtKES(dueToday)}</td>`+
         `<td><input id='${amtId}' type='number' class='amount' placeholder='Amount' value='${balToday.toFixed(2)}'/></td>`+
         `<td><button data-id='${id}'>Collect</button></td>`;
@@ -297,4 +303,3 @@ startCornerClock();
 
 </body>
 </html>
-
