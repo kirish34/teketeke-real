@@ -34,6 +34,14 @@
       <button id="reload" class="ghost">Reload</button>
       <span class="right muted" id="stat"></span>
     </div>
+    <div class="row" style="justify-content:space-between; align-items:center; gap:8px; margin-top:6px">
+      <div class="muted">Switch to the new split pages for a clearer workflow:</div>
+      <div class="nav">
+        <a id="openNewDaily"   class="btn ghost" href="/public/sacco/staff-daily.html">Daily Fee</a>
+        <a id="openNewLoans"   class="btn ghost" href="/public/sacco/staff-loans.html">Loans</a>
+        <a id="openNewSavings" class="btn ghost" href="/public/sacco/staff-savings.html">Savings</a>
+      </div>
+    </div>
     <div class="card" style="background:#eef2ff;border:1px dashed #c7d2fe">
       <div class="row" style="align-items:center;gap:12px">
         <div style="flex:1">
@@ -176,6 +184,13 @@
     const sel=$('sacco'); sel.innerHTML='';
     (res.items||[]).forEach(s=>{ const o=document.createElement('option'); o.value=s.sacco_id; o.textContent=s.name||s.sacco_id; sel.appendChild(o); });
     if(res.items?.length){ sel.value=res.items[0].sacco_id; SACCO_ID = sel.value; }
+    // update new-page links with selected sacco id for convenience
+    try{
+      const q = SACCO_ID ? ('?sacco='+encodeURIComponent(SACCO_ID)) : '';
+      const L1 = document.getElementById('openNewDaily');   if (L1) L1.href = '/public/sacco/staff-daily.html'  + q;
+      const L2 = document.getElementById('openNewLoans');   if (L2) L2.href = '/public/sacco/staff-loans.html'  + q;
+      const L3 = document.getElementById('openNewSavings'); if (L3) L3.href = '/public/sacco/staff-savings.html'+ q;
+    }catch(_){ }
   }
   async function loadMatatus(){
     if(!SACCO_ID) return;
