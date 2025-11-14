@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
@@ -63,7 +63,6 @@
     <div class="tab" data-panel="p_ops" role="tab" aria-selected="false">Payments (STK)</div>
     <div class="tab" data-panel="p_staff" role="tab" aria-selected="false">Staff</div>
     <div class="tab" data-panel="p_loans" role="tab" aria-selected="false">Loans</div>
-    <div class="tab" data-panel="p_lnreq" role="tab" aria-selected="false">Loan Requests</div>
   </div>
 
   <!-- Matatus -->
@@ -79,19 +78,6 @@
       </thead>
       <tbody id="matatuTbody"></tbody>
     </table>
-  </section>
-
-  <!-- Loan Requests -->
-  <section id="p_lnreq" class="panel">
-    <div class="card">
-      <div class="row"><h3 style="margin:0">Loan Requests</h3><button id="lnreqReload" class="ghost right">Reload</button></div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Time</th><th>Owner</th><th>Plate</th><th>Amount</th><th>Model</th><th>Term</th><th>Note</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody id="lnreqTbody"><tr><td colspan="9" class="muted">Loading...</td></tr></tbody>
-        </table>
-      </div>
-    </div>
   </section>
 
   <!-- Staff Collections -->
@@ -696,28 +682,6 @@
       const link = document.getElementById('linkStaffLoans'); if (link) link.href = '/public/sacco/staff-loans.html' + (currentSacco ? ('?sacco='+encodeURIComponent(currentSacco)) : '');
       await Promise.all([ loadMatatus(), loadTxAndTotals(), loadStaff(), loadLoans(), loadLoanRequests?.() ]);
     };
-
-    // Loan Requests
-    async function loadLoanRequests(){
-      if(!currentSacco) return;
-      try{
-        const res = await jget(`/u/sacco/${currentSacco}/loan-requests?status=PENDING`);
-        const T=$('lnreqTbody'); if(!T) return; T.innerHTML='';
-        (res.items||[]).forEach(r=>{
-          const plate = (matatuMap.get(r.matatu_id)||'');
-          const tr=document.createElement('tr');
-          tr.innerHTML = `<td>${new Date(r.created_at).toLocaleString()}</td><td>${r.owner_name||''}</td><td>${plate}</td>`+
-            `<td>${fmtKES(r.amount_kes||0)}</td><td>${r.model||''}</td><td>${r.term_months||0}</td><td>${r.note||''}</td>`+
-            `<td>${r.status||''}</td>`+
-            `<td>`+
-              `<button class="ok" data-act="approve" data-id="${r.id}">Approve</button> `+
-              `<button class="bad" data-act="reject" data-id="${r.id}">Reject</button>`+
-            `</td>`;
-          T.appendChild(tr);
-        });
-        if (!(res.items||[]).length){ $('lnreqTbody').innerHTML = '<tr><td colspan="9" class="muted">No pending requests</td></tr>'; }
-      }catch(e){ const T=$('lnreqTbody'); if(T) T.innerHTML = `<tr><td colspan="9" class="err">${parseErr(e)}</td></tr>`; }
-    }
     $('applyRange').onclick = ()=> { loadTxAndTotals(); loadStaffCollections(); };
     $('matatuSearch').oninput = ()=> { clearTimeout(window._mtT); window._mtT = setTimeout(loadMatatus, 200); };
     $('reloadMatatus').onclick = loadMatatus;
@@ -744,20 +708,6 @@
         await loadSaccos();
         const link = document.getElementById('linkStaffLoans'); if (link) link.href = '/public/sacco/staff-loans.html' + (currentSacco ? ('?sacco='+encodeURIComponent(currentSacco)) : '');
         await Promise.all([ loadMatatus(), loadTxAndTotals(), loadStaffCollections(), loadStaff(), loadLoans(), loadLoanRequests?.() ]);
-
-    // Approve/Reject loan requests
-    (function bindLnReqActions(){
-      const T=document.getElementById('lnreqTbody'); if(!T) return;
-      T.addEventListener('click', async (e)=>{
-        const btn=e.target.closest('button'); if(!btn) return; const act=btn.dataset.act; const id=btn.dataset.id; if(!id) return;
-        if(!confirm(${act==='approve'?'Approve':'Reject'} this request?)) return;
-        btn.disabled=true; try{
-          await parse(await fetch(/u/sacco//loan-requests/,{ method:'PATCH', headers:{'Content-Type':'application/json',Accept:'application/json'}, body: JSON.stringify({ action: act.toUpperCase() }) }));
-          await loadLoanRequests(); await loadLoans();
-        }catch(err){ alert(err.message); } finally{ btn.disabled=false; }
-      });
-    })();
-
       }catch(e){
         $('statusMsg').textContent = e.message;
         console.error(e);
@@ -799,8 +749,8 @@
               TB.appendChild(tr);
             });
             const sum = (res.items||[]).reduce((s,t)=>s+Number(t.fare_amount_kes||0),0);
-            document.getElementById('loanHistSum').textContent = `Paid total: KES ${fmtKES(sum)} Â· Remaining: KES ${fmtKES(Math.max(0,(res.total||0)-sum))}`;
-            document.getElementById('loanHistTitle').textContent = `Loan History (${id.slice(0,8)}â€¦)`;
+            document.getElementById('loanHistSum').textContent = `Paid total: KES ${fmtKES(sum)} � Remaining: KES ${fmtKES(Math.max(0,(res.total||0)-sum))}`;
+            document.getElementById('loanHistTitle').textContent = `Loan History (${id.slice(0,8)}�)`;
           } else if (act==='ln-close'){
             if (!confirm('Mark this loan as CLOSED?')) return;
             btn.disabled=true; await parse(await fetch(`/u/sacco/${currentSacco}/loans/${id}`,{ method:'PATCH', headers:{'Content-Type':'application/json',Accept:'application/json'}, body: JSON.stringify({ status:'CLOSED' }) })); await loadLoans();
