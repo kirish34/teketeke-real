@@ -205,7 +205,7 @@
       <button id="lnAdd">Create Loan</button>
     </div>
     <div class="card" style="margin-top:12px">
-      <h3>Loans</h3>
+      <h3>Loans <a id="linkStaffLoans" class="btn ghost" style="font-size:12px;padding:4px 8px;margin-left:8px" href="/public/sacco/staff-loans.html">Open Staff Loans</a></h3>
       <table>
         <thead><tr><th>Borrower</th><th>Matatu</th><th>Principal</th><th>Rate %</th><th>Term (m)</th><th>Status</th><th>ID</th></tr></thead>
         <tbody id="loanTbody"></tbody>
@@ -662,6 +662,7 @@
     $('saccoSelect').onchange = async ()=>{
       currentSacco = $('saccoSelect').value || null;
       updateHeadlineFor(currentSacco);
+      const link = document.getElementById('linkStaffLoans'); if (link) link.href = '/public/sacco/staff-loans.html' + (currentSacco ? ('?sacco='+encodeURIComponent(currentSacco)) : '');
       await Promise.all([ loadMatatus(), loadTxAndTotals(), loadStaff(), loadLoans() ]);
     };
     $('applyRange').onclick = ()=> { loadTxAndTotals(); loadStaffCollections(); };
@@ -688,6 +689,7 @@
       try{
         
         await loadSaccos();
+        const link = document.getElementById('linkStaffLoans'); if (link) link.href = '/public/sacco/staff-loans.html' + (currentSacco ? ('?sacco='+encodeURIComponent(currentSacco)) : '');
         await Promise.all([ loadMatatus(), loadTxAndTotals(), loadStaffCollections(), loadStaff(), loadLoans() ]);
       }catch(e){
         $('statusMsg').textContent = e.message;
