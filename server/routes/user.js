@@ -98,6 +98,23 @@ async function ensureMatatuAccess(userId, requestedId) {
   return { allowed: false, ctx, matatu };
 }
 
+// Current user profile summary for front-end role guards
+router.get('/me', async (req, res) => {
+  try {
+    const ctx = await getSaccoContext(req.user.id);
+    const roleRow = await getRoleRow(req.user.id);
+    res.json({
+      role: roleRow?.role || null,
+      sacco_id: ctx.saccoId || roleRow?.sacco_id || null,
+      matatu_id: ctx.matatu?.id || roleRow?.matatu_id || null,
+      matatu_plate: ctx.matatu?.number_plate || null,
+      email: req.user?.email || null,
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message || 'Failed to load profile' });
+  }
+});
+
 router.get('/my-saccos', async (req, res) => {
   try {
     const ctx = await getSaccoContext(req.user.id);
