@@ -1,9 +1,9 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>TekeTeke ï¿½ Matatu Owner Dashboard</title>
+  <title>TekeTeke � Matatu Owner Dashboard</title>
   <style>
     :root{
       --brand:#0ea5e9; --brand-700:#0284c7;
@@ -139,7 +139,7 @@
         <p class="timestamp" id="dateTimeLine">--</p>
         <div class="hero-meta">
           <span id="currentMatatuLabel" class="badge">No matatu selected</span>
-          <span id="auth_state" class="pill invert">Checking sign-inï¿½</span>
+          <span id="auth_state" class="pill invert">Checking sign-in�</span>
         </div>
       </div>
       <div class="hero-actions">
@@ -209,7 +209,6 @@
       <div class="tab" data-for="staff">Staff</div>
       <div class="tab" data-for="tx">Transactions</div>
       <div class="tab" data-for="tools">Tools</div>
-      <div class="tab" data-for="loan">Loans</div>
     </div>
     <!-- Overview -->
     <section id="panel-overview" class="panel active">
@@ -226,17 +225,17 @@
           <button class="btn ghost" id="ov_refresh" style="margin-left:auto">Refresh</button>
         </div>
         <div class="grid">
-          <div class="kv"><div class="k">Plate</div><div class="v" id="ov_plate_v">ï¿½</div></div>
-          <div class="kv"><div class="k">SACCO</div><div class="v" id="ov_sacco_v">ï¿½</div></div>
-          <div class="kv"><div class="k">Matatu ID</div><div class="v mono" id="ov_id_v">ï¿½</div></div>
+          <div class="kv"><div class="k">Plate</div><div class="v" id="ov_plate_v">�</div></div>
+          <div class="kv"><div class="k">SACCO</div><div class="v" id="ov_sacco_v">�</div></div>
+          <div class="kv"><div class="k">Matatu ID</div><div class="v mono" id="ov_id_v">�</div></div>
         </div>        </div>
         <div class="grid" style="margin-top:10px">
-          <div class="kv"><div class="k">Plate</div><div class="v" id="mt_plate_v">ï¿½</div></div>
-          <div class="kv"><div class="k">Owner</div><div class="v" id="mt_owner_v">ï¿½</div></div>
-          <div class="kv"><div class="k">Type</div><div class="v" id="mt_type_v">ï¿½</div></div>
-          <div class="kv"><div class="k">TLB</div><div class="v" id="mt_tlb_v">ï¿½</div></div>
-          <div class="kv"><div class="k">Till</div><div class="v" id="mt_till_v">ï¿½</div></div>
-          <div class="kv"><div class="k">Matatu ID</div><div class="v mono" id="mt_id_v">ï¿½</div></div>
+          <div class="kv"><div class="k">Plate</div><div class="v" id="mt_plate_v">�</div></div>
+          <div class="kv"><div class="k">Owner</div><div class="v" id="mt_owner_v">�</div></div>
+          <div class="kv"><div class="k">Type</div><div class="v" id="mt_type_v">�</div></div>
+          <div class="kv"><div class="k">TLB</div><div class="v" id="mt_tlb_v">�</div></div>
+          <div class="kv"><div class="k">Till</div><div class="v" id="mt_till_v">�</div></div>
+          <div class="kv"><div class="k">Matatu ID</div><div class="v mono" id="mt_id_v">�</div></div>
         </div>
         <div class="note">Details are read-only here. For staff actions, go to the <strong>Staff</strong> tab.</div>
       </div>
@@ -295,7 +294,7 @@
         </div>
         <div class="note">
           Uses RPCs: <span class="mono">owner_add_staff_by_email</span>, <span class="mono">owner_remove_staff</span>.
-          Listing tries <span class="mono">owner_list_matatu_staff</span>, then falls back to <span class="mono">/api/owner/members?matatu_id=ï¿½</span>.
+          Listing tries <span class="mono">owner_list_matatu_staff</span>, then falls back to <span class="mono">/api/owner/members?matatu_id=�</span>.
         </div>
       </div>
     </section>
@@ -374,99 +373,6 @@
       <div class="card">
         <h3 style="margin-top:0">Logs</h3>
         <div id="log"></div>
-      </div>
-    </section>
-
-    <!-- Loans -->
-    <section id="panel-loan" class="panel">
-      <div class="card">
-        <h3 style="margin:0 0 8px">My Loans</h3>
-        <div class="muted" id="loan_matatu_line" style="margin:6px 0 12px;font-size:13px">Select a matatu first.</div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Created</th>
-                <th>Principal</th>
-                <th>Interest % (total)</th>
-                <th>Term (months)</th>
-                <th>Model</th>
-                <th>Start</th>
-                <th>Status</th>
-                <th>Total</th>
-                <th>Paid</th>
-                <th>Balance</th>
-                <th width="180">Pay</th>
-              </tr>
-            </thead>
-            <tbody id="loan_rows"><tr><td colspan="11" class="muted">No loans yet.</td></tr></tbody>
-          </table>
-        </div>
-        <div class="row" style="margin-top:10px">
-          <button class="btn ghost" id="loan_reload" type="button">Reload</button>
-        </div>
-        <div class="muted" id="loan_msg" style="margin-top:8px"></div>
-      </div>
-
-      <div class="card">
-        <h3 style="margin:0 0 8px">Request a Loan</h3>
-        <div class="row" style="align-items:flex-end;gap:12px;flex-wrap:wrap">
-          <div class="field" style="min-width:180px">
-            <label>Amount (KES)
-              <input id="loan_amount" type="number" min="1" placeholder="e.g. 50000" />
-            </label>
-          </div>
-          <div class="field">
-            <label>Model
-              <select id="loan_model">
-                <option value="DAILY">DAILY</option>
-                <option value="WEEKLY">WEEKLY</option>
-                <option value="MONTHLY" selected>MONTHLY</option>
-              </select>
-            </label>
-          </div>
-          <div class="field">
-            <label>Term (months)
-              <select id="loan_term">
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-                <option value="5">5</option>
-                <option value="6">6</option>
-              </select>
-            </label>
-          </div>
-          <div class="field" style="flex:1;min-width:220px">
-            <label>Note (optional)
-              <input id="loan_note" placeholder="What is this loan for?" />
-            </label>
-          </div>
-          <button class="btn ok" id="loan_submit" type="button">Submit Request</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="row" style="align-items:center;justify-content:space-between">
-          <h3 style="margin:0">My Loan Requests</h3>
-          <button class="btn ghost" id="loan_req_reload" type="button">Reload</button>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Amount</th>
-                <th>Model</th>
-                <th>Term (months)</th>
-                <th>Status</th>
-                <th>Note</th>
-                <th class="mono">Request ID</th>
-              </tr>
-            </thead>
-            <tbody id="loan_req_tbody"><tr><td colspan="7" class="muted">No requests yet.</td></tr></tbody>
-          </table>
-        </div>
       </div>
     </section>
   </div>
@@ -585,7 +491,7 @@ requireRole('OWNER', { statusEl: 'auth_state', roleLabel: 'Matatu Owner' }).then
       if(!chooserList) return;
       chooserList.innerHTML = MY_VEHICLES.map(v=>{
         const plate = (v.number_plate||'').toUpperCase();
-        const meta = [v.vehicle_type||'', v.sacco_id||''].filter(Boolean).join(' ï¿½ ');
+        const meta = [v.vehicle_type||'', v.sacco_id||''].filter(Boolean).join(' � ');
         const active = String(v.id) === String(MATATU_ID);
         return `<button type="button" class="chooser-item${active?' active':''}" data-id="${v.id}">
           <div>
@@ -634,7 +540,7 @@ requireRole('OWNER', { statusEl: 'auth_state', roleLabel: 'Matatu Owner' }).then
       const plate = (mat.number_plate||'').toUpperCase();
       const label = MATATU_ID ? `? ${plate || MATATU_ID} (${MATATU_ID})` : (plate || MATATU_ID);
       const heroMatatu = document.getElementById('currentMatatuLabel');
-      if (heroMatatu) heroMatatu.textContent = plate ? `${plate}${MATATU_ID ? ' â€¢ ' + MATATU_ID : ''}` : (MATATU_ID || 'Matatu selected');
+      if (heroMatatu) heroMatatu.textContent = plate ? `${plate}${MATATU_ID ? ' • ' + MATATU_ID : ''}` : (MATATU_ID || 'Matatu selected');
       ['ov_found','mt_found','st_found','tx_found'].forEach(id=>{
         const el = $(id); if(el) el.textContent = label || 'Selected';
       });
@@ -644,12 +550,9 @@ requireRole('OWNER', { statusEl: 'auth_state', roleLabel: 'Matatu Owner' }).then
       if (opts.load !== false){
         $('st_reload')?.click();
         $('tx_reload')?.click();
-        $('loan_reload')?.click();
-        $('loan_req_reload')?.click();
       }
       renderChooser();
       updateToolsMatatuLine(mat);
-      updateLoanMatatuLine(mat);
       log('? Selected matatu', { id: MATATU_ID, plate });
     }
     document.getElementById('switchMatatu')?.addEventListener('click', async ()=>{
@@ -727,7 +630,7 @@ requireRole('OWNER', { statusEl: 'auth_state', roleLabel: 'Matatu Owner' }).then
           <td>
             <div class="row" style="gap:6px;flex-wrap:wrap">
               <button type="button" class="btn ghost" data-edit="${row.id}">Edit</button>
-              ${canDelete ? `<button type="button" class="btn bad" data-id="${uid}">Remove</button>` : '<span class="muted">—</span>'}
+              ${canDelete ? `<button type="button" class="btn bad" data-id="${uid}">Remove</button>` : '<span class="muted">�</span>'}
             </div>
           </td>
         `;
@@ -947,181 +850,6 @@ requireRole('OWNER', { statusEl: 'auth_state', roleLabel: 'Matatu Owner' }).then
     $('tx_export').onclick = ()=> exportTableToCSV('matatu-transactions.csv', 'tx_tbody');
     // init: idle until user selects a plate
     updateToolsMatatuLine();
-    // ===== Loans tab helpers =====
-    function updateLoanMatatuLine(mat){
-      var el = document.getElementById('loan_matatu_line');
-      if (!el) return;
-      if (mat || MATATU_ID){
-        var plate = (mat && mat.number_plate ? mat.number_plate : (MATATU_CTX && MATATU_CTX.number_plate ? MATATU_CTX.number_plate : '')).toUpperCase();
-        var id = mat && mat.id ? mat.id : MATATU_ID;
-        el.textContent = (plate ? plate : 'Matatu') + ' (' + id + ') selected';
-      } else {
-        el.textContent = 'Select a matatu first.';
-      }
-    }
-    async function loadLoanRequests(){
-      var T = document.getElementById('loan_req_tbody');
-      var msg = document.getElementById('loan_msg');
-      if (!MATATU_ID || !MATATU_CTX || !MATATU_CTX.sacco_id){
-        if (T) T.innerHTML = '<tr><td colspan="7" class="muted">Select a matatu to see requests.</td></tr>';
-        return;
-      }
-      if (msg) msg.textContent = 'Loading requests...';
-      try{
-        var d = await jget('/u/sacco/' + encodeURIComponent(MATATU_CTX.sacco_id) + '/loan-requests');
-        var rows = (d && d.items) ? d.items : (Array.isArray(d)? d : []);
-        rows = rows.filter(function(r){ return String(r.matatu_id||'') === String(MATATU_ID||''); });
-        if (!rows.length){
-          if (T) T.innerHTML = '<tr><td colspan="7" class="muted">No requests yet.</td></tr>';
-        } else {
-          var html = '';
-          for (var i=0;i<rows.length;i++){
-            var x = rows[i];
-            var dt = (x.created_at||'').toString();
-            var dateOnly = dt ? dt.substring(0,10) : '';
-            html += '<tr>'+
-              '<td>' + dateOnly + '</td>'+
-              '<td>' + (x.amount_kes||'') + '</td>'+
-              '<td>' + (x.model||'') + '</td>'+
-              '<td>' + (x.term_months||'') + '</td>'+
-              '<td>' + (x.status||'') + '</td>'+
-              '<td>' + (x.note||'') + '</td>'+
-              '<td class="mono">' + (x.id||'') + '</td>'+
-            '</tr>';
-          }
-          if (T) T.innerHTML = html;
-        }
-        if (msg) msg.textContent = '';
-      }catch(e){
-        if (T) T.innerHTML = '<tr><td colspan="7" class="muted">Failed to load requests.</td></tr>';
-        if (msg) msg.textContent = (e && e.message) ? e.message : 'Load failed';
-      }
-    }
-    async function submitLoanRequest(){
-      var msg = document.getElementById('loan_msg');
-      if (!MATATU_ID){ alert('Select a Matatu first'); return; }
-      var amount = Number((document.getElementById('loan_amount')?.value||'').trim());
-      var model = (document.getElementById('loan_model')?.value||'MONTHLY').toString().toUpperCase();
-      var term = Number(document.getElementById('loan_term')?.value||'1');
-      var note = (document.getElementById('loan_note')?.value||'').trim();
-      if (!amount || amount <= 0){ alert('Enter amount'); return; }
-      if (['DAILY','WEEKLY','MONTHLY'].indexOf(model) === -1){ alert('Choose model'); return; }
-      if (term < 1) term = 1; if (term > 6) term = 6;
-      if (msg) msg.textContent = 'Submitting...';
-      try{
-        await jpost('/u/matatu/' + encodeURIComponent(MATATU_ID) + '/loan-requests', {
-          amount_kes: amount,
-          model: model,
-          term_months: term,
-          note: note
-        });
-        if (msg) msg.textContent = 'Request submitted.';
-        var a = document.getElementById('loan_amount'); if (a) a.value = '';
-        var n = document.getElementById('loan_note'); if (n) n.value = '';
-        await loadLoanRequests();
-      }catch(e){ if (msg) msg.textContent = (e && e.message) ? e.message : 'Submit failed'; }
-    }
-    async function loadOwnerLoans(){
-      var T = document.getElementById('loan_rows');
-      var msg = document.getElementById('loan_msg');
-      if (!MATATU_ID || !MATATU_CTX || !MATATU_CTX.sacco_id){
-        if (T) T.innerHTML = '<tr><td colspan="11" class="muted">Select a matatu to see loans.</td></tr>';
-        return;
-      }
-      if (msg) msg.textContent = 'Loading loans...';
-      try{
-        var d = await jget('/u/sacco/' + encodeURIComponent(MATATU_CTX.sacco_id) + '/loans');
-        var rows = (d && d.items) ? d.items : (Array.isArray(d)? d : []);
-        rows = rows.filter(function(r){ return String(r.matatu_id||'') === String(MATATU_ID||''); });
-        if (!rows.length){
-          if (T) T.innerHTML = '<tr><td colspan="11" class="muted">No loans yet.</td></tr>';
-          if (msg) msg.textContent = '';
-          return;
-        }
-        // Render basic rows first
-        var html = '';
-        for (var i=0;i<rows.length;i++){
-          var x = rows[i];
-          var created = (x.created_at||'').toString().substring(0,10);
-          var total = Number(x.principal_kes||0) * (1 + Number(x.interest_rate_pct||0)/100);
-          html += '<tr data-loan="' + (x.id||'') + '">' +
-            '<td>' + created + '</td>'+
-            '<td>' + (x.principal_kes||'') + '</td>'+
-            '<td>' + (x.interest_rate_pct||'') + '</td>'+
-            '<td>' + (x.term_months||'') + '</td>'+
-            '<td>' + (x.collection_model||'') + '</td>'+
-            '<td>' + (x.start_date||'') + '</td>'+
-            '<td>' + (x.status||'') + '</td>'+
-            '<td class="mono" data-total="1">' + total + '</td>'+
-            '<td class="mono" data-paid="1">...</td>'+
-            '<td class="mono" data-balance="1">...</td>'+
-            '<td>'+
-              '<div class="row" style="gap:6px;align-items:center">'+
-                '<input type="number" min="1" placeholder="Amount" style="width:90px" />'+
-                '<button class="btn" data-pay="' + (x.id||'') + '">Pay</button>'+
-              '</div>'+
-            '</td>'+
-          '</tr>';
-        }
-        if (T) T.innerHTML = html;
-        if (msg) msg.textContent = '';
-        // Load payments and fill paid/balance
-        rows.forEach(function(x){
-          jget('/u/sacco/' + encodeURIComponent(MATATU_CTX.sacco_id) + '/loans/' + encodeURIComponent(x.id) + '/payments')
-            .then(function(r){
-              var total = Number(r && r.total ? r.total : 0);
-              var paid = 0;
-              var items = r && r.items ? r.items : [];
-              for (var k=0;k<items.length;k++){
-                paid += Number(items[k].fare_amount_kes||0);
-              }
-              var tr = document.querySelector('tr[data-loan="' + x.id + '"]');
-              if (!tr) return;
-              var tdPaid = tr.querySelector('td[data-paid]');
-              var tdBal = tr.querySelector('td[data-balance]');
-              var tdTotal = tr.querySelector('td[data-total]');
-              if (tdTotal) tdTotal.textContent = String(total);
-              if (tdPaid) tdPaid.textContent = String(paid);
-              if (tdBal) tdBal.textContent = String(Math.max(0, total - paid));
-            })
-            .catch(function(){ /* ignore */ });
-        });
-      }catch(e){
-        if (T) T.innerHTML = '<tr><td colspan="11" class="muted">Failed to load loans.</td></tr>';
-        if (msg) msg.textContent = (e && e.message) ? e.message : 'Load failed';
-      }
-    }
-    // Pay button handler (event delegation)
-    (function(){
-      var table = document.getElementById('loan_rows');
-      if (!table) return;
-      table.addEventListener('click', async function(e){
-        var btn = e.target && e.target.closest('button[data-pay]');
-        if (!btn) return;
-        try{
-          if (!MATATU_ID || !MATATU_CTX || !MATATU_CTX.sacco_id) return alert('Select a matatu first');
-          var tr = btn.closest('tr');
-          var input = tr ? tr.querySelector('input[type="number"]') : null;
-          var amt = Number(input && input.value ? input.value : 0);
-          if (!amt || amt <= 0) return alert('Enter amount');
-          btn.disabled = true; btn.textContent = 'Paying...';
-          await jpost('/api/staff/cash', {
-            sacco_id: MATATU_CTX.sacco_id,
-            matatu_id: MATATU_ID,
-            kind: 'LOAN_REPAY',
-            amount: amt,
-            payer_name: (MATATU_CTX && MATATU_CTX.owner_name) ? MATATU_CTX.owner_name : 'Owner',
-            payer_phone: ''
-          });
-          await loadOwnerLoans();
-        }catch(err){ alert(err && err.message ? err.message : err); }
-        finally{ btn.disabled = false; btn.textContent = 'Pay'; }
-      });
-    })();
-    // Wire buttons
-    document.getElementById('loan_reload')?.addEventListener('click', loadOwnerLoans);
-    document.getElementById('loan_req_reload')?.addEventListener('click', loadLoanRequests);
-    document.getElementById('loan_submit')?.addEventListener('click', submitLoanRequest);
     log('Ready. Loading assigned matatus...');
     loadMyMatatus();
 }).catch(()=>{});
