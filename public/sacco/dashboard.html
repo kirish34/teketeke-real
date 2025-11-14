@@ -799,8 +799,8 @@
               TB.appendChild(tr);
             });
             const sum = (res.items||[]).reduce((s,t)=>s+Number(t.fare_amount_kes||0),0);
-            document.getElementById('loanHistSum').textContent = Paid total: KES  - Remaining: KES ;
-            document.getElementById('loanHistTitle').textContent = Loan History (...);
+            document.getElementById('loanHistSum').textContent = 'Paid total: KES ' + fmtKES(sum) + ' - Remaining: KES ' + fmtKES(Math.max(0,(res.total||0)-sum));
+            document.getElementById('loanHistTitle').textContent = 'Loan History (' + id.slice(0,8) + '...)';
           } else if (act==='ln-close'){
             if (!confirm('Mark this loan as CLOSED?')) return;
             btn.disabled=true; await parse(await fetch(`/u/sacco/${currentSacco}/loans/${id}`,{ method:'PATCH', headers:{'Content-Type':'application/json',Accept:'application/json'}, body: JSON.stringify({ status:'CLOSED' }) })); await loadLoans();
