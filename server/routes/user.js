@@ -460,6 +460,92 @@ router.get('/sacco/:id/loans', async (req,res)=>{
   }
 });
 
+// Loan requests
+router.get('/sacco/:id/loan-requests', async (req,res)=>{
+  const saccoId = req.params.id;
+  const status = (req.query.status || '').toString().toUpperCase();
+  try{
+    const { allowed } = await ensureSaccoAccess(req.user.id, saccoId);
+    if (!allowed) return res.status(403).json({ error:'Forbidden' });
+    let query = supabaseAdmin
+      .from('loan_requests')
+      .select('*')
+      .eq('sacco_id', saccoId)
+      .order('created_at', { ascending:false });
+    if (status) query = query.eq('status', status);
+    const { data, error } = await query;
+    if (error) throw error;
+    res.json({ items: data || [] });
+  }catch(e){ res.status(500).json({ error: e.message || 'Failed to load loan requests' }); }
+});
+
+// Create a loan request (matatu-scoped)
+router.post('/matatu/:id/loan-requests', async (req,res)=>{
+  const matatuId = req.params.id;
+  try{
+    const { allowed, matatu } = await ensureMatatuAccess(req.user.id, matatuId);
+    if (!allowed) return res.status(403).json({ error:'Forbidden' });
+    const amount = Number(req.body?.amount_kes || 0);
+    const model = (req.body?.model || 'MONTHLY').toString().toUpperCase();
+    const term = Math.max(1, Math.min(12, Number(req.body?.term_months || 1)));
+    const note = (req.body?.note || '').toString();
+    if (!amount) return res.status(400).json({ error:'amount_kes required' });
+    if (!['DAILY','WEEKLY','MONTHLY'].includes(model)) return res.status(400).json({ error:'invalid model' });
+    const row = {
+      sacco_id: matatu.sacco_id,
+      matatu_id: matatu.id,
+      owner_name: matatu.owner_name || '',
+      amount_kes: amount,
+      model,
+      term_months: term,
+      note,
+      status: 'PENDING'
+    };
+    const { data, error } = await supabaseAdmin.from('loan_requests').insert(row).select('*').single();
+    if (error) throw error;
+    res.json(data);
+  }catch(e){ res.status(500).json({ error: e.message || 'Failed to create loan request' }); }
+});
+
+// Approve/Reject request; on approve create a loan
+router.patch('/sacco/:id/loan-requests/:reqId', async (req,res)=>{
+  const saccoId = req.params.id; const reqId = req.params.reqId;
+  try{
+    const { allowed } = await ensureSaccoAccess(req.user.id, saccoId);
+    if (!allowed) return res.status(403).json({ error:'Forbidden' });
+    const action = (req.body?.action || '').toString().toUpperCase();
+    if (!['APPROVE','REJECT'].includes(action)) return res.status(400).json({ error:'action must be APPROVE or REJECT' });
+    const { data: R, error: rErr } = await supabaseAdmin
+      .from('loan_requests').select('*').eq('id', reqId).eq('sacco_id', saccoId).maybeSingle();
+    if (rErr) throw rErr;
+    if (!R) return res.status(404).json({ error:'Request not found' });
+
+    let updates = { status: action==='APPROVE' ? 'APPROVED' : 'REJECTED', decided_at: new Date().toISOString() };
+    let createdLoan = null;
+    if (action === 'APPROVE'){
+      const perMonth = (R.model==='DAILY'?10:(R.model==='WEEKLY'?20:30));
+      const interest_rate_pct = perMonth * Math.max(1, Number(R.term_months||1));
+      const row = {
+        sacco_id: saccoId,
+        matatu_id: R.matatu_id || null,
+        borrower_name: R.owner_name || 'Owner',
+        principal_kes: Number(R.amount_kes||0),
+        interest_rate_pct,
+        term_months: Number(R.term_months||1),
+        status: 'ACTIVE',
+        collection_model: R.model || 'MONTHLY',
+        start_date: new Date().toISOString().slice(0,10)
+      };
+      const { data: L, error: lErr } = await supabaseAdmin.from('loans').insert(row).select('*').single();
+      if (lErr) throw lErr;
+      createdLoan = L;
+    }
+    const { data: U, error: uErr } = await supabaseAdmin
+      .from('loan_requests').update(updates).eq('id', reqId).eq('sacco_id', saccoId).select('*').maybeSingle();
+    if (uErr) throw uErr;
+    res.json({ request: U, loan: createdLoan });
+  }catch(e){ res.status(500).json({ error: e.message || 'Failed to process loan request' }); }
+});
 // Loan payment history for a given loan (based on matatu_id and date window)
 router.get('/sacco/:id/loans/:loanId/payments', async (req,res)=>{
   const saccoId = req.params.id; const loanId = req.params.loanId;

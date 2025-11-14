@@ -680,7 +680,7 @@
       currentSacco = $('saccoSelect').value || null;
       updateHeadlineFor(currentSacco);
       const link = document.getElementById('linkStaffLoans'); if (link) link.href = '/public/sacco/staff-loans.html' + (currentSacco ? ('?sacco='+encodeURIComponent(currentSacco)) : '');
-      await Promise.all([ loadMatatus(), loadTxAndTotals(), loadStaff(), loadLoans() ]);
+      await Promise.all([ loadMatatus(), loadTxAndTotals(), loadStaff(), loadLoans(), loadLoanRequests?.() ]);
     };
     $('applyRange').onclick = ()=> { loadTxAndTotals(); loadStaffCollections(); };
     $('matatuSearch').oninput = ()=> { clearTimeout(window._mtT); window._mtT = setTimeout(loadMatatus, 200); };
@@ -707,7 +707,7 @@
         
         await loadSaccos();
         const link = document.getElementById('linkStaffLoans'); if (link) link.href = '/public/sacco/staff-loans.html' + (currentSacco ? ('?sacco='+encodeURIComponent(currentSacco)) : '');
-        await Promise.all([ loadMatatus(), loadTxAndTotals(), loadStaffCollections(), loadStaff(), loadLoans() ]);
+        await Promise.all([ loadMatatus(), loadTxAndTotals(), loadStaffCollections(), loadStaff(), loadLoans(), loadLoanRequests?.() ]);
       }catch(e){
         $('statusMsg').textContent = e.message;
         console.error(e);
