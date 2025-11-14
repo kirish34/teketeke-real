@@ -419,6 +419,29 @@ router.post('/sacco/:id/staff', async (req,res)=>{
   }
 });
 
+// Delete staff and revoke SACCO role access
+router.delete('/sacco/:id/staff/:staffId', async (req,res)=>{
+  const saccoId = req.params.id; const staffId = req.params.staffId;
+  if (!saccoId || !staffId) return res.status(400).json({ error:'sacco_id and staffId required' });
+  try{
+    const { allowed } = await ensureSaccoAccess(req.user.id, saccoId);
+    if (!allowed) return res.status(403).json({ error:'Forbidden' });
+    const { data: staff, error: sErr } = await supabaseAdmin
+      .from('staff_profiles').select('id,user_id,role').eq('id', staffId).eq('sacco_id', saccoId).maybeSingle();
+    if (sErr) throw sErr;
+    if (!staff) return res.status(404).json({ error:'Staff not found' });
+    const { error: delErr } = await supabaseAdmin.from('staff_profiles').delete().eq('id', staffId).eq('sacco_id', saccoId);
+    if (delErr) throw delErr;
+    if (staff.user_id){
+      await supabaseAdmin.from('user_roles').delete()
+        .eq('user_id', staff.user_id)
+        .eq('sacco_id', saccoId)
+        .in('role', ['SACCO_STAFF','SACCO_ADMIN']);
+    }
+    res.json({ ok:true });
+  }catch(e){ res.status(500).json({ error: e.message || 'Failed to delete staff' }); }
+});
+
 router.get('/sacco/:id/loans', async (req,res)=>{
   const saccoId = req.params.id;
   if (!saccoId) return res.status(400).json({ error:'sacco_id required' });
@@ -435,6 +458,68 @@ router.get('/sacco/:id/loans', async (req,res)=>{
   }catch(e){
     res.status(500).json({ error: e.message || 'Failed to load loans' });
   }
+});
+
+// Loan payment history for a given loan (based on matatu_id and date window)
+router.get('/sacco/:id/loans/:loanId/payments', async (req,res)=>{
+  const saccoId = req.params.id; const loanId = req.params.loanId;
+  if (!saccoId || !loanId) return res.status(400).json({ error:'sacco_id and loanId required' });
+  try{
+    const { allowed } = await ensureSaccoAccess(req.user.id, saccoId);
+    if (!allowed) return res.status(403).json({ error:'Forbidden' });
+    const { data: loan, error: lErr } = await supabaseAdmin
+      .from('loans').select('*').eq('id', loanId).eq('sacco_id', saccoId).maybeSingle();
+    if (lErr) throw lErr;
+    if (!loan) return res.status(404).json({ error:'Loan not found' });
+    if (!loan.matatu_id) return res.json({ items: [], total: Number(loan.principal_kes||0)*(1+Number(loan.interest_rate_pct||0)/100) });
+    // Compute time window
+    const start = loan.start_date ? new Date(loan.start_date) : new Date();
+    const end = addMonths(new Date(start), Math.max(1, Number(loan.term_months||1)));
+    const { data, error } = await supabaseAdmin
+      .from('transactions')
+      .select('*')
+      .eq('sacco_id', saccoId)
+      .eq('matatu_id', loan.matatu_id)
+      .eq('kind','LOAN_REPAY')
+      .gte('created_at', start.toISOString())
+      .lte('created_at', end.toISOString())
+      .order('created_at', { ascending:false });
+    if (error) throw error;
+    const total = Number(loan.principal_kes||0)*(1+Number(loan.interest_rate_pct||0)/100);
+    res.json({ items: data||[], total });
+  }catch(e){ res.status(500).json({ error: e.message || 'Failed to load loan payments' }); }
+});
+
+// Update loan (status only for now)
+router.patch('/sacco/:id/loans/:loanId', async (req,res)=>{
+  const saccoId = req.params.id; const loanId = req.params.loanId;
+  try{
+    const { allowed } = await ensureSaccoAccess(req.user.id, saccoId);
+    if (!allowed) return res.status(403).json({ error:'Forbidden' });
+    const status = (req.body?.status || '').toString().toUpperCase();
+    if (!status) return res.status(400).json({ error:'status required' });
+    const { data, error } = await supabaseAdmin
+      .from('loans')
+      .update({ status })
+      .eq('id', loanId)
+      .eq('sacco_id', saccoId)
+      .select('*')
+      .maybeSingle();
+    if (error) throw error;
+    res.json(data||{});
+  }catch(e){ res.status(500).json({ error: e.message || 'Failed to update loan' }); }
+});
+
+// Delete loan
+router.delete('/sacco/:id/loans/:loanId', async (req,res)=>{
+  const saccoId = req.params.id; const loanId = req.params.loanId;
+  try{
+    const { allowed } = await ensureSaccoAccess(req.user.id, saccoId);
+    if (!allowed) return res.status(403).json({ error:'Forbidden' });
+    const { error } = await supabaseAdmin.from('loans').delete().eq('id', loanId).eq('sacco_id', saccoId);
+    if (error) throw error;
+    res.json({ ok:true });
+  }catch(e){ res.status(500).json({ error: e.message || 'Failed to delete loan' }); }
 });
 
 // --- Loan schedule helpers ---

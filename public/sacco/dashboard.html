@@ -178,7 +178,7 @@
     <div class="card" style="margin-top:12px">
       <h3>Current Staff</h3>
       <table>
-        <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Role</th><th>ID</th></tr></thead>
+        <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Role</th><th>ID</th><th>Actions</th></tr></thead>
         <tbody id="staffTbody"></tbody>
       </table>
     </div>
@@ -206,10 +206,21 @@
     </div>
     <div class="card" style="margin-top:12px">
       <h3>Loans <a id="linkStaffLoans" class="btn ghost" style="font-size:12px;padding:4px 8px;margin-left:8px" href="/public/sacco/staff-loans.html">Open Staff Loans</a></h3>
-      <table>
-        <thead><tr><th>Borrower</th><th>Matatu</th><th>Principal</th><th>Rate %</th><th>Term (m)</th><th>Status</th><th>ID</th></tr></thead>
-        <tbody id="loanTbody"></tbody>
-      </table>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Borrower</th><th>Matatu</th><th>Principal</th><th>Rate %</th><th>Term (m)</th><th>Status</th><th>ID</th><th>Actions</th></tr></thead>
+          <tbody id="loanTbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div class="row"><h3 style="margin:0" id="loanHistTitle">Loan History</h3><span class="right muted" id="loanHistSum"></span></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Time</th><th>Amount</th><th>Staff</th><th>Note</th></tr></thead>
+          <tbody id="loanHistTbody"><tr><td colspan="4" class="muted">Select a loan to view history</td></tr></tbody>
+        </table>
+      </div>
     </div>
   </section>
 
@@ -536,7 +547,8 @@
         const T=$('staffTbody'); T.innerHTML='';
         (res.items||[]).forEach(s=>{
           const tr=document.createElement('tr');
-          tr.innerHTML = `<td>${s.name||''}</td><td>${s.phone||''}</td><td>${s.email||''}</td><td>${s.role||''}</td><td class="mono">${s.id}</td>`;
+          tr.innerHTML = `<td>${s.name||''}</td><td>${s.phone||''}</td><td>${s.email||''}</td><td>${s.role||''}</td><td class=\"mono\">${s.id}</td>`+
+            `<td><button class=\"bad\" data-action=\"del-staff\" data-id=\"${s.id}\">Delete</button></td>`;
           T.appendChild(tr);
         });
       }catch(e){
@@ -615,7 +627,12 @@
           tr.innerHTML =
             `<td>${l.borrower_name||''}</td><td>${(l.matatu_id||'')}</td><td>${fmtKES(l.principal_kes||0)}</td>`+
             `<td>${l.interest_rate_pct||0}</td><td>${l.term_months||0}</td><td>${l.status||''}</td>`+
-            `<td class="mono">${l.id}</td>`;
+            `<td class=\"mono\">${l.id}</td>`+
+            `<td>`+
+              `<button class=\"ghost\" data-action=\"ln-hist\" data-id=\"${l.id}\">History</button> `+
+              `<button class=\"ghost\" data-action=\"ln-close\" data-id=\"${l.id}\">Close</button> `+
+              `<button class=\"bad\" data-action=\"ln-del\" data-id=\"${l.id}\">Delete</button>`+
+            `</td>`;
           T.appendChild(tr);
         });
       }catch(e){
@@ -696,6 +713,54 @@
         console.error(e);
         alert('Load error: '+e.message);
       }
+    })();
+
+    // Staff delete (delegated)
+    (function bindStaffActions(){
+      const T = document.getElementById('staffTbody'); if(!T) return;
+      T.addEventListener('click', async (e)=>{
+        const btn = e.target.closest('button'); if(!btn) return;
+        if (btn.dataset.action !== 'del-staff') return;
+        const id = btn.dataset.id; if (!id || !currentSacco) return;
+        if (!confirm('Delete this staff and revoke SACCO access?')) return;
+        btn.disabled = true;
+        try{
+          await parse(await fetch(`/u/sacco/${currentSacco}/staff/${id}`,{ method:'DELETE', headers:{ Accept:'application/json' } }));
+          await loadStaff();
+          alert('Staff deleted');
+        }catch(err){ alert(err.message); }
+        finally{ btn.disabled=false; }
+      });
+    })();
+
+    // Loans actions (delegated)
+    (function bindLoanActions(){
+      const T = document.getElementById('loanTbody'); if(!T) return;
+      T.addEventListener('click', async (e)=>{
+        const btn = e.target.closest('button'); if(!btn) return;
+        const id = btn.dataset.id; const act = btn.dataset.action; if (!id || !act) return;
+        try{
+          if (act==='ln-hist'){
+            const res = await jget(`/u/sacco/${currentSacco}/loans/${id}/payments`);
+            const TB = document.getElementById('loanHistTbody'); TB.innerHTML='';
+            (res.items||[]).forEach(tx=>{
+              const tr=document.createElement('tr');
+              tr.innerHTML = `<td>${new Date(tx.created_at).toLocaleString()}</td><td>${fmtKES(tx.fare_amount_kes||0)}</td><td>${tx.created_by_name||tx.created_by_email||''}</td><td>${tx.notes||''}</td>`;
+              TB.appendChild(tr);
+            });
+            const sum = (res.items||[]).reduce((s,t)=>s+Number(t.fare_amount_kes||0),0);
+            document.getElementById('loanHistSum').textContent = `Paid total: KES ${fmtKES(sum)} · Remaining: KES ${fmtKES(Math.max(0,(res.total||0)-sum))}`;
+            document.getElementById('loanHistTitle').textContent = `Loan History (${id.slice(0,8)}…)`;
+          } else if (act==='ln-close'){
+            if (!confirm('Mark this loan as CLOSED?')) return;
+            btn.disabled=true; await parse(await fetch(`/u/sacco/${currentSacco}/loans/${id}`,{ method:'PATCH', headers:{'Content-Type':'application/json',Accept:'application/json'}, body: JSON.stringify({ status:'CLOSED' }) })); await loadLoans();
+          } else if (act==='ln-del'){
+            if (!confirm('Permanently delete this loan?')) return;
+            btn.disabled=true; await parse(await fetch(`/u/sacco/${currentSacco}/loans/${id}`,{ method:'DELETE', headers:{ Accept:'application/json' } })); await loadLoans();
+          }
+        }catch(err){ alert(err.message); }
+        finally{ btn.disabled=false; }
+      });
     })();
   })();
   </script>
