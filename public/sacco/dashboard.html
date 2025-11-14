@@ -343,7 +343,7 @@
       saccoNames.clear();
       items.forEach(s=>{
         const o=document.createElement('option');
-        o.value=s.sacco_id;
+        o.value=m.id; o.textContent=m.number_plate + (m.owner_name ? (' - ' + m.owner_name) : '');
         o.textContent=s.name||s.sacco_id;
         sel.appendChild(o);
         saccoNames.set(s.sacco_id, s.name || s.sacco_id);
@@ -383,7 +383,7 @@
       sel.innerHTML = '<option value="">- choose Matatu -</option>';
       (data.items||[]).forEach(m=>{
         const o=document.createElement('option');
-        o.value=m.id; o.textContent=m.number_plate + (m.owner_name ?  - ${m.owner_name}` : '');
+        o.value=m.id; o.textContent=m.number_plate + (m.owner_name ? (' - ' + m.owner_name) : '');
         sel.appendChild(o);
       });
       // When matatu changes, auto-fill borrower as the owner and lock it
