@@ -224,23 +224,35 @@
     const paidSum = new Map(); lnPaid.forEach(t=>{ const id=t.matatu_id; paidSum.set(id,(paidSum.get(id)||0)+Number(t.fare_amount_kes||0)); });
 
     let loans = { items: [] };
-    try{ loans = await g(`/u/sacco/${SACCO_ID}/loans/due-today`); }catch(_){ loans = { items: [] }; }
-    // Only show daily and weekly items that are due today
-    const dueItems = (loans.items||[]).filter(x=>x.due_status==='TODAY' && (x.collection_model==='DAILY' || x.collection_model==='WEEKLY'));
+    try{ loans = await g(`/u/sacco/${SACCO_ID}/loans`); }catch(_){ loans = { items: [] }; }
+    const allLoans = (loans.items||[]);
     const LT = $('ln_table'); if (LT){ LT.innerHTML=''; }
-    // All-time (limited by API) successful repayments for quick balance calc
+    // All-time successful repayments for quick balance calc
     const loanRepaysAll = items.filter(tx => tx.kind==='LOAN_REPAY' && tx.status==='SUCCESS');
-    dueItems.forEach(l=>{
+
+    const msDay = 24*3600*1000; const today = startOfDay(new Date());
+    let dueCount = 0;
+    allLoans.forEach(l=>{
       const m = MAT_BY_ID.get(l.matatu_id)||{}; const plate = m.number_plate || (l.matatu_id||'');
       const id = l.matatu_id || '';
       const principal = Number(l.principal_kes||0);
       const ratePct = Number(l.interest_rate_pct||0);
       const total = principal * (1 + ratePct/100);
       const model = String(l.collection_model||'MONTHLY');
+      const term = Math.max(1, Number(l.term_months||1));
       const start = l.start_date ? new Date(l.start_date) : new Date();
       const end = addMonths(start, term);
       let installments = term; if (model==='DAILY') installments = countWeekdaysInclusive(start, end); else if (model==='WEEKLY') installments = weeksInRange(start, end);
-      const dueToday = installments>0 ? (total/installments) : total;
+      const installmentAmt = installments>0 ? (total/installments) : total;
+      // Determine if today is a payable day
+      let isPayDay = false;
+      if (model === 'DAILY') { isPayDay = true; }
+      else if (model === 'WEEKLY') {
+        const days = Math.floor((today.getTime() - startOfDay(start).getTime())/msDay);
+        isPayDay = (days >= 0) && (days % 7 === 0) && (today <= end);
+      } else { isPayDay = false; }
+      const dueToday = isPayDay ? installmentAmt : 0;
+      if (isPayDay) dueCount++;
       const repaidAll = loanRepaysAll
         .filter(t => String(t.matatu_id)===String(id) && (!l.start_date || new Date(t.created_at) >= new Date(l.start_date)))
         .reduce((s,t)=> s + Number(t.fare_amount_kes||0), 0);
@@ -257,7 +269,7 @@
       LT.appendChild(tr);
     });
     LT.onclick = (e)=>{ const btn=e.target.closest('button'); if(!btn) return; const id=btn.getAttribute('data-id'); const v=Number((document.getElementById(`ln_amt_${id}`)?.value)||0); if(!v) return toast('Enter amount'); btn.disabled=true; quickCollect('LOAN_REPAY', id, v).finally(()=>{ btn.disabled=false; }); };
-    $('ln_counts').textContent = `${lnPaid.length} collected today · ${dueItems.length} due today`;
+    $('ln_counts').textContent = `${lnPaid.length} collected today · ${dueCount} due today (${allLoans.length} loans)`;
 
     // Savings
     const svPaid = items.filter(tx => tx.kind==='SAVINGS' && tx.status==='SUCCESS' && isToday(tx.created_at));
