@@ -35,7 +35,22 @@
     <div class="card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Matatu</th><th>Borrower</th><th>Principal</th><th>Collect</th><th></th></tr></thead>
+          <thead>
+            <tr>
+              <th>Matatu</th>
+              <th>Borrower</th>
+              <th>Principal</th>
+              <th>Model</th>
+              <th>Term (m)</th>
+              <th>Rate %</th>
+              <th>Total</th>
+              <th>Due today</th>
+              <th>Collected</th>
+              <th>Bal today</th>
+              <th>Amount</th>
+              <th></th>
+            </tr>
+          </thead>
           <tbody id="ln_today"></tbody>
         </table>
       </div>
@@ -66,7 +81,6 @@
   </section>
 
   <div id="toast" role="status" aria-live="polite"></div>
-  <span id="ln_counts" style="display:none"></span>
 
   <script>
   (async function(){
@@ -87,6 +101,12 @@
 
     function isToday(ts){ return iso(ts) === today; }
 
+    // Balance helpers
+    function addMonths(d, m){ const x=new Date(d); x.setMonth(x.getMonth()+m); return x; }
+    function startOfDay(d){ const x=new Date(d); x.setHours(0,0,0,0); return x; }
+    function countWeekdaysInclusive(start, end){ try{ let c=0, d=startOfDay(start), e=startOfDay(end); while(d<=e){ const w=d.getDay(); if(w>=1 && w<=5) c++; d.setDate(d.getDate()+1);} return Math.max(1,c);}catch(_){ return 1; } }
+    function weeksInRange(start, end){ try{ const ms = startOfDay(end).getTime() - startOfDay(start).getTime(); return Math.max(1, Math.ceil(ms/(7*24*3600*1000))); }catch(_){ return 1; } }
+
     async function render(){
       if(!SACCO_ID) return;
       const [tx, loans] = await Promise.all([
@@ -100,16 +120,42 @@
         const tr=document.createElement('tr'); tr.innerHTML = `<td>${new Date(t.created_at).toLocaleTimeString()}</td><td>${plate}</td><td>${fmt(t.fare_amount_kes)}</td>`; P.appendChild(tr);
       });
 
+      // Collected today per matatu
+      const paidSum = new Map();
+      paid.forEach(t=>{ const id=t.matatu_id; const v=Number(t.fare_amount_kes||0); paidSum.set(id, (paidSum.get(id)||0)+v); });
+
       const paidTodayByMatatu = new Set(paid.map(t=>t.matatu_id));
       const D1 = $('ln_today'); const D2 = $('ln_overdue'); D1.innerHTML=''; D2.innerHTML='';
       (loans.items||[]).filter(x=>x.due_status==='TODAY').forEach(l=>{
         const plate = (MAT_BY_ID.get(l.matatu_id)||{}).number_plate || (l.matatu_id||'');
         const id = l.matatu_id || '';
         const amtId = `ln_amt_${id}`;
+
+        const principal = Number(l.principal_kes||0);
+        const ratePct = Number(l.interest_rate_pct||0);
+        const total = principal * (1 + ratePct/100);
+        const model = String(l.collection_model||'MONTHLY');
+        const term = Math.max(1, Number(l.term_months||1));
+        const start = l.start_date ? new Date(l.start_date) : new Date();
+        const end = addMonths(start, term);
+        let installments = term;
+        if (model === 'DAILY') installments = countWeekdaysInclusive(start, end);
+        else if (model === 'WEEKLY') installments = weeksInRange(start, end);
+        const dueToday = installments>0 ? (total/installments) : total;
+        const collectedToday = Number(paidSum.get(id)||0);
+        const balToday = Math.max(0, dueToday - collectedToday);
+
         const tr=document.createElement('tr');
         tr.innerHTML = `<td>${plate}</td><td>${l.borrower_name||''}</td>`+
-          `<td>${fmt(l.principal_kes||0)}</td>`+
-          `<td><input id="${amtId}" type="number" placeholder="Amount" style="width:120px"/></td>`+
+          `<td>${fmt(principal)}</td>`+
+          `<td>${model}</td>`+
+          `<td>${term}</td>`+
+          `<td>${ratePct}</td>`+
+          `<td>${fmt(total)}</td>`+
+          `<td>${fmt(dueToday)}</td>`+
+          `<td>${fmt(collectedToday)}</td>`+
+          `<td>${fmt(balToday)}</td>`+
+          `<td><input id="${amtId}" type="number" placeholder="Amount" style="width:120px" value="${balToday.toFixed(2)}"/></td>`+
           `<td><button data-id="${id}">Collect</button></td>`;
         D1.appendChild(tr);
         if (paidTodayByMatatu.has(id)) tr.style.opacity = 0.7;
@@ -134,7 +180,6 @@
       const c1 = document.getElementById('ln_today_counts'); if (c1) c1.textContent = `${(loans.items||[]).filter(x=>x.due_status==='TODAY').length} loan(s) due today, ${paid.length} collected today`;
       const c2 = document.getElementById('ln_overdue_counts'); if (c2) c2.textContent = `${(loans.items||[]).filter(x=>x.due_status==='OVERDUE').length} pending (overdue)`;
 
-      $('ln_counts').textContent = `${(loans.items||[]).length} loan(s) • ${paid.length} collected today`;
     }
 
     $('sacco').onchange = async ()=>{ SACCO_ID=$('sacco').value; await loadMatatus(); await render(); };
