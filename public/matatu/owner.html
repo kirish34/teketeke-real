@@ -471,7 +471,7 @@
     </section>
   </div>
   <script>
-requireRole('OWNER', { statusEl: 'auth_state', roleLabel: 'Matatu Owner' }).then(()=>{
+requireRole(['OWNER','SACCO_STAFF'], { statusEl: 'auth_state', roleLabel: 'Matatu Owner or Sacco Staff' }).then(()=>{
     try{ ensureAuthOrRoot(); protect('MATATU_OWNER'); }catch(_){}
     // ---------- helpers (no manual token/API base) ----------
     const $ = (id)=>document.getElementById(id);
