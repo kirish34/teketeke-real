@@ -502,9 +502,11 @@ router.post('/matatu/:id/loan-requests', async (req,res)=>{
   try{
     const { allowed, matatu } = await ensureMatatuAccess(req.user.id, matatuId);
     if (!allowed) return res.status(403).json({ error:'Forbidden' });
+    if (!matatu) return res.status(404).json({ error:'Matatu not found' });
+    if (!matatu.sacco_id) return res.status(400).json({ error:'This matatu is not linked to any SACCO. Please contact your SACCO to attach the vehicle before requesting a loan.' });
     const amount = Number(req.body?.amount_kes || 0);
     const model = (req.body?.model || 'MONTHLY').toString().toUpperCase();
-    const term = Math.max(1, Math.min(12, Number(req.body?.term_months || 1)));
+    const term = Math.max(1, Math.min(6, Number(req.body?.term_months || 1)));
     const note = (req.body?.note || '').toString();
     if (!amount) return res.status(400).json({ error:'amount_kes required' });
     if (!['DAILY','WEEKLY','MONTHLY'].includes(model)) return res.status(400).json({ error:'invalid model' });
