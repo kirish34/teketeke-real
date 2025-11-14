@@ -629,6 +629,14 @@
       const m = (window._matatuFull && window._matatuFull.get(matatuId)) || null;
       const ownerName = (m && (m.owner_name||'')) || '';
       $('lnBorrower').value = ownerName; // enforce borrower = owner
+      // Enforce loan math: per-month rate * months (1..6)
+      try{
+        const model = document.getElementById('lnModel')?.value || 'MONTHLY';
+        let months = Math.max(1, Math.min(6, Number(document.getElementById('lnTerm').value||1)));
+        document.getElementById('lnTerm').value = String(months);
+        const perMonth = (model==='DAILY'?10:(model==='WEEKLY'?20:30));
+        document.getElementById('lnRate').value = String(perMonth * months);
+      }catch(_){ }
       const body = {
         sacco_id: currentSacco,
         borrower_name: ownerName,
