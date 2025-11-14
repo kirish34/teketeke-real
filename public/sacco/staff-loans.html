@@ -78,7 +78,7 @@
       if(!SACCO_ID) return;
       const [tx, loans] = await Promise.all([
         jget(`/u/sacco/${SACCO_ID}/transactions?limit=1000`),
-        jget(`/u/sacco/${SACCO_ID}/loans`)
+        jget(`/u/sacco/${SACCO_ID}/loans/due-today`)
       ]);
       const paid = (tx.items||[]).filter(t=>t.kind==='LOAN_REPAY' && t.status==='SUCCESS' && isToday(t.created_at));
       const P = $('ln_paid'); P.innerHTML='';

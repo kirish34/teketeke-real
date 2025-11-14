@@ -1,4 +1,4 @@
-﻿const express = require('express');
+const express = require('express');
 const { requireUser } = require('../middleware/auth');
 const { supabaseAdmin } = require('../supabase');
 
@@ -435,6 +435,52 @@ router.get('/sacco/:id/loans', async (req,res)=>{
   }catch(e){
     res.status(500).json({ error: e.message || 'Failed to load loans' });
   }
+});
+
+// --- Loan schedule helpers ---
+function addMonths(d, m){ const x=new Date(d); x.setMonth(x.getMonth()+m); return x; }
+function startOfDay(d){ const x=new Date(d); x.setHours(0,0,0,0); return x; }
+function nextWeekday(onOrAfter){ const d=new Date(onOrAfter); let w=d.getDay(); if (w===6) d.setDate(d.getDate()+2); else if (w===0) d.setDate(d.getDate()+1); return startOfDay(d); }
+function computeNextDue(row, today=new Date()){
+  const model = String(row.collection_model||'MONTHLY');
+  const term = Number(row.term_months||1);
+  const start = startOfDay(row.start_date ? new Date(row.start_date) : new Date());
+  const end = addMonths(start, Math.max(1, term));
+  const t0 = startOfDay(today);
+  if (t0 > end) return null;
+  if (model === 'DAILY'){
+    const d = t0 < start ? start : t0; return nextWeekday(d);
+  }
+  if (model === 'WEEKLY'){
+    const msWeek = 7*24*3600*1000; const base=start.getTime(); const now=t0.getTime();
+    const k = Math.ceil((now - base) / msWeek); const next = new Date(base + Math.max(0,k)*msWeek); return startOfDay(next);
+  }
+  let months = (t0.getFullYear()-start.getFullYear())*12 + (t0.getMonth()-start.getMonth());
+  if (t0.getDate() > start.getDate()) months += 1;
+  const next = addMonths(start, Math.max(0, months)); return startOfDay(next);
+}
+
+// Loans due today/overdue (simple schedule-based)
+router.get('/sacco/:id/loans/due-today', async (req,res)=>{
+  const saccoId = req.params.id;
+  if (!saccoId) return res.status(400).json({ error:'sacco_id required' });
+  try{
+    const { allowed } = await ensureSaccoAccess(req.user.id, saccoId);
+    if (!allowed) return res.status(403).json({ error:'Forbidden' });
+    const { data, error } = await supabaseAdmin
+      .from('loans')
+      .select('id,sacco_id,matatu_id,borrower_name,principal_kes,interest_rate_pct,term_months,collection_model,start_date,created_at')
+      .eq('sacco_id', saccoId);
+    if (error) throw error;
+    const today = new Date(); const todayISO=today.toISOString().slice(0,10);
+    const items = (data||[]).map(row=>{
+      const nextDue = computeNextDue(row, today);
+      let status = 'FUTURE';
+      if (nextDue){ const dISO = nextDue.toISOString().slice(0,10); if (dISO === todayISO) status='TODAY'; else if (dISO < todayISO) status='OVERDUE'; }
+      return { ...row, next_due_date: nextDue ? nextDue.toISOString().slice(0,10) : null, due_status: status };
+    }).filter(r => r.due_status==='TODAY' || r.due_status==='OVERDUE');
+    res.json({ items });
+  }catch(e){ res.status(500).json({ error: e.message || 'Failed to compute due loans' }); }
 });
 
 router.post('/sacco/:id/loans', async (req,res)=>{
