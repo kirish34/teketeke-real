@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>TekeTeke — SACCO Staff • Daily Fee</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/public/css/dashboard-theme.css"/>
+  <link rel="icon" href="/public/mobile/shared/icons/icon-192.png"/>
+  <script src="/public/js/app-config.js"></script>
+  <script src="/public/js/api.js"></script>
+  <script src="/public/js/role-guard.js"></script>
+</head>
+<body>
+  <div class="top-meta hero-card">
+    <div class="hero-stack">
+      <h2>Daily Fee</h2>
+      <div class="muted">Record and view collections for today</div>
+    </div>
+    <div class="hero-actions">
+      <a class="btn ghost" href="/public/sacco/staff-loans.html">Loans</a>
+      <a class="btn ghost" href="/public/sacco/staff-savings.html">Savings</a>
+      <a class="btn" href="/public/auth/role-select.html">Role Select</a>
+      <span id="auth_state" class="pill">Checking sign-in…</span>
+    </div>
+  </div>
+
+  <div class="bar">
+    <label>SACCO <select id="sacco"></select></label>
+    <label>Default fee KES <input id="df_default" type="number" placeholder="e.g. 100" style="width:120px"/></label>
+    <button id="reload" class="ghost">Reload</button>
+    <span class="right muted" id="stat"></span>
+  </div>
+
+  <section class="panel">
+    <div class="section-title"><h3 style="margin:0">Due Today</h3><span class="muted" id="df_counts"></span></div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Plate</th><th class="mono">Matatu ID</th><th>Amount (KES)</th><th></th></tr></thead>
+          <tbody id="df_due"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="card"><h3>Collected Today</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Time</th><th>Plate</th><th>Amount</th></tr></thead>
+          <tbody id="df_paid"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+  (async function(){
+    try{ await requireRole('SACCO_STAFF', { statusEl: 'auth_state', roleLabel: 'SACCO Staff' }); }catch(_){ return; }
+    const $ = (id)=>document.getElementById(id);
+    const iso = (d)=> new Date(d).toISOString().slice(0,10);
+    const today = iso(new Date());
+    const fmt = (n)=> Number(n||0).toLocaleString('en-KE',{minimumFractionDigits:2,maximumFractionDigits:2});
+    const toast = (t)=>{ const el=$('toast'); el.textContent=t; el.classList.add('show'); clearTimeout(window._tt); window._tt=setTimeout(()=>el.classList.remove('show'),1500); };
+
+    let SACCO_ID = null; let MATATUS=[]; let MAT_BY_ID=new Map();
+
+    async function jget(p){ const r = await fetch(p,{ headers:{ Accept:'application/json' }}); const t = await r.text(); try{ const j=t?JSON.parse(t):{}; if(!r.ok) throw new Error(j.error||j.message||r.statusText); return j; }catch(e){ throw new Error(e.message||t||r.statusText); } }
+    async function post(p,b){ const r = await fetch(p,{ method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(b)}); const t=await r.text(); try{ const j=t?JSON.parse(t):{}; if(!r.ok) throw new Error(j.error||j.message||r.statusText); return j; }catch(e){ throw new Error(e.message||t||r.statusText); } }
+
+    async function loadSaccos(){
+      const sel=$('sacco'); sel.innerHTML='';
+      const res=await jget('/u/my-saccos');
+      (res.items||[]).forEach(s=>{ const o=document.createElement('option'); o.value=s.sacco_id; o.textContent=s.name||s.sacco_id; sel.appendChild(o); });
+      if (res.items?.length){ sel.value=res.items[0].sacco_id; SACCO_ID = sel.value; }
+    }
+
+    async function loadMatatus(){
+      if(!SACCO_ID) return;
+      const res = await jget(`/u/sacco/${SACCO_ID}/matatus`);
+      MATATUS = res.items||[]; MAT_BY_ID = new Map(MATATUS.map(m=>[m.id,m]));
+      $('stat').textContent = `${MATATUS.length} matatu(s)`;
+    }
+
+    function isToday(ts){ return iso(ts) === today; }
+
+    async function render(){
+      if(!SACCO_ID) return;
+      const res = await jget(`/u/sacco/${SACCO_ID}/transactions?limit=1000`);
+      const paid = (res.items||[]).filter(tx=>tx.kind==='SACCO_FEE' && tx.status==='SUCCESS' && isToday(tx.created_at));
+      const paidSet = new Set(paid.map(x=>x.matatu_id));
+
+      // Paid list
+      const P = $('df_paid'); P.innerHTML='';
+      paid.sort((a,b)=> new Date(b.created_at)-new Date(a.created_at)).forEach(tx=>{
+        const plate = (MAT_BY_ID.get(tx.matatu_id)||{}).number_plate || (tx.matatu_id||'');
+        const tr=document.createElement('tr'); tr.innerHTML = `<td>${new Date(tx.created_at).toLocaleTimeString()}</td><td>${plate}</td><td>${fmt(tx.fare_amount_kes)}</td>`; P.appendChild(tr);
+      });
+
+      // Due list
+      const D = $('df_due'); D.innerHTML='';
+      const def = Math.max(0, Number($('df_default').value||0));
+      MATATUS.filter(m=>!paidSet.has(m.id)).forEach(m=>{
+        const tr=document.createElement('tr');
+        const amtId = `df_amt_${m.id}`;
+        tr.innerHTML = `<td>${m.number_plate||''}</td><td class="mono">${m.id}</td>`+
+          `<td><input id="${amtId}" type="number" placeholder="${def||''}" class="amount" style="width:120px"/></td>`+
+          `<td><button data-id="${m.id}">Collect</button></td>`;
+        D.appendChild(tr);
+      });
+      D.onclick = async (e)=>{
+        const btn = e.target.closest('button'); if(!btn) return;
+        const id = btn.getAttribute('data-id'); const v = Number((document.getElementById(`df_amt_${id}`)?.value)||$('df_default').value||0);
+        if(!v || v<=0) return toast('Enter amount');
+        btn.disabled = true;
+        try{
+          await post('/api/staff/cash', { sacco_id:SACCO_ID, matatu_id:id, kind:'DAILY_FEE', amount:v, payer_name:'Cash desk', payer_phone:'' });
+          toast('Recorded'); await render();
+        }catch(err){ toast(err.message||'Error'); }
+        finally{ btn.disabled=false; }
+      };
+
+      $('df_counts').textContent = `${paidSet.size} collected • ${(MATATUS.length - paidSet.size)} due`;
+    }
+
+    $('sacco').onchange = async ()=>{ SACCO_ID = $('sacco').value; await loadMatatus(); await render(); };
+    $('reload').onclick = async ()=>{ await loadSaccos(); await loadMatatus(); await render(); };
+
+    // init
+    await loadSaccos(); await loadMatatus(); await render();
+  })();
+  </script>
+</body>
+</html>
+
