@@ -31,6 +31,7 @@
     <div class="tab" data-id="bodas" role="tab" aria-selected="false">BodaBodas</div>
     <div class="tab" data-id="pool" role="tab" aria-selected="false">USSD Pool</div>
     <div class="tab" data-id="logins" role="tab" aria-selected="false">Logins</div>
+    <div class="tab" data-id="routes" role="tab" aria-selected="false">Routes Overview</div>
   </div>
 
   <section id="overview" class="panel active" aria-labelledby="tab_overview">
@@ -251,6 +252,25 @@
     </div>
   </section>
 
+  <section id="routes" class="panel" aria-labelledby="tab_routes">
+    <div class="card">
+      <h3>Routes Overview</h3>
+      <p class="muted" style="margin:4px 0 8px">See all SACCO routes and where tracking has been active in the last 7 days.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>SACCO ID</th><th>Total Routes</th><th>Routes with Trips</th><th>Trip Positions 7d</th></tr></thead>
+          <tbody id="rt_usage_body"><tr><td colspan="4" class="muted">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <h3>All Routes Map</h3>
+      <p class="muted" style="margin:4px 0 8px">Polylines show recorded route paths; colour is per SACCO. Requires a Google Maps API key.</p>
+      <div id="rt_admin_map" style="width:100%;height:360px;border-radius:8px;border:1px solid #e5e7eb;background:#f9fafb"></div>
+      <div id="rt_admin_status" class="muted" style="margin-top:6px;font-size:12px;">Map: loading routes...</div>
+    </div>
+  </section>
+
 
   <script>
     (function () {
@@ -292,6 +312,11 @@
       const $ = (id)=>document.getElementById(id);
       const badge = $('sess_badge');
       const state = { saccos: [], vehicles: [], vehiclesLoaded: false, overview: null, ussdAvailable: [], ussdAllocated: [], logins: [], loginBeingEdited: null };
+      let sysRoutes = [];
+      let sysRoutesMap = null;
+      let sysRoutesTraffic = null;
+      let sysRoutesPolylines = [];
+      let sysGMapsLoading = null;
       const loginRoleMeta = {
         SACCO: { sacco: true, matatu: false, label: 'SACCO Admin' },
         OWNER: { sacco: false, matatu: true, label: 'Matatu Owner' },
@@ -860,6 +885,108 @@
         }
       }
 
+      async function loadRouteUsage(){
+        const tbody = $('rt_usage_body');
+        if (!tbody) return;
+        tbody.innerHTML = '<tr><td colspan="4" class="muted">Loading...</td></tr>';
+        try{
+          const res = await jget('/api/admin/routes/usage-summary');
+          const items = res.items || [];
+          if (!items.length){
+            tbody.innerHTML = '<tr><td colspan="4" class="muted">No routes yet.</td></tr>';
+            return;
+          }
+          tbody.innerHTML = items.map(r=>`<tr><td>${r.sacco_id||''}</td><td>${r.routes||0}</td><td>${r.active_routes||0}</td><td>${r.trips_7d||0}</td></tr>`).join('');
+        }catch(e){
+          tbody.innerHTML = `<tr><td colspan="4" class="err">${parseErr(e)}</td></tr>`;
+        }
+      }
+
+      function ensureSystemGoogleMaps(){
+        if (window.google && window.google.maps) return Promise.resolve(window.google.maps);
+        if (sysGMapsLoading) return sysGMapsLoading;
+        const key = window.GMAPS_API_KEY || window.GOOGLE_MAPS_API_KEY || '';
+        let src = 'https://maps.googleapis.com/maps/api/js?libraries=geometry';
+        if (key) src += '&key=' + encodeURIComponent(key);
+        sysGMapsLoading = new Promise((resolve, reject)=>{
+          const s = document.createElement('script');
+          s.src = src;
+          s.async = true;
+          s.onerror = ()=> reject(new Error('Failed to load Google Maps API'));
+          s.onload = ()=>{
+            if (window.google && window.google.maps){ resolve(window.google.maps); }
+            else reject(new Error('Google Maps API not available after load'));
+          };
+          document.head.appendChild(s);
+        });
+        return sysGMapsLoading;
+      }
+
+      async function loadRoutesMap(){
+        const statusEl = $('rt_admin_status');
+        if (statusEl) statusEl.textContent = 'Map: loading routes...';
+        try{
+          const res = await jget('/api/admin/routes');
+          sysRoutes = res.items || [];
+          if (!sysRoutes.length){
+            if (statusEl) statusEl.textContent = 'Map: no routes recorded yet.';
+            return;
+          }
+          const maps = await ensureSystemGoogleMaps();
+          const mapDiv = $('rt_admin_map');
+          if (!mapDiv) return;
+          if (!sysRoutesMap){
+            sysRoutesMap = new maps.Map(mapDiv, {
+              center: { lat:-1.286389, lng:36.817223 },
+              zoom: 8,
+              mapTypeControl: false,
+              streetViewControl: false
+            });
+            sysRoutesTraffic = new maps.TrafficLayer();
+            sysRoutesTraffic.setMap(sysRoutesMap);
+          }
+          sysRoutesPolylines.forEach(p=>p.setMap(null));
+          sysRoutesPolylines = [];
+          const saccoColors = new Map();
+          const palette = ['#2563eb','#16a34a','#f97316','#a855f7','#dc2626','#059669','#4b5563'];
+          let colorIdx = 0;
+          const bounds = new maps.LatLngBounds();
+          let anyPoints = false;
+          sysRoutes.forEach(r=>{
+            if (!r.path_points || !Array.isArray(r.path_points) || !r.path_points.length) return;
+            const pts = r.path_points
+              .map(p => (p && typeof p.lat === 'number' && typeof p.lng === 'number') ? { lat:p.lat, lng:p.lng } : null)
+              .filter(Boolean);
+            if (!pts.length) return;
+            anyPoints = true;
+            const sid = String(r.sacco_id||'');
+            let col = saccoColors.get(sid);
+            if (!col){
+              col = palette[colorIdx % palette.length];
+              saccoColors.set(sid, col);
+              colorIdx += 1;
+            }
+            const poly = new maps.Polyline({
+              path: pts,
+              strokeColor: col,
+              strokeOpacity: 0.7,
+              strokeWeight: 3,
+              map: sysRoutesMap
+            });
+            sysRoutesPolylines.push(poly);
+            pts.forEach(pt => bounds.extend(pt));
+          });
+          if (anyPoints){
+            sysRoutesMap.fitBounds(bounds);
+            if (statusEl) statusEl.textContent = 'Map: showing ' + sysRoutesPolylines.length + ' route path(s).';
+          }else{
+            if (statusEl) statusEl.textContent = 'Map: routes found but none have recorded path points yet.';
+          }
+        }catch(e){
+          if ($('rt_admin_status')) $('rt_admin_status').textContent = 'Map error: ' + parseErr(e);
+        }
+      }
+
       function populateLoginSelects(){
         const saccoOptions = ['<option value=\"\">Select SACCO</option>']
           .concat(state.saccos.map(row => `<option value=\"${row.id}\">${row.name || row.id}</option>`));
@@ -1063,7 +1190,7 @@
 
       try{
         await ensureSession();
-        await Promise.all([loadOverview(), loadSaccos(), loadVehicles(), loadLogins(), loadUssd()]);
+        await Promise.all([loadOverview(), loadSaccos(), loadVehicles(), loadLogins(), loadUssd(), loadRouteUsage(), loadRoutesMap()]);
       }catch(_){}
     }
     safeInit();
