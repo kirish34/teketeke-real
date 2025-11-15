@@ -173,6 +173,9 @@ requireRole('STAFF', { statusEl: 'auth_state', roleLabel: 'Matatu Staff' }).then
   // --- State ---
   let SACCO_ID=null; let MATATU_ID=null; let MATATU=null; let CURRENT_TRIP=null; let FALLBACK_SACCO=null;
   let ROUTES=[];
+  let GEO_WATCH_ID=null;
+  let GEO_BUF=[];
+  const GEO_BUF_LIMIT = 5;
 
   // Persist trips per matatu locally (for UX even if network fails)
   const storeKey = () => `tt_conductor_trips_${MATATU_ID||'na'}`;
@@ -366,6 +369,7 @@ requireRole('STAFF', { statusEl: 'auth_state', roleLabel: 'Matatu Staff' }).then
     $('tripMsg').textContent = 'Trip started';
     updateTotalsPanel();
     updateAutoAmount();
+    startGeoTracking();
   });
 
   $('endTrip').addEventListener('click', ()=>{
@@ -376,6 +380,7 @@ requireRole('STAFF', { statusEl: 'auth_state', roleLabel: 'Matatu Staff' }).then
     toast('Trip ended');
     renderTripsTable();
     updateTotalsPanel();
+    stopGeoTracking();
   });
 
   $('refreshAuto').addEventListener('click', updateAutoAmount);
@@ -450,6 +455,55 @@ requireRole('STAFF', { statusEl: 'auth_state', roleLabel: 'Matatu Staff' }).then
         toast(err.message||err);
       }
     });
+  }
+
+  function startGeoTracking(){
+    if (!navigator.geolocation) return;
+    if (GEO_WATCH_ID != null) return;
+    GEO_BUF = [];
+    GEO_WATCH_ID = navigator.geolocation.watchPosition(
+      pos => {
+        if (!MATATU_ID || !SACCO_ID) return;
+        const point = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          ts: new Date(pos.timestamp || Date.now()).toISOString()
+        };
+        GEO_BUF.push(point);
+        if (GEO_BUF.length >= GEO_BUF_LIMIT){
+          flushGeoBuffer();
+        }
+      },
+      err => {
+        console.warn('geo error', err);
+      },
+      { enableHighAccuracy:true, maximumAge:10000, timeout:15000 }
+    );
+  }
+
+  function stopGeoTracking(){
+    if (GEO_WATCH_ID != null && navigator.geolocation){
+      navigator.geolocation.clearWatch(GEO_WATCH_ID);
+      GEO_WATCH_ID = null;
+    }
+    flushGeoBuffer();
+  }
+
+  async function flushGeoBuffer(){
+    if (!GEO_BUF.length || !SACCO_ID || !MATATU_ID) return;
+    const batch = GEO_BUF.slice();
+    GEO_BUF = [];
+    try{
+      await jpost('/api/staff/trips/positions', {
+        sacco_id: SACCO_ID,
+        matatu_id: MATATU_ID,
+        route_id: CURRENT_TRIP?.route_id || null,
+        trip_id: CURRENT_TRIP?.id || null,
+        points: batch
+      });
+    }catch(e){
+      console.warn('Failed to send trip positions', e);
+    }
   }
 
   // init

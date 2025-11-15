@@ -22,6 +22,18 @@ const staffCashSchema = z.object({
   notes: z.string().max(500).optional().default('')
 });
 
+const tripPositionsSchema = z.object({
+  sacco_id: z.string().uuid(),
+  matatu_id: z.string().uuid(),
+  route_id: z.string().uuid().optional().nullable(),
+  trip_id: z.string().min(1).max(64).optional().nullable(),
+  points: z.array(z.object({
+    lat: z.number().gte(-90).lte(90),
+    lng: z.number().gte(-180).lte(180),
+    ts: z.string().optional().nullable()
+  })).min(1)
+});
+
 // Insert a cash transaction using user-scoped client (RLS enforced)
 router.post('/cash', requireUser, validate(staffCashSchema), async (req, res) => {
   try {
@@ -139,6 +151,28 @@ router.post('/cash', requireUser, validate(staffCashSchema), async (req, res) =>
     return res.status(403).json({ error: ins?.error?.message || 'Forbidden' });
   } catch (e) {
     res.status(500).json({ error: e.message || 'Failed to record cash entry' });
+  }
+});
+
+// Record GPS points for an in-progress staff trip
+router.post('/trips/positions', requireUser, validate(tripPositionsSchema), async (req,res)=>{
+  try{
+    const { sacco_id, matatu_id, route_id = null, trip_id = null, points } = req.body;
+    const rows = points.map(p => ({
+      sacco_id,
+      matatu_id,
+      staff_user_id: req.user.id,
+      route_id,
+      trip_id: trip_id || null,
+      lat: p.lat,
+      lng: p.lng,
+      recorded_at: p.ts ? new Date(p.ts).toISOString() : new Date().toISOString()
+    }));
+    const { error } = await req.supa.from('trip_positions').insert(rows);
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ inserted: rows.length });
+  }catch(e){
+    res.status(500).json({ error: e.message || 'Failed to record trip positions' });
   }
 });
 
