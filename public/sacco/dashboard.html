@@ -66,6 +66,11 @@
     <div class="tab" data-panel="p_lnreq" role="tab" aria-selected="false">Loan Requests</div>
   </div>
 
+  <div id="notifCard" class="card" style="margin:10px 16px;display:none">
+    <h3 style="margin:0 0 4px;font-size:14px;">Notifications</h3>
+    <ul id="notifList" class="muted" style="margin:0;padding-left:18px;font-size:13px;"></ul>
+  </div>
+
   <!-- Matatus -->
   <section id="p_matatus" class="panel active">
     <div class="row">
@@ -320,6 +325,62 @@
     }
     async function jget(path){
       return parse(await fetch(path,{ headers:{ Accept:'application/json' }}));
+    }
+
+    async function loadNotifications(){
+      const card = document.getElementById('notifCard');
+      const listEl = document.getElementById('notifList');
+      if (!card || !listEl || !currentSacco) return;
+
+      const messages = [];
+
+      // Pending loan requests
+      try{
+        const res = await jget(`/u/sacco/${currentSacco}/loan-requests?status=PENDING`);
+        const pending = (res.items||[]).length;
+        if (pending > 0){
+          messages.push(`${pending} pending loan request${pending>1?'s':''}`);
+        }
+      }catch(_){}
+
+      // Loan repayments recorded today
+      try{
+        const tx = await jget('/u/transactions?kind=loans');
+        const rows = tx.data || tx.items || [];
+        const todayISO = new Date().toISOString().slice(0,10);
+        const todayCount = (rows||[]).filter(r=>String(r.created_at||'').slice(0,10)===todayISO).length;
+        if (todayCount > 0){
+          messages.push(`${todayCount} loan repayment${todayCount>1?'s':''} recorded today`);
+        }
+      }catch(_){}
+
+      // Matatus without daily fee yesterday
+      try{
+        if (matatuMap && matatuMap.size){
+          const y = new Date(); y.setDate(y.getDate()-1);
+          const yISO = y.toISOString().slice(0,10);
+          const tx = await jget(`/u/sacco/${currentSacco}/transactions?limit=2000`);
+          const items = tx.items || tx || [];
+          const paid = new Set(
+            (items||[])
+              .filter(t=>String(t.kind||'').toUpperCase()==='SACCO_FEE' && String(t.created_at||'').slice(0,10)===yISO)
+              .map(t=>String(t.matatu_id||''))
+          );
+          const allIds = Array.from(matatuMap.keys()).map(String);
+          const unpaid = allIds.filter(id=>id && !paid.has(id));
+          if (unpaid.length){
+            messages.push(`Daily fee missing yesterday for ${unpaid.length} matatu(s)`);
+          }
+        }
+      }catch(_){}
+
+      if (!messages.length){
+        card.style.display = 'none';
+        listEl.innerHTML = '';
+      }else{
+        listEl.innerHTML = messages.map(m=>`<li>${m}</li>`).join('');
+        card.style.display = 'block';
+      }
     }
 
     // Tabs (delegated, with aria)
@@ -695,6 +756,7 @@
       updateHeadlineFor(currentSacco);
       const link = document.getElementById('linkStaffLoans'); if (link) link.href = '/public/sacco/staff-loans.html' + (currentSacco ? ('?sacco='+encodeURIComponent(currentSacco)) : '');
       await Promise.all([ loadMatatus(), loadTxAndTotals(), loadStaff(), loadLoans(), loadLoanRequests() ]);
+      await loadNotifications();
     };
 
     // Loan Requests
@@ -740,10 +802,10 @@
     // Init
     (async function init(){
       try{
-        
         await loadSaccos();
         const link = document.getElementById('linkStaffLoans'); if (link) link.href = '/public/sacco/staff-loans.html' + (currentSacco ? ('?sacco='+encodeURIComponent(currentSacco)) : '');
         await Promise.all([ loadMatatus(), loadTxAndTotals(), loadStaffCollections(), loadStaff(), loadLoans(), loadLoanRequests() ]);
+        await loadNotifications();
 
     // Approve/Reject loan requests
     (function bindLnReqActions(){
