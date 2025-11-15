@@ -209,6 +209,46 @@ router.get('/sacco/:id/routes', async (req, res) => {
   }
 });
 
+// Latest live positions for matatus in a SACCO (for map view)
+router.get('/sacco/:id/live-positions', async (req, res) => {
+  const saccoId = req.params.id;
+  if (!saccoId) return res.status(400).json({ error: 'sacco_id required' });
+  const routeFilter = (req.query.route_id || '').toString().trim() || null;
+  const minutes = Math.max(1, Math.min(240, parseInt(req.query.window_min, 10) || 30));
+  const since = new Date(Date.now() - minutes * 60 * 1000).toISOString();
+  try {
+    const { allowed } = await ensureSaccoAccess(req.user.id, saccoId);
+    if (!allowed) return res.status(403).json({ error: 'Forbidden' });
+
+    let query = supabaseAdmin
+      .from('trip_positions')
+      .select('matatu_id,route_id,lat,lng,recorded_at')
+      .eq('sacco_id', saccoId)
+      .gte('recorded_at', since)
+      .order('recorded_at', { ascending: false })
+      .limit(1000);
+    if (routeFilter) {
+      query = query.eq('route_id', routeFilter);
+    }
+    const { data, error } = await query;
+    if (error) throw error;
+
+    const latestByMatatu = new Map();
+    (data || []).forEach(row => {
+      const key = String(row.matatu_id || '');
+      if (!key) return;
+      if (!latestByMatatu.has(key)) {
+        latestByMatatu.set(key, row);
+      }
+    });
+
+    const items = Array.from(latestByMatatu.values());
+    res.json({ items });
+  } catch (e) {
+    res.status(500).json({ error: e.message || 'Failed to load live positions' });
+  }
+});
+
 // Create a new SACCO route
 router.post('/sacco/:id/routes', async (req, res) => {
   const saccoId = req.params.id;
@@ -223,7 +263,30 @@ router.post('/sacco/:id/routes', async (req, res) => {
     const end_stop = (req.body?.end_stop || '').toString().trim() || null;
     if (!name) return res.status(400).json({ error: 'name required' });
 
-    const row = { sacco_id: saccoId, name, code, start_stop, end_stop, active: true };
+    let path_points = null;
+    if (Array.isArray(req.body?.path_points)) {
+      path_points = req.body.path_points
+        .map(p => {
+          const lat = Number(p.lat);
+          const lng = Number(p.lng);
+          if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+          const point = { lat, lng };
+          if (p.ts) {
+            try {
+              point.ts = new Date(p.ts).toISOString();
+            } catch {
+              point.ts = null;
+            }
+          }
+          return point;
+        })
+        .filter(Boolean);
+      if (!path_points.length) {
+        path_points = null;
+      }
+    }
+
+    const row = { sacco_id: saccoId, name, code, start_stop, end_stop, active: true, path_points };
     const { data, error } = await supabaseAdmin
       .from('routes')
       .insert(row)
@@ -265,6 +328,32 @@ router.patch('/sacco/:id/routes/:routeId', async (req, res) => {
     }
     if ('active' in req.body) {
       updates.active = !!req.body.active;
+    }
+
+    if ('path_points' in req.body) {
+      let path_points = null;
+      if (Array.isArray(req.body?.path_points)) {
+        path_points = req.body.path_points
+          .map(p => {
+            const lat = Number(p.lat);
+            const lng = Number(p.lng);
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+            const point = { lat, lng };
+            if (p.ts) {
+              try {
+                point.ts = new Date(p.ts).toISOString();
+              } catch {
+                point.ts = null;
+              }
+            }
+            return point;
+          })
+          .filter(Boolean);
+        if (!path_points.length) {
+          path_points = null;
+        }
+      }
+      updates.path_points = path_points;
     }
 
     if (!Object.keys(updates).length) {

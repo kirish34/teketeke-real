@@ -258,6 +258,11 @@
         <button id="rtCreate">Create Route</button>
         <span id="rtStatus" class="muted" style="align-self:center"></span>
       </div>
+      <div class="row" style="margin-top:8px">
+        <button id="rtStartRec" class="ghost">Start live record</button>
+        <button id="rtStopRec" class="ghost" disabled>Stop</button>
+        <span id="rtRecInfo" class="muted" style="align-self:center">Not recording</span>
+      </div>
     </div>
     <div class="card" style="margin-top:12px">
       <h3 style="margin-top:0">Routes for this SACCO</h3>
@@ -267,6 +272,12 @@
           <tbody id="rtTbody"><tr><td colspan="6" class="muted">No routes yet.</td></tr></tbody>
         </table>
       </div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <h3 style="margin-top:0">Route Map & Live Matatus</h3>
+      <p class="muted" style="margin:4px 0 8px">Click a route in the table above to draw its path and see matatu positions. Requires a Google Maps API key.</p>
+      <div id="routeMap" style="width:100%;height:360px;border-radius:8px;border:1px solid #e5e7eb;background:#f9fafb"></div>
+      <div id="liveStatus" class="muted" style="margin-top:6px;font-size:12px;">Live: no route selected.</div>
     </div>
   </section>
 
@@ -434,6 +445,15 @@
 
     let currentSacco = null;
     let matatuMap = new Map();
+    let routeRecWatchId = null;
+    let routeRecBuf = [];
+    let gmapApiLoading = null;
+    let gmapMap = null;
+    let gmapRoutePolyline = null;
+    let gmapTrafficLayer = null;
+    let gmapLiveMarkers = new Map();
+    let liveLastCount = 0;
+    let liveLastTs = null;
     const saccoNames = new Map();
     const headlineEl = document.getElementById('saccoHeadline');
     const defaultHeadline = 'SACCO Dashboard';
@@ -778,6 +798,10 @@
     };
 
     // Routes settings panel
+    let saccoRoutes = [];
+    let selectedRouteId = null;
+    let livePollTimer = null;
+
     async function loadRoutesAdmin(){
       if (!currentSacco) return;
       const T = $('rtTbody');
@@ -786,13 +810,20 @@
       try{
         const res = await jget(`/u/sacco/${currentSacco}/routes?include_inactive=true`);
         const items = res.items || res || [];
+        saccoRoutes = items;
         if (!items.length){
           T.innerHTML = '<tr><td colspan="6" class="muted">No routes yet.</td></tr>';
+          selectedRouteId = null;
+          liveLastCount = 0;
+          liveLastTs = null;
+          if (livePollTimer) { clearInterval(livePollTimer); livePollTimer = null; }
+          updateLiveStatus();
           return;
         }
         T.innerHTML = '';
         items.forEach(r=>{
           const tr=document.createElement('tr');
+          tr.dataset.routeId = r.id;
           const status = r.active ? 'Active' : 'Inactive';
           const btnLabel = r.active ? 'Disable' : 'Enable';
           tr.innerHTML =
@@ -807,6 +838,229 @@
       }catch(e){
         T.innerHTML = `<tr><td colspan="6" class="err">${parseErr(e)}</td></tr>`;
       }
+    }
+
+    function updateRouteRecInfo(msg){
+      const el = $('rtRecInfo');
+      if (!el) return;
+      el.textContent = msg;
+    }
+
+    function stopRouteRecording(){
+      const startBtn = $('rtStartRec');
+      const stopBtn = $('rtStopRec');
+      if (routeRecWatchId != null && navigator.geolocation){
+        try{
+          navigator.geolocation.clearWatch(routeRecWatchId);
+        }catch(_){}
+        routeRecWatchId = null;
+      }
+      if (startBtn) startBtn.disabled = false;
+      if (stopBtn) stopBtn.disabled = true;
+      if (routeRecBuf && routeRecBuf.length){
+        updateRouteRecInfo(`Recorded ${routeRecBuf.length} point(s). Will attach when you create the route.`);
+      }else{
+        updateRouteRecInfo('Recording stopped (no points captured).');
+      }
+    }
+
+    function startRouteRecording(){
+      if (!navigator.geolocation){
+        updateRouteRecInfo('Geolocation not supported in this browser.');
+        return;
+      }
+      if (routeRecWatchId != null){
+        updateRouteRecInfo('Already recording route.');
+        return;
+      }
+      routeRecBuf = [];
+      const startBtn = $('rtStartRec');
+      const stopBtn = $('rtStopRec');
+      if (startBtn) startBtn.disabled = true;
+      if (stopBtn) stopBtn.disabled = false;
+      updateRouteRecInfo('Requesting location and starting recording...');
+      routeRecWatchId = navigator.geolocation.watchPosition(
+        pos => {
+          const point = {
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            ts: new Date(pos.timestamp || Date.now()).toISOString()
+          };
+          routeRecBuf.push(point);
+          updateRouteRecInfo(`Recording: ${routeRecBuf.length} point(s) captured...`);
+        },
+        err => {
+          console.warn('route geo error', err);
+          updateRouteRecInfo('Location error: ' + (err.message || err.code || 'unknown'));
+        },
+        { enableHighAccuracy:true, maximumAge:5000, timeout:15000 }
+      );
+    }
+
+    function updateLiveStatus(){
+      const el = $('liveStatus');
+      if (!el){
+        return;
+      }
+      if (!currentSacco || !selectedRouteId){
+        el.textContent = 'Live: no route selected.';
+        return;
+      }
+      const route = saccoRoutes.find(r => String(r.id) === String(selectedRouteId));
+      const name = route?.name || '';
+      if (!liveLastCount && !liveLastTs){
+        el.textContent = name ? `Live: ${name} – waiting for positions...` : 'Live: waiting for positions...';
+        return;
+      }
+      const when = liveLastTs ? new Date(liveLastTs) : null;
+      const timeStr = when ? when.toLocaleTimeString() : 'n/a';
+      if (!liveLastCount){
+        el.textContent = name
+          ? `Live: ${name} – no matatu positions in the last window (last update at ${timeStr}).`
+          : `Live: no matatu positions in the last window (last update at ${timeStr}).`;
+        return;
+      }
+      el.textContent = name
+        ? `Live: ${name} – ${liveLastCount} matatu(s) active, last update at ${timeStr}.`
+        : `Live: ${liveLastCount} matatu(s) active, last update at ${timeStr}.`;
+    }
+
+    function ensureGoogleMaps(){
+      if (window.google && window.google.maps) return Promise.resolve(window.google.maps);
+      if (gmapApiLoading) return gmapApiLoading;
+      const key = window.GMAPS_API_KEY || window.GOOGLE_MAPS_API_KEY || '';
+      let src = 'https://maps.googleapis.com/maps/api/js?libraries=geometry';
+      if (key) src += '&key=' + encodeURIComponent(key);
+      gmapApiLoading = new Promise((resolve, reject)=>{
+        const s = document.createElement('script');
+        s.src = src;
+        s.async = true;
+        s.onerror = ()=> reject(new Error('Failed to load Google Maps API'));
+        s.onload = ()=>{
+          if (window.google && window.google.maps){ resolve(window.google.maps); }
+          else reject(new Error('Google Maps API not available after load'));
+        };
+        document.head.appendChild(s);
+      });
+      return gmapApiLoading;
+    }
+
+    async function ensureRouteMap(){
+      const maps = await ensureGoogleMaps();
+      if (gmapMap) return maps;
+      const div = $('routeMap');
+      if (!div) return maps;
+      gmapMap = new maps.Map(div, {
+        center: { lat: -1.286389, lng: 36.817223 }, // Nairobi CBD approx
+        zoom: 12,
+        mapTypeControl: false,
+        streetViewControl: false
+      });
+      gmapTrafficLayer = new maps.TrafficLayer();
+      gmapTrafficLayer.setMap(gmapMap);
+      return maps;
+    }
+
+    async function showRouteOnMap(route){
+      if (!route || !route.path_points || !route.path_points.length){
+        updateRouteRecInfo('Selected route has no recorded path yet.');
+        return;
+      }
+      const maps = await ensureRouteMap();
+      const pts = route.path_points
+        .map(p => (p && typeof p.lat === 'number' && typeof p.lng === 'number') ? { lat:p.lat, lng:p.lng } : null)
+        .filter(Boolean);
+      if (!pts.length){
+        updateRouteRecInfo('Selected route has no valid path points.');
+        return;
+      }
+      if (!gmapRoutePolyline){
+        gmapRoutePolyline = new maps.Polyline({
+          strokeColor: '#2563eb',
+          strokeOpacity: 0.9,
+          strokeWeight: 4,
+          map: gmapMap
+        });
+      }
+      gmapRoutePolyline.setPath(pts);
+      const bounds = new maps.LatLngBounds();
+      pts.forEach(pt => bounds.extend(pt));
+      gmapMap.fitBounds(bounds);
+      updateRouteRecInfo(`Showing route "${route.name||''}" with ${pts.length} point(s).`);
+    }
+
+    async function refreshLivePositions(){
+      if (!currentSacco) return;
+      if (!selectedRouteId) return;
+      let res;
+      try{
+        res = await jget(`/u/sacco/${currentSacco}/live-positions?route_id=${encodeURIComponent(selectedRouteId)}&window_min=60`);
+      }catch(e){
+        console.warn('live positions error', e);
+        liveLastCount = 0;
+        liveLastTs = null;
+        updateLiveStatus();
+        return;
+      }
+      const items = res.items || [];
+      const maps = await ensureRouteMap();
+      const used = new Set();
+      let latestTs = null;
+      if (!items.length){
+        // Clear markers if no recent positions
+        gmapLiveMarkers.forEach((marker, id)=>{
+          marker.setMap(null);
+        });
+        gmapLiveMarkers.clear();
+        liveLastCount = 0;
+        liveLastTs = null;
+        updateLiveStatus();
+        return;
+      }
+      items.forEach(row=>{
+        const id = String(row.matatu_id||'');
+        if (!id) return;
+        used.add(id);
+        const pos = { lat:Number(row.lat), lng:Number(row.lng) };
+        if (!Number.isFinite(pos.lat) || !Number.isFinite(pos.lng)) return;
+        if (row.recorded_at){
+          const t = Date.parse(row.recorded_at);
+          if (!Number.isNaN(t)){
+            if (latestTs == null || t > latestTs){
+              latestTs = t;
+            }
+          }
+        }
+        let marker = gmapLiveMarkers.get(id);
+        if (!marker){
+          marker = new maps.Marker({
+            position: pos,
+            map: gmapMap,
+            title: (matatuMap.get(row.matatu_id) || 'Matatu'),
+            icon: {
+              path: maps.SymbolPath.CIRCLE,
+              scale: 6,
+              fillColor: '#16a34a',
+              fillOpacity: 0.9,
+              strokeColor: '#065f46',
+              strokeWeight: 1
+            }
+          });
+          gmapLiveMarkers.set(id, marker);
+        }else{
+          marker.setPosition(pos);
+        }
+      });
+      // Optionally remove markers that are not in the latest batch
+      gmapLiveMarkers.forEach((marker, id)=>{
+        if (!used.has(id)){
+          marker.setMap(null);
+          gmapLiveMarkers.delete(id);
+        }
+      });
+      liveLastCount = used.size;
+      liveLastTs = latestTs ? new Date(latestTs).toISOString() : null;
+      updateLiveStatus();
     }
 
     const rtCreateBtn = $('rtCreate');
@@ -829,6 +1083,9 @@
           start_stop: (startEl?.value || '').trim() || null,
           end_stop: (endEl?.value || '').trim() || null
         };
+        if (routeRecBuf && routeRecBuf.length){
+          body.path_points = routeRecBuf.slice();
+        }
         rtCreateBtn.disabled = true;
         if (statusEl){ statusEl.textContent = 'Saving...'; statusEl.className = 'muted'; }
         try{
@@ -841,6 +1098,13 @@
           if (codeEl) codeEl.value = '';
           if (startEl) startEl.value = '';
           if (endEl) endEl.value = '';
+          routeRecBuf = [];
+          const startBtn = $('rtStartRec');
+          const stopBtn = $('rtStopRec');
+          if (startBtn) startBtn.disabled = false;
+          if (stopBtn) stopBtn.disabled = true;
+          const recInfo = $('rtRecInfo');
+          if (recInfo) recInfo.textContent = 'Route saved. Recording cleared.';
           if (statusEl){ statusEl.textContent = 'Route created'; statusEl.className = 'ok'; }
           await loadRoutesAdmin();
         }catch(e){
@@ -851,9 +1115,24 @@
       };
     }
 
+    const rtStartRecBtn = $('rtStartRec');
+    if (rtStartRecBtn){
+      rtStartRecBtn.onclick = ()=>{ startRouteRecording(); };
+    }
+    const rtStopRecBtn = $('rtStopRec');
+    if (rtStopRecBtn){
+      rtStopRecBtn.onclick = ()=>{ stopRouteRecording(); };
+    }
+
     // Events
     $('saccoSelect').onchange = async ()=>{
       currentSacco = $('saccoSelect').value || null;
+      try{ stopRouteRecording(); }catch(_){}
+      selectedRouteId = null;
+      liveLastCount = 0;
+      liveLastTs = null;
+      if (livePollTimer) { clearInterval(livePollTimer); livePollTimer = null; }
+      updateLiveStatus();
       updateHeadlineFor(currentSacco);
       const link = document.getElementById('linkStaffLoans'); if (link) link.href = '/public/sacco/staff-loans.html' + (currentSacco ? ('?sacco='+encodeURIComponent(currentSacco)) : '');
       await Promise.all([ loadMatatus(), loadTxAndTotals(), loadStaff(), loadLoans(), loadLoanRequests(), loadRoutesAdmin() ]);
@@ -925,7 +1204,23 @@
     (function bindRouteActions(){
       const T = document.getElementById('rtTbody'); if (!T) return;
       T.addEventListener('click', async (e)=>{
-        const btn = e.target.closest('button'); if (!btn) return;
+        const btn = e.target.closest('button');
+        const row = e.target.closest('tr');
+        const routeId = row?.dataset?.routeId || null;
+        if (routeId){
+          selectedRouteId = routeId;
+          const route = saccoRoutes.find(r => String(r.id) === String(routeId));
+          if (route){
+            showRouteOnMap(route).catch(err=>console.warn(err));
+            if (livePollTimer) clearInterval(livePollTimer);
+            livePollTimer = setInterval(()=>{ refreshLivePositions().catch(()=>{}); }, 30000);
+            liveLastCount = 0;
+            liveLastTs = null;
+            updateLiveStatus();
+            refreshLivePositions().catch(()=>{});
+          }
+        }
+        if (!btn) return;
         if (btn.dataset.act !== 'rt-toggle') return;
         const id = btn.dataset.id;
         if (!id || !currentSacco) return;
