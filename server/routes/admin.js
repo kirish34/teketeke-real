@@ -359,6 +359,59 @@ router.post('/loans', async (req,res)=>{
   res.json(data);
 });
 
+// Routes and usage (system admin overview)
+router.get('/routes', async (req,res)=>{
+  try{
+    let q = supabaseAdmin.from('routes').select('*').order('created_at',{ascending:false});
+    if (req.query.sacco_id) q = q.eq('sacco_id', req.query.sacco_id);
+    const { data, error } = await q;
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ items: data||[] });
+  }catch(e){
+    res.status(500).json({ error: e.message || 'Failed to load routes' });
+  }
+});
+
+router.get('/routes/usage-summary', async (_req,res)=>{
+  try{
+    // basic usage: per sacco, count routes and recent trip_positions (last 7 days)
+    const since = new Date(Date.now() - 7*24*3600*1000).toISOString();
+    const [routesRes, posRes] = await Promise.all([
+      supabaseAdmin.from('routes').select('id,sacco_id').order('sacco_id',{ascending:true}),
+      supabaseAdmin
+        .from('trip_positions')
+        .select('id,sacco_id,route_id')
+        .gte('recorded_at', since)
+    ]);
+    if (routesRes.error) throw routesRes.error;
+    if (posRes.error) throw posRes.error;
+
+    const bySacco = new Map();
+    (routesRes.data||[]).forEach(r=>{
+      const sid = String(r.sacco_id||'');
+      if (!sid) return;
+      const row = bySacco.get(sid) || { sacco_id: sid, routes:0, active_routes:0, trips_7d:0 };
+      row.routes += 1;
+      bySacco.set(sid,row);
+    });
+    const seenRoute = new Set();
+    (posRes.data||[]).forEach(p=>{
+      const sid = String(p.sacco_id||'');
+      if (!sid) return;
+      const row = bySacco.get(sid) || { sacco_id: sid, routes:0, active_routes:0, trips_7d:0 };
+      row.trips_7d += 1;
+      if (p.route_id && !seenRoute.has(p.route_id)){
+        seenRoute.add(p.route_id);
+        row.active_routes += 1;
+      }
+      bySacco.set(sid,row);
+    });
+    res.json({ items: Array.from(bySacco.values()) });
+  }catch(e){
+    res.status(500).json({ error: e.message || 'Failed to load routes usage summary' });
+  }
+});
+
 module.exports = router;
 
 

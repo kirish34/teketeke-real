@@ -27,6 +27,7 @@
     <div class="tab" data-id="pool" role="tab" aria-selected="false">USSD Pool</div>
     <div class="tab" data-id="roles" role="tab" aria-selected="false">Create Role Login</div>
     <div class="tab" data-id="logins" role="tab" aria-selected="false">Recent Logins</div>
+    <div class="tab" data-id="routes" role="tab" aria-selected="false">Routes Overview</div>
   </div>
 
   <!-- SACCOs -->
@@ -153,6 +154,27 @@
     </table>
   </section>
 
+  <!-- Routes overview (system-wide) -->
+  <section id="routes" class="panel">
+    <h3>Routes Overview</h3>
+    <p class="muted" style="margin:4px 0 8px">See all SACCO routes and where tracking has been active in the last 7 days.</p>
+    <div class="card">
+      <h4 style="margin-top:0">Usage by SACCO (last 7 days)</h4>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>SACCO ID</th><th>Total Routes</th><th>Routes with Trips</th><th>Trip Positions 7d</th></tr></thead>
+          <tbody id="rt_usage_body"><tr><td colspan="4" class="muted">Loading�?�</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <h4 style="margin-top:0">All Routes Map</h4>
+      <p class="muted" style="margin:4px 0 8px">Polylines show recorded route paths; colour is per SACCO. Requires a Google Maps API key.</p>
+      <div id="rt_admin_map" style="width:100%;height:360px;border-radius:8px;border:1px solid #e5e7eb;background:#f9fafb"></div>
+      <div id="rt_admin_status" class="muted" style="margin-top:6px;font-size:12px;">Map: loading routes�?�</div>
+    </div>
+  </section>
+
   <!-- Tabs (works even if module fails) -->
   <script>
     (function(){
@@ -198,6 +220,115 @@
       async function loadS(){ try{ const d=await jget('/api/admin/saccos'); $('sc_list').innerHTML=(d.items||[]).map(s=>`<tr><td>${s.name||''}</td><td>${s.contact_name||''}</td><td>${s.contact_phone||''}</td><td>${s.contact_email||''}</td><td>${s.id||''}</td></tr>`).join('')||'<tr><td colspan="5" class="muted">No SACCOs yet</td></tr>'; } catch(e){ $('sc_list').innerHTML=`<tr><td colspan="5" class="err">${parseErr(e)}</td></tr>`; } }
       async function loadM(){ try{ const d=await jget('/api/admin/matatus'); $('mt_list').innerHTML=(d.items||[]).map(m=>`<tr><td>${m.number_plate||''}</td><td>${m.vehicle_type||''}</td><td>${m.sacco_id||''}</td><td>${m.id||''}</td></tr>`).join('')||'<tr><td colspan="4" class="muted">No matatus yet</td></tr>'; } catch(e){ $('mt_list').innerHTML=`<tr><td colspan="4" class="err">${parseErr(e)}</td></tr>`; } }
       async function loadLogins(){ const tbody=$('login_list'); try{ const rows=await jget('/api/admin/user-roles/logins'); if(!Array.isArray(rows)||!rows.length){ tbody.innerHTML='<tr><td colspan="5" class="muted">No logins yet</td></tr>'; return; } tbody.innerHTML=rows.map(r=>`<tr><td>${r.email||''}</td><td>${r.role||''}</td><td>${r.sacco_id||''}</td><td>${r.matatu_id||''}</td><td>${r.created_at?new Date(r.created_at).toLocaleString():''}</td></tr>`).join(''); } catch(e){ tbody.innerHTML=`<tr><td colspan="5" class="err">${parseErr(e)}</td></tr>`; } }
+
+      // Routes overview (system admin)
+      let adminRoutes = [];
+      let adminRoutesMap = null;
+      let adminRoutesTraffic = null;
+      let adminRoutesPolylines = [];
+      let gmapsLoading = null;
+
+      async function loadRouteUsage(){
+        const tbody = $('rt_usage_body');
+        if (!tbody) return;
+        tbody.innerHTML = '<tr><td colspan="4" class="muted">Loading�?�</td></tr>';
+        try{
+          const res = await jget('/api/admin/routes/usage-summary');
+          const items = res.items || [];
+          if (!items.length){
+            tbody.innerHTML = '<tr><td colspan="4" class="muted">No routes yet.</td></tr>';
+            return;
+          }
+          tbody.innerHTML = items.map(r=>`<tr><td>${r.sacco_id||''}</td><td>${r.routes||0}</td><td>${r.active_routes||0}</td><td>${r.trips_7d||0}</td></tr>`).join('');
+        }catch(e){
+          tbody.innerHTML = `<tr><td colspan="4" class="err">${parseErr(e)}</td></tr>`;
+        }
+      }
+
+      function ensureGoogleMaps(){
+        if (window.google && window.google.maps) return Promise.resolve(window.google.maps);
+        if (gmapsLoading) return gmapsLoading;
+        const key = window.GMAPS_API_KEY || window.GOOGLE_MAPS_API_KEY || '';
+        let src = 'https://maps.googleapis.com/maps/api/js?libraries=geometry';
+        if (key) src += '&key=' + encodeURIComponent(key);
+        gmapsLoading = new Promise((resolve, reject)=>{
+          const s = document.createElement('script');
+          s.src = src;
+          s.async = true;
+          s.onerror = ()=> reject(new Error('Failed to load Google Maps API'));
+          s.onload = ()=>{
+            if (window.google && window.google.maps){ resolve(window.google.maps); }
+            else reject(new Error('Google Maps API not available after load'));
+          };
+          document.head.appendChild(s);
+        });
+        return gmapsLoading;
+      }
+
+      async function loadRoutesForMap(){
+        const statusEl = $('rt_admin_status');
+        if (statusEl) statusEl.textContent = 'Map: loading routes�?�';
+        try{
+          const res = await jget('/api/admin/routes');
+          adminRoutes = res.items || [];
+          if (!adminRoutes.length){
+            if (statusEl) statusEl.textContent = 'Map: no routes recorded yet.';
+            return;
+          }
+          const maps = await ensureGoogleMaps();
+          const mapDiv = $('rt_admin_map');
+          if (!mapDiv) return;
+          if (!adminRoutesMap){
+            adminRoutesMap = new maps.Map(mapDiv, {
+              center: { lat:-1.286389, lng:36.817223 },
+              zoom: 8,
+              mapTypeControl: false,
+              streetViewControl: false
+            });
+            adminRoutesTraffic = new maps.TrafficLayer();
+            adminRoutesTraffic.setMap(adminRoutesMap);
+          }
+          adminRoutesPolylines.forEach(p=>p.setMap(null));
+          adminRoutesPolylines = [];
+          const saccoColors = new Map();
+          const palette = ['#2563eb','#16a34a','#f97316','#a855f7','#dc2626','#059669','#4b5563'];
+          let colorIdx = 0;
+          const bounds = new maps.LatLngBounds();
+          let anyPoints = false;
+          adminRoutes.forEach(r=>{
+            if (!r.path_points || !Array.isArray(r.path_points) || !r.path_points.length) return;
+            const pts = r.path_points
+              .map(p => (p && typeof p.lat === 'number' && typeof p.lng === 'number') ? { lat:p.lat, lng:p.lng } : null)
+              .filter(Boolean);
+            if (!pts.length) return;
+            anyPoints = true;
+            const sid = String(r.sacco_id||'');
+            let col = saccoColors.get(sid);
+            if (!col){
+              col = palette[colorIdx % palette.length];
+              saccoColors.set(sid, col);
+              colorIdx += 1;
+            }
+            const poly = new maps.Polyline({
+              path: pts,
+              strokeColor: col,
+              strokeOpacity: 0.7,
+              strokeWeight: 3,
+              map: adminRoutesMap
+            });
+            adminRoutesPolylines.push(poly);
+            pts.forEach(pt => bounds.extend(pt));
+          });
+          if (anyPoints){
+            adminRoutesMap.fitBounds(bounds);
+            if (statusEl) statusEl.textContent = 'Map: showing ' + adminRoutesPolylines.length + ' route path(s).';
+          } else {
+            if (statusEl) statusEl.textContent = 'Map: routes found but none have recorded path points yet.';
+          }
+        }catch(e){
+          if ($('rt_admin_status')) $('rt_admin_status').textContent = 'Map error: ' + parseErr(e);
+        }
+      }
 
       // ----- actions -----
       $('sc_add').addEventListener('click', async ()=>{
@@ -250,7 +381,10 @@
         catch(e){ msg.className='err'; msg.textContent=parseErr(e); }
       });
 
-      try{ await ensureSession(); await Promise.all([loadS(), loadM(), loadLogins()]); } catch(_){}
+      try{
+        await ensureSession();
+        await Promise.all([loadS(), loadM(), loadLogins(), loadRouteUsage(), loadRoutesForMap()]);
+      } catch(_){}
     }
     start();
   </script>
