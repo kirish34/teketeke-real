@@ -41,7 +41,7 @@ async function getMatatu(rowMatatuId) {
   if (!rowMatatuId) return null;
   const { data, error } = await supabaseAdmin
     .from('matatus')
-    .select('id,sacco_id,number_plate')
+    .select('id,sacco_id,number_plate,owner_name,owner_phone,vehicle_type')
     .eq('id', rowMatatuId)
     .maybeSingle();
   if (error && error.code !== PG_ROW_NOT_FOUND) throw error;
@@ -87,6 +87,19 @@ async function ensureMatatuAccess(userId, requestedId) {
 
   // Direct matatu roles must match the exact vehicle
   if (ctx.matatu) {
+    // Owners may manage multiple matatus that share the same owner phone/name
+    if (ctx.role?.role === 'OWNER') {
+      const basePhone = ctx.matatu.owner_phone || null;
+      const baseName = (ctx.matatu.owner_name || '').toString().trim().toLowerCase();
+      const phoneMatch = basePhone && matatu.owner_phone && String(matatu.owner_phone) === String(basePhone);
+      const nameMatch = baseName && (matatu.owner_name || '').toString().trim().toLowerCase() === baseName;
+      if (phoneMatch || nameMatch) {
+        // ensure saccoId reflects the requested matatu's SACCO
+        const nextCtx = { ...ctx, saccoId: ctx.saccoId || matatu.sacco_id };
+        return { allowed: true, ctx: nextCtx, matatu };
+      }
+    }
+
     const match = String(ctx.matatu.id) === String(requestedId);
     return { allowed: match, ctx, matatu };
   }
@@ -460,6 +473,36 @@ router.get('/me', async (req, res) => {
 router.get('/vehicles', async (req, res) => {
   try {
     const role = await getRoleRow(req.user.id);
+    let items = [];
+
+    // Matatu owners: allow multiple vehicles for the same owner (phone/name)
+    if (role?.role === 'OWNER' && role.matatu_id) {
+      const primary = await getMatatu(role.matatu_id);
+      if (!primary) {
+        const { data, error } = await supabaseAdmin
+          .from('matatus')
+          .select('*')
+          .eq('id', role.matatu_id)
+          .order('created_at', { ascending: false });
+        if (error) throw error;
+        items = data || [];
+      } else {
+        let query = supabaseAdmin.from('matatus').select('*').order('created_at', { ascending: false });
+        if (primary.owner_phone) {
+          query = query.eq('owner_phone', primary.owner_phone);
+        } else if (primary.owner_name) {
+          query = query.eq('owner_name', primary.owner_name);
+        } else {
+          query = query.eq('id', primary.id);
+        }
+        const { data, error } = await query;
+        if (error) throw error;
+        items = data || [];
+      }
+      return res.json({ items });
+    }
+
+    // Default behaviour: sacco-scoped or single-matatu roles
     let query = supabaseAdmin.from('matatus').select('*').order('created_at', { ascending: false });
     if (role?.sacco_id) query = query.eq('sacco_id', role.sacco_id);
     if (role?.matatu_id) query = query.eq('id', role.matatu_id);
