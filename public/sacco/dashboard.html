@@ -85,6 +85,25 @@
       </thead>
       <tbody id="matatuTbody"></tbody>
     </table>
+    <div class="card" style="margin-top:12px">
+      <h3 style="margin-top:0">Daily Fee Rates</h3>
+      <div class="row">
+        <label>Vehicle type
+          <select id="dfTypeSelect">
+            <option value="">- choose type -</option>
+          </select>
+        </label>
+        <input id="dfAmount" type="number" placeholder="Daily fee (KES)" class="amount"/>
+        <button id="dfSave">Save</button>
+        <span id="dfMsg" class="muted" style="align-self:center"></span>
+      </div>
+      <div class="table-wrap" style="margin-top:8px">
+        <table>
+          <thead><tr><th>Vehicle type</th><th>Daily fee (KES)</th></tr></thead>
+          <tbody id="dfRulesBody"><tr><td colspan="2" class="muted">No rates configured yet.</td></tr></tbody>
+        </table>
+      </div>
+    </div>
   </section>
 
   <!-- Loan Requests -->
@@ -512,6 +531,22 @@
       });
       $('matatuCount').textContent = `${rows.length} matatu(s)`;
 
+      // Daily fee type select: distinct vehicle types for this SACCO
+      const typeSel = document.getElementById('dfTypeSelect');
+      if (typeSel){
+        const seen = new Set();
+        typeSel.innerHTML = '<option value="">- choose type -</option>';
+        (data.items||[]).forEach(m=>{
+          const vt = (m.vehicle_type||'').toString().trim();
+          if (!vt || seen.has(vt)) return;
+          seen.add(vt);
+          const o=document.createElement('option');
+          o.value = vt;
+          o.textContent = vt;
+          typeSel.appendChild(o);
+        });
+      }
+
       // loans matatu select
       const sel = $('lnMatatu');
       sel.innerHTML = '<option value="">- choose Matatu -</option>';
@@ -796,6 +831,65 @@
         alert('Loan created');
       }catch(e){ alert(e.message); }
     };
+
+    // Daily fee rates (per SACCO per vehicle type)
+    async function loadDailyFeeRatesAdmin(){
+      if (!currentSacco) return;
+      const T = document.getElementById('dfRulesBody');
+      if (!T) return;
+      T.innerHTML = '<tr><td colspan="2" class="muted">Loading...</td></tr>';
+      try{
+        const res = await jget(`/u/sacco/${currentSacco}/daily-fee-rates`);
+        const items = res.items || [];
+        if (!items.length){
+          T.innerHTML = '<tr><td colspan="2" class="muted">No rates configured yet.</td></tr>';
+          return;
+        }
+        T.innerHTML = '';
+        items.forEach(r=>{
+          const tr=document.createElement('tr');
+          tr.innerHTML = `<td>${r.vehicle_type||''}</td><td>${fmtKES(r.daily_fee_kes||0)}</td>`;
+          T.appendChild(tr);
+        });
+      }catch(e){
+        T.innerHTML = `<tr><td colspan="2" class="err">${parseErr(e)}</td></tr>`;
+      }
+    }
+
+    const dfSaveBtn = document.getElementById('dfSave');
+    if (dfSaveBtn){
+      dfSaveBtn.onclick = async ()=>{
+        if (!currentSacco) return alert('Pick a SACCO first');
+        const typeSel = document.getElementById('dfTypeSelect');
+        const amtEl = document.getElementById('dfAmount');
+        const msgEl = document.getElementById('dfMsg');
+        const vt = (typeSel?.value || '').trim();
+        const amt = Number(amtEl?.value || 0);
+        if (!vt){
+          if (msgEl){ msgEl.textContent='Vehicle type required'; msgEl.className='muted err'; }
+          return;
+        }
+        if (!amt || !Number.isFinite(amt) || amt <= 0){
+          if (msgEl){ msgEl.textContent='Enter a positive daily fee amount'; msgEl.className='muted err'; }
+          return;
+        }
+        if (msgEl){ msgEl.textContent='Saving...'; msgEl.className='muted'; }
+        dfSaveBtn.disabled = true;
+        try{
+          await parse(await fetch(`/u/sacco/${currentSacco}/daily-fee-rates`,{
+            method:'POST',
+            headers:{ 'Content-Type':'application/json', Accept:'application/json' },
+            body: JSON.stringify({ vehicle_type: vt, daily_fee_kes: amt })
+          }));
+          if (msgEl){ msgEl.textContent='Saved'; msgEl.className='ok'; }
+          await loadDailyFeeRatesAdmin();
+        }catch(e){
+          if (msgEl){ msgEl.textContent = e.message || 'Failed to save'; msgEl.className='muted err'; }
+        }finally{
+          dfSaveBtn.disabled = false;
+        }
+      };
+    }
 
     // Routes settings panel
     let saccoRoutes = [];
@@ -1135,7 +1229,7 @@
       updateLiveStatus();
       updateHeadlineFor(currentSacco);
       const link = document.getElementById('linkStaffLoans'); if (link) link.href = '/public/sacco/staff-loans.html' + (currentSacco ? ('?sacco='+encodeURIComponent(currentSacco)) : '');
-      await Promise.all([ loadMatatus(), loadTxAndTotals(), loadStaff(), loadLoans(), loadLoanRequests(), loadRoutesAdmin() ]);
+      await Promise.all([ loadMatatus(), loadTxAndTotals(), loadStaff(), loadLoans(), loadLoanRequests(), loadRoutesAdmin(), loadDailyFeeRatesAdmin() ]);
       await loadNotifications();
     };
 
@@ -1184,7 +1278,7 @@
       try{
         await loadSaccos();
         const link = document.getElementById('linkStaffLoans'); if (link) link.href = '/public/sacco/staff-loans.html' + (currentSacco ? ('?sacco='+encodeURIComponent(currentSacco)) : '');
-        await Promise.all([ loadMatatus(), loadTxAndTotals(), loadStaffCollections(), loadStaff(), loadLoans(), loadLoanRequests(), loadRoutesAdmin() ]);
+        await Promise.all([ loadMatatus(), loadTxAndTotals(), loadStaffCollections(), loadStaff(), loadLoans(), loadLoanRequests(), loadRoutesAdmin(), loadDailyFeeRatesAdmin() ]);
         await loadNotifications();
 
     // Approve/Reject loan requests

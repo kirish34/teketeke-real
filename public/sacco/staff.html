@@ -156,6 +156,7 @@
   async function post(p,b){ return parse(await fetch(p,{method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(b)})); }
 
   let SACCO_ID=null; let MATATUS=[]; let MAT_BY_ID=new Map();
+  let DAILY_FEE_BY_TYPE = new Map();
 
   async function loadSaccos(){
     const res=await g('/u/my-saccos');
@@ -171,6 +172,16 @@
     $('stat').textContent = `${MATATUS.length} matatu(s)`;
     function fillSel(id){ const el=document.getElementById(id); if(!el) return; el.innerHTML=''; (MATATUS||[]).forEach(m=>{ const o=document.createElement('option'); o.value=m.id; o.textContent=m.number_plate; el.appendChild(o); }); }
     fillSel('df_matatu'); fillSel('sv_matatu');
+  }
+
+  async function loadDailyFeeConfig(){
+    DAILY_FEE_BY_TYPE = new Map();
+    if (!SACCO_ID) return;
+    try{
+      const res = await g(`/u/sacco/${SACCO_ID}/daily-fee-rates`);
+      const items = res.items || [];
+      DAILY_FEE_BY_TYPE = new Map(items.map(r=>[(r.vehicle_type||'').toString().toUpperCase(), Number(r.daily_fee_kes||0)]));
+    }catch(_){ DAILY_FEE_BY_TYPE = new Map(); }
   }
 
   async function quickCollect(kind, matatu_id, amount){
@@ -189,14 +200,22 @@
       T.appendChild(tr);
     });
   }
+  function dailyFeeForMatatu(m){
+    if (!m) return 0;
+    const vt = (m.vehicle_type||'').toString().toUpperCase();
+    const v = DAILY_FEE_BY_TYPE.get(vt);
+    return Number.isFinite(v) && v>0 ? v : 0;
+  }
+
   function renderDueList(tbodyId, paidSet, kind){
     const T=$(tbodyId); if(!T) return; T.innerHTML='';
     const q = ($('search').value||'').trim().toUpperCase();
     const due = MATATUS.filter(m => (!q || (m.number_plate||'').toUpperCase().includes(q)) && !paidSet.has(m.id));
     due.forEach(m=>{
       const tr=document.createElement('tr'); const amtId = `${tbodyId}_amt_${m.id}`;
+      const autoAmt = kind==='DAILY_FEE' ? dailyFeeForMatatu(m) : 0;
       tr.innerHTML = `<td>${m.number_plate||''}</td><td class='mono'>${m.id}</td>`+
-        `<td><input id='${amtId}' type='number' class='amount' placeholder='Amount'/></td>`+
+        `<td><input id='${amtId}' type='number' class='amount' placeholder='Amount'`+ (autoAmt?` value='${autoAmt}'`:'') +`/></td>`+
         `<td><button data-kind='${kind}' data-id='${m.id}'>Collect</button></td>`;
       T.appendChild(tr);
     });
@@ -288,14 +307,27 @@
     };
   });
 
-  $('sacco').onchange = async ()=>{ SACCO_ID=$('sacco').value; await loadMatatus(); await renderAll(); };
-  $('reload').onclick = async ()=>{ await loadSaccos(); await loadMatatus(); await renderAll(); };
+  $('sacco').onchange = async ()=>{ SACCO_ID=$('sacco').value; await loadMatatus(); await loadDailyFeeConfig(); await renderAll(); };
+  $('reload').onclick = async ()=>{ await loadSaccos(); await loadMatatus(); await loadDailyFeeConfig(); await renderAll(); };
   $('search').oninput = ()=>{ clearTimeout(window._srch); window._srch = setTimeout(renderAll, 200); };
+  const dfMatSel = document.getElementById('df_matatu');
+  if (dfMatSel){
+    dfMatSel.onchange = ()=>{
+      const id = dfMatSel.value;
+      const m = MAT_BY_ID.get(id) || null;
+      const autoAmt = dailyFeeForMatatu(m);
+      const amtEl = document.getElementById('df_amount');
+      if (amtEl && autoAmt){
+        amtEl.value = autoAmt;
+      }
+    };
+  }
   $('df_collect').onclick = ()=>{ const id=$('df_matatu').value; const amt=Number($('df_amount').value||0); if(!id||!amt) return toast('Pick matatu & amount'); quickCollect('DAILY_FEE', id, amt).then(()=>{$('df_amount').value='';}); };
   $('sv_collect').onclick = ()=>{ const id=$('sv_matatu').value; const amt=Number($('sv_amount').value||0); if(!id||!amt) return toast('Pick matatu & amount'); quickCollect('SAVINGS', id, amt).then(()=>{$('sv_amount').value='';}); };
 
   await loadSaccos();
   await loadMatatus();
+  await loadDailyFeeConfig();
   await renderAll();
 })();
 </script>

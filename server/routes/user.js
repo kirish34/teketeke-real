@@ -673,6 +673,48 @@ router.get('/sacco/:id/loans', async (req,res)=>{
   }
 });
 
+// Daily fee rates per SACCO (used by SACCO admin + staff UIs)
+router.get('/sacco/:id/daily-fee-rates', async (req,res)=>{
+  const saccoId = req.params.id;
+  if (!saccoId) return res.status(400).json({ error:'sacco_id required' });
+  try{
+    const { allowed } = await ensureSaccoAccess(req.user.id, saccoId);
+    if (!allowed) return res.status(403).json({ error:'Forbidden' });
+    const { data, error } = await supabaseAdmin
+      .from('daily_fee_rates')
+      .select('*')
+      .eq('sacco_id', saccoId)
+      .order('vehicle_type', { ascending:true });
+    if (error) throw error;
+    res.json({ items: data || [] });
+  }catch(e){
+    res.status(500).json({ error: e.message || 'Failed to load daily fee rates' });
+  }
+});
+
+router.post('/sacco/:id/daily-fee-rates', async (req,res)=>{
+  const saccoId = req.params.id;
+  if (!saccoId) return res.status(400).json({ error:'sacco_id required' });
+  try{
+    const { allowed } = await ensureSaccoAccess(req.user.id, saccoId);
+    if (!allowed) return res.status(403).json({ error:'Forbidden' });
+    const vehicle_type = (req.body?.vehicle_type || '').toString().trim();
+    const amt = Number(req.body?.daily_fee_kes ?? req.body?.amount_kes ?? 0);
+    if (!vehicle_type) return res.status(400).json({ error:'vehicle_type required' });
+    if (!Number.isFinite(amt) || amt < 0) return res.status(400).json({ error:'daily_fee_kes must be a non-negative number' });
+    const row = { sacco_id: saccoId, vehicle_type, daily_fee_kes: amt };
+    const { data, error } = await supabaseAdmin
+      .from('daily_fee_rates')
+      .upsert(row, { onConflict: 'sacco_id,vehicle_type' })
+      .select('*')
+      .maybeSingle();
+    if (error) throw error;
+    res.json(data);
+  }catch(e){
+    res.status(500).json({ error: e.message || 'Failed to upsert daily fee rate' });
+  }
+});
+
 // Loan requests
 router.get('/sacco/:id/loan-requests', async (req,res)=>{
   const saccoId = req.params.id;
