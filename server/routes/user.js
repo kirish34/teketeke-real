@@ -184,23 +184,110 @@ router.get('/sacco/:id/matatus', async (req, res) => {
   }
 });
 
-// SACCO routes (for matatu staff / owner UIs)
-router.get('/sacco/:id/routes', async (req,res)=>{
+// SACCO routes (for matatu staff / owner UIs + sacco dashboard)
+router.get('/sacco/:id/routes', async (req, res) => {
   const saccoId = req.params.id;
-  if (!saccoId) return res.status(400).json({ error:'sacco_id required' });
-  try{
+  if (!saccoId) return res.status(400).json({ error: 'sacco_id required' });
+  try {
     const { allowed } = await ensureSaccoAccess(req.user.id, saccoId);
-    if (!allowed) return res.status(403).json({ error:'Forbidden' });
-    const { data, error } = await supabaseAdmin
+    if (!allowed) return res.status(403).json({ error: 'Forbidden' });
+    const includeInactive = String(req.query.include_inactive || req.query.all || '')
+      .toLowerCase() === 'true';
+
+    let query = supabaseAdmin
       .from('routes')
       .select('*')
-      .eq('sacco_id', saccoId)
-      .eq('active', true)
-      .order('name', { ascending:true });
+      .eq('sacco_id', saccoId);
+    if (!includeInactive) {
+      query = query.eq('active', true);
+    }
+    const { data, error } = await query.order('name', { ascending: true });
     if (error) throw error;
     res.json({ items: data || [] });
-  }catch(e){
+  } catch (e) {
     res.status(500).json({ error: e.message || 'Failed to load routes' });
+  }
+});
+
+// Create a new SACCO route
+router.post('/sacco/:id/routes', async (req, res) => {
+  const saccoId = req.params.id;
+  if (!saccoId) return res.status(400).json({ error: 'sacco_id required' });
+  try {
+    const { allowed } = await ensureSaccoAccess(req.user.id, saccoId);
+    if (!allowed) return res.status(403).json({ error: 'Forbidden' });
+
+    const name = (req.body?.name || '').toString().trim();
+    const code = (req.body?.code || '').toString().trim() || null;
+    const start_stop = (req.body?.start_stop || '').toString().trim() || null;
+    const end_stop = (req.body?.end_stop || '').toString().trim() || null;
+    if (!name) return res.status(400).json({ error: 'name required' });
+
+    const row = { sacco_id: saccoId, name, code, start_stop, end_stop, active: true };
+    const { data, error } = await supabaseAdmin
+      .from('routes')
+      .insert(row)
+      .select('*')
+      .single();
+    if (error) throw error;
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: e.message || 'Failed to create route' });
+  }
+});
+
+// Update / toggle a SACCO route
+router.patch('/sacco/:id/routes/:routeId', async (req, res) => {
+  const saccoId = req.params.id;
+  const routeId = req.params.routeId;
+  if (!saccoId || !routeId) return res.status(400).json({ error: 'sacco_id and routeId required' });
+  try {
+    const { allowed } = await ensureSaccoAccess(req.user.id, saccoId);
+    if (!allowed) return res.status(403).json({ error: 'Forbidden' });
+
+    const updates = {};
+    if ('name' in req.body) {
+      const name = (req.body?.name || '').toString().trim();
+      if (!name) return res.status(400).json({ error: 'name required' });
+      updates.name = name;
+    }
+    if ('code' in req.body) {
+      const code = (req.body?.code || '').toString().trim();
+      updates.code = code || null;
+    }
+    if ('start_stop' in req.body) {
+      const start_stop = (req.body?.start_stop || '').toString().trim();
+      updates.start_stop = start_stop || null;
+    }
+    if ('end_stop' in req.body) {
+      const end_stop = (req.body?.end_stop || '').toString().trim();
+      updates.end_stop = end_stop || null;
+    }
+    if ('active' in req.body) {
+      updates.active = !!req.body.active;
+    }
+
+    if (!Object.keys(updates).length) {
+      return res.status(400).json({ error: 'No updates provided' });
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from('routes')
+      .update(updates)
+      .eq('id', routeId)
+      .eq('sacco_id', saccoId)
+      .select('*')
+      .maybeSingle();
+
+    if (error) {
+      if (error.code === PG_ROW_NOT_FOUND) return res.status(404).json({ error: 'Route not found' });
+      throw error;
+    }
+    if (!data) return res.status(404).json({ error: 'Route not found' });
+
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: e.message || 'Failed to update route' });
   }
 });
 

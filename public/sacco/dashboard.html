@@ -63,6 +63,7 @@
     <div class="tab" data-panel="p_ops" role="tab" aria-selected="false">Payments (STK)</div>
     <div class="tab" data-panel="p_staff" role="tab" aria-selected="false">Staff</div>
     <div class="tab" data-panel="p_loans" role="tab" aria-selected="false">Loans</div>
+    <div class="tab" data-panel="p_routes" role="tab" aria-selected="false">Routes</div>
     <div class="tab" data-panel="p_lnreq" role="tab" aria-selected="false">Loan Requests</div>
   </div>
 
@@ -238,6 +239,32 @@
         <table>
           <thead><tr><th>Time</th><th>Amount</th><th>Staff</th><th>Note</th></tr></thead>
           <tbody id="loanHistTbody"><tr><td colspan="4" class="muted">Select a loan to view history</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Routes -->
+  <section id="p_routes" class="panel">
+    <div class="card">
+      <h3 style="margin-top:0">Route Settings</h3>
+      <div class="row">
+        <input id="rtName" placeholder="Route name (e.g. CBD - Githurai)"/>
+        <input id="rtCode" placeholder="Code (optional)"/>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <input id="rtStart" placeholder="Start stop (optional)"/>
+        <input id="rtEnd" placeholder="End stop (optional)"/>
+        <button id="rtCreate">Create Route</button>
+        <span id="rtStatus" class="muted" style="align-self:center"></span>
+      </div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <h3 style="margin-top:0">Routes for this SACCO</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Code</th><th>Name</th><th>Start</th><th>End</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="rtTbody"><tr><td colspan="6" class="muted">No routes yet.</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -750,12 +777,86 @@
       }catch(e){ alert(e.message); }
     };
 
+    // Routes settings panel
+    async function loadRoutesAdmin(){
+      if (!currentSacco) return;
+      const T = $('rtTbody');
+      if (!T) return;
+      T.innerHTML = '<tr><td colspan="6" class="muted">Loading routes...</td></tr>';
+      try{
+        const res = await jget(`/u/sacco/${currentSacco}/routes?include_inactive=true`);
+        const items = res.items || res || [];
+        if (!items.length){
+          T.innerHTML = '<tr><td colspan="6" class="muted">No routes yet.</td></tr>';
+          return;
+        }
+        T.innerHTML = '';
+        items.forEach(r=>{
+          const tr=document.createElement('tr');
+          const status = r.active ? 'Active' : 'Inactive';
+          const btnLabel = r.active ? 'Disable' : 'Enable';
+          tr.innerHTML =
+            `<td>${r.code || ''}</td>`+
+            `<td>${r.name || ''}</td>`+
+            `<td>${r.start_stop || ''}</td>`+
+            `<td>${r.end_stop || ''}</td>`+
+            `<td>${status}</td>`+
+            `<td><button class="ghost" data-act="rt-toggle" data-id="${r.id}" data-active="${r.active ? '1' : '0'}">${btnLabel}</button></td>`;
+          T.appendChild(tr);
+        });
+      }catch(e){
+        T.innerHTML = `<tr><td colspan="6" class="err">${parseErr(e)}</td></tr>`;
+      }
+    }
+
+    const rtCreateBtn = $('rtCreate');
+    if (rtCreateBtn){
+      rtCreateBtn.onclick = async ()=>{
+        if (!currentSacco) return alert('Pick a SACCO first');
+        const nameEl = $('rtName');
+        const codeEl = $('rtCode');
+        const startEl = $('rtStart');
+        const endEl = $('rtEnd');
+        const statusEl = $('rtStatus');
+        const name = (nameEl?.value || '').trim();
+        if (!name){
+          if (statusEl){ statusEl.textContent = 'Name is required'; statusEl.className = 'err'; }
+          return;
+        }
+        const body = {
+          name,
+          code: (codeEl?.value || '').trim() || null,
+          start_stop: (startEl?.value || '').trim() || null,
+          end_stop: (endEl?.value || '').trim() || null
+        };
+        rtCreateBtn.disabled = true;
+        if (statusEl){ statusEl.textContent = 'Saving...'; statusEl.className = 'muted'; }
+        try{
+          await parse(await fetch(`/u/sacco/${currentSacco}/routes`,{
+            method:'POST',
+            headers:{ 'Content-Type':'application/json', Accept:'application/json' },
+            body: JSON.stringify(body)
+          }));
+          if (nameEl) nameEl.value = '';
+          if (codeEl) codeEl.value = '';
+          if (startEl) startEl.value = '';
+          if (endEl) endEl.value = '';
+          if (statusEl){ statusEl.textContent = 'Route created'; statusEl.className = 'ok'; }
+          await loadRoutesAdmin();
+        }catch(e){
+          if (statusEl){ statusEl.textContent = e.message || 'Failed to create route'; statusEl.className = 'err'; }
+        }finally{
+          rtCreateBtn.disabled = false;
+        }
+      };
+    }
+
     // Events
     $('saccoSelect').onchange = async ()=>{
       currentSacco = $('saccoSelect').value || null;
       updateHeadlineFor(currentSacco);
       const link = document.getElementById('linkStaffLoans'); if (link) link.href = '/public/sacco/staff-loans.html' + (currentSacco ? ('?sacco='+encodeURIComponent(currentSacco)) : '');
-      await Promise.all([ loadMatatus(), loadTxAndTotals(), loadStaff(), loadLoans(), loadLoanRequests() ]);
+      await Promise.all([ loadMatatus(), loadTxAndTotals(), loadStaff(), loadLoans(), loadLoanRequests(), loadRoutesAdmin() ]);
       await loadNotifications();
     };
 
@@ -804,7 +905,7 @@
       try{
         await loadSaccos();
         const link = document.getElementById('linkStaffLoans'); if (link) link.href = '/public/sacco/staff-loans.html' + (currentSacco ? ('?sacco='+encodeURIComponent(currentSacco)) : '');
-        await Promise.all([ loadMatatus(), loadTxAndTotals(), loadStaffCollections(), loadStaff(), loadLoans(), loadLoanRequests() ]);
+        await Promise.all([ loadMatatus(), loadTxAndTotals(), loadStaffCollections(), loadStaff(), loadLoans(), loadLoanRequests(), loadRoutesAdmin() ]);
         await loadNotifications();
 
     // Approve/Reject loan requests
@@ -817,6 +918,31 @@
           await parse(await fetch(`/u/sacco/${currentSacco}/loan-requests/${id}`,{ method:'PATCH', headers:{'Content-Type':'application/json',Accept:'application/json'}, body: JSON.stringify({ action: act.toUpperCase() }) }));
           await loadLoanRequests(); await loadLoans();
         }catch(err){ alert(err.message); } finally{ btn.disabled=false; }
+      });
+    })();
+
+    // Routes actions (delegated)
+    (function bindRouteActions(){
+      const T = document.getElementById('rtTbody'); if (!T) return;
+      T.addEventListener('click', async (e)=>{
+        const btn = e.target.closest('button'); if (!btn) return;
+        if (btn.dataset.act !== 'rt-toggle') return;
+        const id = btn.dataset.id;
+        if (!id || !currentSacco) return;
+        const currentActive = btn.dataset.active === '1';
+        btn.disabled = true;
+        try{
+          await parse(await fetch(`/u/sacco/${currentSacco}/routes/${id}`,{
+            method:'PATCH',
+            headers:{ 'Content-Type':'application/json', Accept:'application/json' },
+            body: JSON.stringify({ active: !currentActive })
+          }));
+          await loadRoutesAdmin();
+        }catch(err){
+          alert(err.message || String(err));
+        }finally{
+          btn.disabled = false;
+        }
       });
     })();
 
