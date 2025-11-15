@@ -28,6 +28,9 @@
 
   <div class="card">
     <div class="row">
+      <label>Route
+        <select id="route"></select>
+      </label>
       <label>SACCO <select id="sacco"></select></label>
       <label>Matatu <select id="matatu"></select></label>
       <button id="reload" class="ghost">Reload</button>
@@ -169,6 +172,7 @@ requireRole('STAFF', { statusEl: 'auth_state', roleLabel: 'Matatu Staff' }).then
 
   // --- State ---
   let SACCO_ID=null; let MATATU_ID=null; let MATATU=null; let CURRENT_TRIP=null; let FALLBACK_SACCO=null;
+  let ROUTES=[];
 
   // Persist trips per matatu locally (for UX even if network fails)
   const storeKey = () => `tt_conductor_trips_${MATATU_ID||'na'}`;
@@ -205,6 +209,37 @@ requireRole('STAFF', { statusEl: 'auth_state', roleLabel: 'Matatu Staff' }).then
     items.forEach(m=>{ const o=document.createElement('option'); o.value=m.id; o.textContent=m.number_plate||m.id; sel.appendChild(o); });
     if(items.length){ sel.value=items[0].id; setMatatu(items[0]); }
     $('stat').textContent = `${items.length} matatu(s)`;
+    await loadRoutes();
+  }
+
+  async function loadRoutes(){
+    const sel = $('route');
+    if (!sel){ return; }
+    sel.innerHTML = '';
+    ROUTES = [];
+    if (!SACCO_ID) return;
+    try{
+      const res = await jget(`/u/sacco/${SACCO_ID}/routes`);
+      ROUTES = res.items || res || [];
+      if (!ROUTES.length){
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = 'No routes defined';
+        sel.appendChild(opt);
+        return;
+      }
+      ROUTES.forEach(r=>{
+        const opt = document.createElement('option');
+        opt.value = r.id;
+        opt.textContent = r.code ? `${r.code} – ${r.name}` : r.name;
+        sel.appendChild(opt);
+      });
+    }catch(_){
+      const opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = 'Routes unavailable';
+      sel.appendChild(opt);
+    }
   }
 
   function setMatatu(obj){
@@ -311,8 +346,18 @@ requireRole('STAFF', { statusEl: 'auth_state', roleLabel: 'Matatu Staff' }).then
   $('startTrip').addEventListener('click', ()=>{
     if(!MATATU_ID) return toast('Pick a matatu');
     if(getActiveTrip()) return toast('A trip is already active');
-    const route = `Trip ${new Date().toLocaleTimeString()}`;
-    const trip = { id: `TRIP_${Date.now()}`, matatu_id: MATATU_ID, route, expected_fare: 0, started_at: new Date().toISOString(), auto_kes:0, manual_kes:0 };
+    const routeSel = $('route');
+    let routeId = null;
+    let routeName = '';
+    if (routeSel && routeSel.value){
+      routeId = routeSel.value;
+      const match = ROUTES.find(r => String(r.id) === String(routeId));
+      routeName = match?.name || routeSel.options[routeSel.selectedIndex]?.text || '';
+    }
+    if (!routeName){
+      routeName = `Trip ${new Date().toLocaleTimeString()}`;
+    }
+    const trip = { id: `TRIP_${Date.now()}`, matatu_id: MATATU_ID, route: routeName, route_id: routeId, expected_fare: 0, started_at: new Date().toISOString(), auto_kes:0, manual_kes:0 };
     putTrip(trip); CURRENT_TRIP = trip;
     $('activeTripCard').style.display='block';
     $('tripStarted').textContent = new Date(trip.started_at).toLocaleString();

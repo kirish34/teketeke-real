@@ -184,6 +184,26 @@ router.get('/sacco/:id/matatus', async (req, res) => {
   }
 });
 
+// SACCO routes (for matatu staff / owner UIs)
+router.get('/sacco/:id/routes', async (req,res)=>{
+  const saccoId = req.params.id;
+  if (!saccoId) return res.status(400).json({ error:'sacco_id required' });
+  try{
+    const { allowed } = await ensureSaccoAccess(req.user.id, saccoId);
+    if (!allowed) return res.status(403).json({ error:'Forbidden' });
+    const { data, error } = await supabaseAdmin
+      .from('routes')
+      .select('*')
+      .eq('sacco_id', saccoId)
+      .eq('active', true)
+      .order('name', { ascending:true });
+    if (error) throw error;
+    res.json({ items: data || [] });
+  }catch(e){
+    res.status(500).json({ error: e.message || 'Failed to load routes' });
+  }
+});
+
 router.get('/sacco/:id/transactions', async (req, res) => {
   const saccoId = req.params.id;
   const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 200, 1), 2000);
