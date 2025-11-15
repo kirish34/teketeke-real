@@ -774,12 +774,15 @@
           return;
         }
 
+        const bodyType = (bodyEl?.value || '').trim();
         const payload = {
           number_plate,
           owner_name: owner_name || null,
           owner_phone: owner_phone || null,
           till_number: till_number || null,
-          vehicle_type: cfg.type,
+          // For matatus, use body type (VAN / MINI_BUS / BUS) when provided.
+          // For TAXI / BODABODA, keep their explicit type.
+          vehicle_type: bodyType || cfg.type,
           sacco_id
         };
 
