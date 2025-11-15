@@ -175,6 +175,10 @@ requireRole('STAFF', { statusEl: 'auth_state', roleLabel: 'Matatu Staff' }).then
   const loadLocalTrips = () => { try{ return JSON.parse(localStorage.getItem(storeKey())||'[]'); }catch{ return []; } };
   const saveLocalTrips = (arr) => { try{ localStorage.setItem(storeKey(), JSON.stringify(arr)); }catch(_){} };
 
+  const manualStoreKey = () => `tt_conductor_manual_${MATATU_ID||'na'}`;
+  const loadManualEntries = () => { try{ return JSON.parse(localStorage.getItem(manualStoreKey())||'[]'); }catch{ return []; } };
+  const saveManualEntries = (arr) => { try{ localStorage.setItem(manualStoreKey(), JSON.stringify(arr)); }catch(_){} };
+
   // --- Tabs ---
   document.querySelectorAll('.tab').forEach(t=>{
     t.onclick=()=>{
@@ -252,7 +256,9 @@ requireRole('STAFF', { statusEl: 'auth_state', roleLabel: 'Matatu Staff' }).then
     }
     const todayTrips = getTodayTrips();
     const dayAuto = todayTrips.reduce((sum,t)=>sum + Number(t.auto_kes||0),0);
-    const dayManual = todayTrips.reduce((sum,t)=>sum + Number(t.manual_kes||0),0);
+    const dayManualTrips = todayTrips.reduce((sum,t)=>sum + Number(t.manual_kes||0),0);
+    const extraManual = loadManualEntries().filter(e => isToday(e.created_at)).reduce((sum,e)=> sum + Number(e.amount||0), 0);
+    const dayManual = dayManualTrips + extraManual;
     const dayAutoEl = $('tot_day_auto');
     if(dayAutoEl){
       dayAutoEl.textContent = fmtKES(dayAuto);
@@ -382,12 +388,17 @@ requireRole('STAFF', { statusEl: 'auth_state', roleLabel: 'Matatu Staff' }).then
       const amt = Number(amtEl?.value || 0);
       if(!(amt>0)) return toast('Enter amount');
       if(msgEl){ msgEl.textContent = 'Saving...'; msgEl.className='muted'; }
-        try{
-          await jpost('/api/staff/cash', { sacco_id:SACCO_ID, matatu_id:MATATU_ID, kind:'CASH', amount:amt, payer_name:(noteEl?.value.trim()||'Manual cash entry'), payer_phone:'' });
+      try{
+        await jpost('/api/staff/cash', { sacco_id:SACCO_ID, matatu_id:MATATU_ID, kind:'CASH', amount:amt, payer_name:(noteEl?.value.trim()||'Manual cash entry'), payer_phone:'' });
+        // keep a lightweight local record so today's totals include this manual cash
+        const list = loadManualEntries();
+        list.unshift({ id:`MAN_${Date.now()}`, amount:amt, note:noteEl?.value||'', created_at:new Date().toISOString() });
+        saveManualEntries(list);
         if(amtEl) amtEl.value='';
         if(noteEl) noteEl.value='';
         if(msgEl){ msgEl.textContent='Saved'; msgEl.className='ok'; }
         renderTripsTable();
+        updateTotalsPanel();
         toast('Manual cash recorded');
       }catch(err){
         if(msgEl){ msgEl.textContent = err.message||String(err); msgEl.className='err'; }
