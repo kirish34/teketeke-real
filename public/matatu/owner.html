@@ -1015,11 +1015,16 @@ requireRole(['OWNER','SACCO_STAFF'], { statusEl: 'auth_state', roleLabel: 'Matat
           term_months: term,
           note: note
         });
-        if (msg) msg.textContent = 'Request submitted.';
+        if (msg) msg.textContent = 'Request submitted. Waiting for SACCO approval.';
         var a = document.getElementById('loan_amount'); if (a) a.value = '';
         var n = document.getElementById('loan_note'); if (n) n.value = '';
         await loadLoanRequests();
-      }catch(e){ if (msg) msg.textContent = (e && e.message) ? e.message : 'Submit failed'; }
+      }catch(e){
+        var errMsg = (e && e.message) ? e.message : 'Submit failed';
+        if (msg) msg.textContent = errMsg;
+        try{ log('? Loan request failed', { error: String(errMsg) }); }catch(_){}
+        try{ alert(errMsg); }catch(_){}
+      }
     }
     async function loadOwnerLoans(){
       var T = document.getElementById('loan_rows');

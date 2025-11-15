@@ -3,234 +3,34 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>TekeTeke — Owner Loan Request</title>
-  <script src="/public/js/app-config.js"></script>
-  <script src="/public/js/api.js"></script>
-  <script src="/public/js/role-guard.js"></script>
-  <style>
-    :root{ --brand:#0ea5e9; --brand-700:#0284c7; --bg:#f8fafc; --panel:#fff; --border:#e5e7eb; --ink:#0f172a; --muted:#6b7280; }
-    *{ box-sizing:border-box }
-    body{ font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,Helvetica,sans-serif; margin:0; padding:24px; background:var(--bg); color:var(--ink) }
-    h1{ margin:0 0 8px }
-    .wrap{ max-width:1000px; margin:0 auto }
-    .card{ background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:14px }
-    .row{ display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end }
-    .field{ display:flex; flex-direction:column; gap:6px }
-    .field input, .field select, .field textarea{ padding:10px; border:1px solid var(--border); border-radius:8px; background:#fff }
-    .btn{ background:var(--brand); color:#fff; border:none; border-radius:8px; padding:9px 12px; cursor:pointer }
-    .btn:hover{ background:var(--brand-700) }
-    .btn.ghost{ background:#fff; color:var(--brand); border:1px solid var(--brand) }
-    .muted{ color:var(--muted) }
-    .badge{ background:#e0f2fe; color:#0369a1; font-weight:700; padding:4px 10px; border-radius:999px; border:1px solid #bae6fd }
-    table{ width:100%; border-collapse:collapse; margin-top:10px }
-    th,td{ border:1px solid var(--border); padding:8px; text-align:left; vertical-align:top }
-    th{ background:#eff6ff }
-    .table-wrap{ max-height:360px; overflow:auto; border:1px solid var(--border); border-radius:10px; background:#fff }
-  </style>
+  <title>TekeTeke — Matatu Owner Loans</title>
+  <meta http-equiv="refresh" content="0;url=/public/matatu/owner.html#loan"/>
   <script>
-    // Gate to OWNER role
-    requireRole('OWNER').catch(()=>{});
-  </script>
-  <script>
-    let MATATU_ID = null;
-    let MATATU_CTX = null;
-
-    function $(id){ return document.getElementById(id); }
-    function setMsg(text){ const el=$('loan_msg'); if(el) el.textContent = text||''; }
-
-    async function loadMyVehicles(){
+    (function(){
+      var target = '/public/matatu/owner.html#loan';
       try{
-        const d = await jget('/u/vehicles');
-        const items = d.items || d || [];
-        const sel = $('matatu_select');
-        sel.innerHTML = '';
-        if (!items.length){
-          const opt = document.createElement('option');
-          opt.value=''; opt.textContent='No matatu available';
-          sel.appendChild(opt);
+        if (window.location) {
+          window.location.replace(target);
           return;
         }
-        items.forEach(m => {
-          const opt = document.createElement('option');
-          opt.value = m.id; opt.textContent = (m.number_plate||'').toUpperCase() + ' ('+m.id+')';
-          sel.appendChild(opt);
-        });
-        // Auto-select first
-        sel.value = items[0].id;
-        applyMatatu(items[0]);
-      }catch(e){ setMsg(e.message||'Failed to load vehicles'); }
-    }
-
-    function applyMatatu(mat){
-      if (!mat || !mat.id){ return; }
-      MATATU_ID = mat.id; MATATU_CTX = mat;
-      const line = $('loan_matatu_line');
-      if (line){
-        const plate = (mat.number_plate||'').toUpperCase();
-        line.textContent = (plate?plate:'Matatu') + ' ('+mat.id+') selected';
-      }
-      setMsg('');
-      loadLoanRequests();
-    }
-
-    async function submitLoanRequest(){
-      if (!MATATU_ID){ alert('Select a Matatu first'); return; }
-      const amount = Number(($('loan_amount')?.value||'').trim());
-      const model = ($('loan_model')?.value||'MONTHLY').toString().toUpperCase();
-      let term = Number($('loan_term')?.value||'1');
-      const note = ($('loan_note')?.value||'').trim();
-      if (!amount || amount <= 0){ alert('Enter amount'); return; }
-      if (['DAILY','WEEKLY','MONTHLY'].indexOf(model) === -1){ alert('Choose model'); return; }
-      if (term < 1) term = 1; if (term > 6) term = 6;
-      setMsg('Submitting...');
-      try{
-        await jpost('/u/matatu/' + encodeURIComponent(MATATU_ID) + '/loan-requests', {
-          amount_kes: amount,
-          model: model,
-          term_months: term,
-          note: note
-        });
-        setMsg('Request submitted.');
-        if ($('loan_amount')) $('loan_amount').value = '';
-        if ($('loan_note')) $('loan_note').value = '';
-        await loadLoanRequests();
-      }catch(e){ setMsg(e && e.message ? e.message : 'Submit failed'); }
-    }
-
-    async function loadLoanRequests(){
-      const T = $('loan_req_tbody');
-      if (!MATATU_ID || !MATATU_CTX || !MATATU_CTX.sacco_id){
-        if (T) T.innerHTML = '<tr><td colspan="7" class="muted">Select a matatu to see requests.</td></tr>';
-        return;
-      }
-      setMsg('Loading requests...');
-      try{
-        const d = await jget('/u/sacco/' + encodeURIComponent(MATATU_CTX.sacco_id) + '/loan-requests');
-        let rows = (d && d.items) ? d.items : (Array.isArray(d)? d : []);
-        rows = rows.filter(r => String(r.matatu_id||'') === String(MATATU_ID||''));
-        if (!rows.length){
-          T.innerHTML = '<tr><td colspan="7" class="muted">No requests yet.</td></tr>';
-        } else {
-          var html = '';
-          for (var i=0;i<rows.length;i++){
-            var x = rows[i];
-            var dt = (x.created_at||'').toString();
-            var dateOnly = dt ? dt.substring(0,10) : '';
-            html += '<tr>'+
-              '<td>' + dateOnly + '</td>'+
-              '<td>' + (x.amount_kes||'') + '</td>'+
-              '<td>' + (x.model||'') + '</td>'+
-              '<td>' + (x.term_months||'') + '</td>'+
-              '<td>' + (x.status||'') + '</td>'+
-              '<td>' + (x.note||'') + '</td>'+
-              '<td>' + (x.id||'') + '</td>'+
-            '</tr>';
-          }
-          T.innerHTML = html;
-        }
-        setMsg('');
-      }catch(e){
-        T.innerHTML = '<tr><td colspan="7" class="muted">Failed to load requests.</td></tr>';
-        setMsg(e && e.message ? e.message : 'Load failed');
-      }
-    }
-
-    document.addEventListener('DOMContentLoaded', function(){
-      $('matatu_select').addEventListener('change', function(){
-        var id = this.value;
-        // Find in cached list again
-        jget('/u/vehicles').then(d=>{
-          var items = d.items || d || [];
-          var m = items.find(v => String(v.id) === String(id));
-          if (m) applyMatatu(m);
-        }).catch(()=>{});
-      });
-      $('loan_submit').addEventListener('click', submitLoanRequest);
-      $('loan_req_reload').addEventListener('click', loadLoanRequests);
-      loadMyVehicles();
-    });
+      }catch(_){}
+      try{ window.location.href = target; }catch(_){}
+    })();
   </script>
+  <style>
+    body{
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,Helvetica,sans-serif;
+      margin:0;
+      padding:24px;
+      background:#f8fafc;
+      color:#0f172a;
+    }
+    a{ color:#0ea5e9; text-decoration:none; }
+  </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="card" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);color:#fff">
-      <div class="row" style="align-items:center;justify-content:space-between">
-        <div>
-          <h1>Owner — Loan Request</h1>
-          <div class="muted" style="color:rgba(255,255,255,.85)" id="loan_matatu_line">Select a matatu first.</div>
-        </div>
-        <div>
-          <a class="btn ghost" href="/public/matatu/owner.html">Back to Owner Dashboard</a>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="row">
-        <div class="field">
-          <label>Matatu
-            <select id="matatu_select"></select>
-          </label>
-        </div>
-        <div class="field" style="min-width:180px">
-          <label>Amount (KES)
-            <input id="loan_amount" type="number" min="1" placeholder="e.g. 50000" />
-          </label>
-        </div>
-        <div class="field">
-          <label>Model
-            <select id="loan_model">
-              <option value="DAILY">DAILY</option>
-              <option value="WEEKLY">WEEKLY</option>
-              <option value="MONTHLY" selected>MONTHLY</option>
-            </select>
-          </label>
-        </div>
-        <div class="field">
-          <label>Term (months)
-            <select id="loan_term">
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-              <option value="4">4</option>
-              <option value="5">5</option>
-              <option value="6">6</option>
-            </select>
-          </label>
-        </div>
-        <div class="field" style="flex:1;min-width:220px">
-          <label>Note (optional)
-            <input id="loan_note" placeholder="What is this loan for?" />
-          </label>
-        </div>
-        <button class="btn" id="loan_submit" type="button">Submit Request</button>
-      </div>
-      <div class="muted" id="loan_msg" style="margin-top:8px"></div>
-    </div>
-
-    <div class="card">
-      <div class="row" style="align-items:center;justify-content:space-between">
-        <h3 style="margin:0">My Requests</h3>
-        <button class="btn ghost" id="loan_req_reload" type="button">Reload</button>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Amount</th>
-              <th>Model</th>
-              <th>Term (months)</th>
-              <th>Status</th>
-              <th>Note</th>
-              <th>Request ID</th>
-            </tr>
-          </thead>
-          <tbody id="loan_req_tbody"><tr><td colspan="7" class="muted">No requests yet.</td></tr></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
+  <p>Redirecting to the <strong>Matatu Owner</strong> dashboard Loans tab…</p>
+  <p>If you are not redirected, <a href="/public/matatu/owner.html#loan">click here</a>.</p>
 </body>
 </html>
 
