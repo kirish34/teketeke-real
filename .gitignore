@@ -13,3 +13,4 @@ coverage/
 .tmp_*.html
 
 .env*.local
+public/downloads/*.apk
