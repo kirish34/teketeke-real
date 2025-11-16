@@ -145,14 +145,26 @@
   <!-- Collections summary -->
   <section id="p_summary" class="panel">
     <div class="grid">
-      <div class="card"><div class="k">FARE (gross)</div><div class="v" id="sum_fare">0</div></div>
-      <div class="card"><div class="k">SAVINGS</div><div class="v" id="sum_savings">0</div></div>
-      <div class="card"><div class="k">LOAN REPAY</div><div class="v" id="sum_loan">0</div></div>
-      <div class="card"><div class="k">SACCO FEE</div><div class="v" id="sum_sacco">0</div></div>
+      <div class="card">
+        <div class="k">Daily Fee (SACCO_FEE)</div>
+        <div class="v" id="sum_df_today">0</div>
+        <div class="muted" style="margin-top:4px;font-size:12px;">Week: <span id="sum_df_week">0</span> • Month: <span id="sum_df_month">0</span></div>
+      </div>
+      <div class="card">
+        <div class="k">Savings</div>
+        <div class="v" id="sum_sv_today">0</div>
+        <div class="muted" style="margin-top:4px;font-size:12px;">Week: <span id="sum_sv_week">0</span> • Month: <span id="sum_sv_month">0</span></div>
+      </div>
+      <div class="card">
+        <div class="k">Loan Repay</div>
+        <div class="v" id="sum_ln_today">0</div>
+        <div class="muted" style="margin-top:4px;font-size:12px;">Week: <span id="sum_ln_week">0</span> • Month: <span id="sum_ln_month">0</span></div>
+      </div>
     </div>
     <div class="card" style="margin-top:16px">
       <canvas id="summaryChart" height="120"></canvas>
-      <p class="note">Chart shows SACCO_FEE by day (computed client-side for the selected range).</p>
+      <p class="note">Chart shows SACCO_FEE by day (computed client-side for the selected range). Summary tiles show totals for today, this week and this month.</p>
+      <p class="muted" id="sumOlderNote" style="margin:6px 0 0;font-size:12px;"></p>
     </div>
   </section>
 
@@ -485,9 +497,9 @@
       });
     })();
 
-    // Date defaults
+    // Date defaults (today only)
     $('toDate').value = today;
-    $('fromDate').value = isoDate(new Date(Date.now() - 6*24*3600*1000));
+    $('fromDate').value = today;
 
     let currentSacco = null;
     let matatuMap = new Map();
@@ -669,11 +681,49 @@
       }
       $('txCount').textContent = `${items.length} row(s)`;
 
-      const sum = k => all.filter(t=>t.kind===k).reduce((a,b)=>a+Number(b.fare_amount_kes||0),0);
-      $('sum_fare').textContent   = fmtKES(sum('FARE'));
-      $('sum_savings').textContent= fmtKES(sum('SAVINGS'));
-      $('sum_loan').textContent   = fmtKES(sum('LOAN_REPAY'));
-      $('sum_sacco').textContent  = fmtKES(sum('SACCO_FEE'));
+      // Summary: today / this week / this month for key kinds
+      const raw = (res.items||[]).filter(tx => String(tx.status||'').toUpperCase()==='SUCCESS');
+      const today = new Date(); today.setHours(0,0,0,0);
+      const startOfWeek = new Date(today); const day = startOfWeek.getDay() || 7; startOfWeek.setDate(startOfWeek.getDate() - (day-1));
+      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      const isSameOrAfter = (d, since)=> d.getTime() >= since.getTime();
+
+      const buckets = {
+        SACCO_FEE: { today:0, week:0, month:0 },
+        SAVINGS:   { today:0, week:0, month:0 },
+        LOAN_REPAY:{ today:0, week:0, month:0 }
+      };
+      let hasOlder = false;
+
+      raw.forEach(tx=>{
+        const kind = String(tx.kind||'').toUpperCase();
+        if (!buckets[kind]) return;
+        const amt = Number(tx.fare_amount_kes||0);
+        const d = new Date(tx.created_at);
+        const dMid = new Date(d); dMid.setHours(0,0,0,0);
+        if (!isSameOrAfter(dMid, startOfMonth)) hasOlder = true;
+        if (dMid.getTime() === today.getTime()) buckets[kind].today += amt;
+        if (isSameOrAfter(dMid, startOfWeek)) buckets[kind].week += amt;
+        if (isSameOrAfter(dMid, startOfMonth)) buckets[kind].month += amt;
+      });
+
+      const put = (id,val)=>{ const el=document.getElementById(id); if(el) el.textContent = fmtKES(val); };
+      put('sum_df_today', buckets.SACCO_FEE.today);
+      put('sum_df_week',  buckets.SACCO_FEE.week);
+      put('sum_df_month', buckets.SACCO_FEE.month);
+      put('sum_sv_today', buckets.SAVINGS.today);
+      put('sum_sv_week',  buckets.SAVINGS.week);
+      put('sum_sv_month', buckets.SAVINGS.month);
+      put('sum_ln_today', buckets.LOAN_REPAY.today);
+      put('sum_ln_week',  buckets.LOAN_REPAY.week);
+      put('sum_ln_month', buckets.LOAN_REPAY.month);
+
+      const olderEl = document.getElementById('sumOlderNote');
+      if (olderEl){
+        olderEl.textContent = hasOlder
+          ? 'There are successful collections before this month in the last 1000 transactions.'
+          : 'No successful collections before this month in the last 1000 transactions.';
+      }
 
       const g = groupByDay(all);
       renderChart('summaryChart','SACCO Fee (KES)',g.labels,g.values);
