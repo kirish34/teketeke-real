@@ -138,7 +138,6 @@
           </label>
           <div id="matatuHint" class="muted">Choose a matatu to manage.</div>
         </div>
-        <a class="btn" href="/public/downloads/teketeke-go-matatu-owner.apk" download>Download Owner App (APK)</a>
       </div>
     </div>
 
@@ -490,6 +489,11 @@
         const plate = (m.number_plate||'').toUpperCase() || 'Matatu';
         const badge = $('currentMatatuBadge');
         if (badge) badge.textContent = `${plate} (${m.id}) selected`;
+        const welcome = $('welcomeLine');
+        if (welcome){
+          const ownerName = (m.owner_name || '').toString().trim();
+          welcome.textContent = ownerName ? `Hello, ${ownerName}` : 'Hello, Matatu Owner';
+        }
         $('ov_plate').textContent = plate;
         $('ov_sacco').textContent = m.sacco_id || '—';
         $('ov_id').textContent = m.id || '—';
@@ -816,5 +820,12 @@
 
     })();
   </script>
+
+  <footer style="max-width:1100px;margin:24px auto 0;">
+    <div class="card" style="text-align:center;">
+      <p class="muted" style="margin:0 0 8px;">Prefer the Android app?</p>
+      <a class="btn" href="/public/downloads/teketeke-go-matatu-owner.apk" download>Download Owner App (APK)</a>
+    </div>
+  </footer>
 </body>
 </html>
