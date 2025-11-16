@@ -172,12 +172,39 @@
       <button id="exportTx">Export CSV</button>
       <span class="right k" id="txCount"></span>
     </div>
-    <table>
-      <thead>
-        <tr><th>Time</th><th>Matatu</th><th>MSISDN</th><th>Fare</th><th>Service Fee</th><th>Status</th><th>Kind</th><th>ID</th></tr>
-      </thead>
-      <tbody id="txTbody"></tbody>
-    </table>
+    <div class="card" style="margin-top:10px">
+      <h3 style="margin-top:0">Daily Fee (SACCO_FEE)</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Time</th><th>Matatu</th><th>MSISDN</th><th>Amount</th><th>Service Fee</th><th>Status</th></tr>
+          </thead>
+          <tbody id="txDailyBody"><tr><td colspan="6" class="muted">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card" style="margin-top:10px">
+      <h3 style="margin-top:0">Savings</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Time</th><th>Matatu</th><th>MSISDN</th><th>Amount</th><th>Service Fee</th><th>Status</th></tr>
+          </thead>
+          <tbody id="txSavingsBody"><tr><td colspan="6" class="muted">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card" style="margin-top:10px">
+      <h3 style="margin-top:0">Loan Repayments</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Time</th><th>Matatu</th><th>MSISDN</th><th>Amount</th><th>Service Fee</th><th>Status</th></tr>
+          </thead>
+          <tbody id="txLoanBody"><tr><td colspan="6" class="muted">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
   </section>
 
   <!-- Payments (STK only) -->
@@ -603,16 +630,43 @@
       const all=(res.items||[]).filter(tx=>withinRange(tx.created_at,fromIso,toIso));
       const items = status ? all.filter(tx=>(tx.status||'')===status) : all;
 
-      const T=$('txTbody'); T.innerHTML='';
-      items.forEach(tx=>{
+      const dailyBody = document.getElementById('txDailyBody');
+      const savBody   = document.getElementById('txSavingsBody');
+      const loanBody  = document.getElementById('txLoanBody');
+      if (dailyBody) dailyBody.innerHTML = '';
+      if (savBody)   savBody.innerHTML   = '';
+      if (loanBody)  loanBody.innerHTML  = '';
+
+      const appendRow = (tbody, tx) => {
+        if (!tbody) return;
         const tr=document.createElement('tr');
         tr.innerHTML =
           `<td>${new Date(tx.created_at).toLocaleString()}</td><td class="mono">${matatuMap.get(tx.matatu_id)||''}</td>`+
           `<td class="mono">${tx.passenger_msisdn||''}</td><td>${fmtKES(tx.fare_amount_kes)}</td>`+
-          `<td>${fmtKES(tx.service_fee_kes)}</td><td>${tx.status||''}</td><td>${tx.kind||''}</td>`+
-          `<td class="mono">${tx.id}</td>`;
-        T.appendChild(tr);
+          `<td>${fmtKES(tx.service_fee_kes)}</td><td>${tx.status||''}</td>`;
+        tbody.appendChild(tr);
+      };
+
+      items.forEach(tx=>{
+        const kind = String(tx.kind||'').toUpperCase();
+        if (kind === 'SACCO_FEE'){
+          appendRow(dailyBody, tx);
+        } else if (kind === 'SAVINGS'){
+          appendRow(savBody, tx);
+        } else if (kind === 'LOAN_REPAY'){
+          appendRow(loanBody, tx);
+        }
       });
+
+      if (dailyBody && !dailyBody.children.length){
+        dailyBody.innerHTML = '<tr><td colspan="6" class="muted">No daily fee transactions in range.</td></tr>';
+      }
+      if (savBody && !savBody.children.length){
+        savBody.innerHTML = '<tr><td colspan="6" class="muted">No savings transactions in range.</td></tr>';
+      }
+      if (loanBody && !loanBody.children.length){
+        loanBody.innerHTML = '<tr><td colspan="6" class="muted">No loan repayments in range.</td></tr>';
+      }
       $('txCount').textContent = `${items.length} row(s)`;
 
       const sum = k => all.filter(t=>t.kind===k).reduce((a,b)=>a+Number(b.fare_amount_kes||0),0);
@@ -1261,10 +1315,12 @@
 
     // Export CSV
     $('exportTx').onclick = ()=>{
-      const tbody=document.getElementById('txTbody');
-      const table=tbody.closest('table');
-      const rows=[...table.querySelectorAll('tr')];
-      const csv=rows.map(r=>[...r.querySelectorAll('th,td')].map(c=>`"${(c.innerText||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+      const tables = document.querySelectorAll('#p_tx table');
+      const rows = [];
+      tables.forEach(table => {
+        rows.push(...table.querySelectorAll('tr'));
+      });
+      const csv = rows.map(r=>[...r.querySelectorAll('th,td')].map(c=>`"${(c.innerText||'').replace(/"/g,'""')}"`).join(',')).join('\n');
       const a=document.createElement('a');
       a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
       a.download='transactions.csv';
