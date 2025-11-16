@@ -38,26 +38,6 @@
 </header>
 
   <section>
-    <h2>Status</h2>
-    <div class="row">
-      <div>
-        <div class="pill" id="sessionState">Checking session.</div>
-        <div class="hint" id="whoamiHint">-</div>
-      </div>
-    </div>
-  </section>
-
-  <div class="card" style="background:#ebf5ff;border:1px dashed #60a5fa">
-    <div class="row" style="align-items:center;gap:12px">
-      <div style="flex:1">
-        <h3 style="margin:0 0 4px;color:#0f172a">Taxi Android app</h3>
-        <p class="hint" style="margin:0">Download the offline-ready taxi app for faster field access.</p>
-      </div>
-      <a class="btn" href="/public/downloads/teketeke-go-taxi.apk" download>Download APK</a>
-    </div>
-  </div>
-
-  <section>
     <h2>Today</h2>
     <div class="kpis">
       <div class="kpi"><div class="v" id="kTillToday">?</div><div class="l">Till Today (KSh)</div></div>
@@ -214,6 +194,13 @@
       <div id="mpesaStatus" class="hint" style="margin-top:6px;">Status: Not available (web browser).</div>
     </div>
   </section>
+
+  <footer style="max-width:1100px;margin:24px auto 0;">
+    <div class="card" style="text-align:center;">
+      <p class="hint" style="margin:0 0 8px;">Prefer the Android app?</p>
+      <a class="btn" href="/public/downloads/teketeke-go-taxi.apk" download>Download Taxi App (APK)</a>
+    </div>
+  </footer>
 
   <script>
     function friendlyName(user){
