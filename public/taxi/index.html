@@ -39,7 +39,8 @@
 
   <div class="tabs">
     <button class="tab active" type="button" data-panel="today">Today</button>
-    <button class="tab" type="button" data-panel="history">History</button>
+    <button class="tab" type="button" data-panel="cashin">Cash In</button>
+    <button class="tab" type="button" data-panel="expenses">Expenses</button>
     <button class="tab" type="button" data-panel="insights">Insights</button>
     <button class="tab" type="button" data-panel="goals">Goals</button>
     <button class="tab" type="button" data-panel="automation">Automation</button>
@@ -56,10 +57,10 @@
     <div class="hint" id="sumHint">Refreshing…</div>
   </section>
 
-  <section id="panel-history" class="panel">
-    <h2>History</h2>
+  <section id="panel-cashin" class="panel">
+    <h2>Cash In</h2>
     <div class="section">
-      <h3>Actions</h3>
+      <h3>Collect Cash</h3>
       <div class="grid-2">
         <div>
           <label for="cashAmt">Collect Cash (KSh)</label>
@@ -73,13 +74,34 @@
           <button id="btnCash">Save Cash</button>
           <div id="cashMsg" class="hint"></div>
         </div>
+      </div>
+    </div>
 
+    <div class="section">
+      <h3>Recent Collections</h3>
+      <table>
+        <thead>
+          <tr><th>Time</th><th>Name</th><th>Phone</th><th>Amount</th></tr>
+        </thead>
+        <tbody id="cashBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="panel-expenses" class="panel">
+    <h2>Expenses</h2>
+    <div class="section">
+      <h3>Record Expense</h3>
+      <div class="grid-2">
         <div>
-          <label for="expCat">Enter Expense</label>
+          <label for="expCat">Category</label>
           <select id="expCat">
             <option value="Fuel">Fuel</option>
             <option value="Parking">Parking</option>
             <option value="Maintenance">Maintenance</option>
+            <option value="Airtime">Airtime</option>
+            <option value="Food">Food</option>
+            <option value="Liquor">Liquor</option>
             <option value="Other">Other</option>
           </select>
           <label for="expAmt">Amount (KSh)</label>
@@ -93,27 +115,13 @@
     </div>
 
     <div class="section">
-      <h3>Recent</h3>
-      <div class="grid-2">
-        <div>
-          <h3 class="hint" style="margin:0 0 6px 0">Cash</h3>
-          <table>
-            <thead>
-              <tr><th>Time</th><th>Name</th><th>Phone</th><th>Amount</th></tr>
-            </thead>
-            <tbody id="cashBody"></tbody>
-          </table>
-        </div>
-        <div>
-          <h3 class="hint" style="margin:0 0 6px 0">Expenses</h3>
-          <table>
-            <thead>
-              <tr><th>Time</th><th>Category</th><th>Amount</th><th>Notes</th></tr>
-            </thead>
-            <tbody id="expBody"></tbody>
-          </table>
-        </div>
-      </div>
+      <h3>Recent Expenses</h3>
+      <table>
+        <thead>
+          <tr><th>Time</th><th>Category</th><th>Amount</th><th>Notes</th></tr>
+        </thead>
+        <tbody id="expBody"></tbody>
+      </table>
     </div>
   </section>
 
@@ -692,4 +700,3 @@
   </script>
 </body>
 </html>
-
