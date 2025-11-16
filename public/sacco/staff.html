@@ -20,7 +20,7 @@
     <div class="muted" id="saccoNameLine" style="margin-top:4px;font-size:13px;">SACCO: --</div>
   </div>
   <div class="hero-actions">
-    <a class="btn ghost" href="/public/auth/role-select.html">Role Select</a>
+    <a class="btn ghost" id="roleSelectLink" href="/public/auth/role-select.html">Role Select</a>
     <span id="auth_state" class="pill">Checking sign-in...</span>
     <button id="logoutBtn" class="btn bad">Logout</button>
   </div>
@@ -393,6 +393,14 @@ const friendlyName = (user)=>{
 };
 function startCornerClock(){ const el=document.getElementById('dateTimeLine'); if(!el) return; const update=()=>{ el.textContent=new Date().toLocaleString(); }; update(); setInterval(update,1000); }
 startCornerClock();
+(function hideRoleSelectInApp(){
+  try{
+    const inApp = !!(window.Capacitor && window.Capacitor.isNativePlatform);
+    if (!inApp) return;
+    const link = document.getElementById('roleSelectLink');
+    if (link) link.style.display = 'none';
+  }catch(_){}
+})();
 (async function(){ try{ if(window.TT && window.TT.getSupabase){ const supa = await window.TT.getSupabase(); const {data:{session}}=await supa.auth.getSession(); const el=document.getElementById('auth_state'); if(el) el.textContent = session?.user?.email ? (`Signed in as ${session.user.email}`) : 'Not signed in'; const welcome=document.getElementById('welcomeLine'); if(welcome) welcome.textContent = `Hello, ${friendlyName(session?.user)}`; const b=document.getElementById('logoutBtn'); b?.addEventListener('click', async ()=>{ try{ await supa.auth.signOut(); }catch(_){} localStorage.removeItem('auth_token'); localStorage.removeItem('tt_root_token'); localStorage.removeItem('tt_admin_token'); location.reload(); }); } }catch(_){ } })();
 </script>
 
