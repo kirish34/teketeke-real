@@ -48,7 +48,11 @@
 
 <!-- Daily Fee Panel -->
 <section id="p_daily" class="panel active" aria-labelledby="tab_daily">
-  <div class="section-title"><h3 style="margin:0">Daily Fee</h3><span class="muted" id="df_counts"></span></div>
+  <div class="section-title">
+    <h3 style="margin:0">Daily Fee</h3>
+    <span class="muted" id="df_counts"></span>
+    <span class="muted" id="df_total" style="margin-left:12px;"></span>
+  </div>
   <div class="card">
     <h4>Paid Today</h4>
     <div class="table-wrap">
@@ -80,7 +84,11 @@
 
 <!-- Loans Panel (single table) -->
 <section id="p_loans" class="panel" aria-labelledby="tab_loans">
-  <div class="section-title"><h3 style="margin:0">Loan Table (Due Today)</h3><span class="muted" id="ln_counts"></span></div>
+  <div class="section-title">
+    <h3 style="margin:0">Loan Table (Due Today)</h3>
+    <span class="muted" id="ln_counts"></span>
+    <span class="muted" id="ln_total" style="margin-left:12px;"></span>
+  </div>
   <div class="card">
     <div class="table-wrap">
       <table>
@@ -102,7 +110,11 @@
 
 <!-- Savings Panel -->
 <section id="p_savings" class="panel" aria-labelledby="tab_savings">
-  <div class="section-title"><h3 style="margin:0">Savings</h3><span class="muted" id="sv_counts"></span></div>
+  <div class="section-title">
+    <h3 style="margin:0">Savings</h3>
+    <span class="muted" id="sv_counts"></span>
+    <span class="muted" id="sv_total" style="margin-left:12px;"></span>
+  </div>
   <div class="card">
     <h4>Paid Today</h4>
     <div class="table-wrap">
@@ -242,6 +254,7 @@
     if(!SACCO_ID) return;
     const res = await g(`/u/sacco/${SACCO_ID}/transactions?limit=1000`);
     const items = res.items||[];
+    window._saccoStaffTx = items;
 
     const dfPaid = items.filter(tx => ['SACCO_FEE','DAILY_FEE'].includes(tx.kind) && tx.status==='SUCCESS' && isToday(tx.created_at));
     const dfSet = new Set(dfPaid.map(x=>x.matatu_id));
@@ -306,6 +319,33 @@
     const svSet = new Set(svPaid.map(x=>x.matatu_id));
     renderPaidList('sv_paid', svPaid);
     renderDueList('sv_due', svSet, 'SAVINGS');
+    recomputeTotals();
+  }
+
+  function recomputeTotals(){
+    const items = window._saccoStaffTx || [];
+    if (!Array.isArray(items) || !items.length) return;
+
+    const dfPaid = items.filter(tx => ['SACCO_FEE','DAILY_FEE'].includes(tx.kind) && tx.status==='SUCCESS' && isToday(tx.created_at));
+    const dfTotal = dfPaid.reduce((sum, tx)=> sum + Number(tx.fare_amount_kes||0), 0);
+    const dfTotalEl = document.getElementById('df_total');
+    if (dfTotalEl){
+      dfTotalEl.textContent = `Total: ${fmtKES(dfTotal)}`;
+    }
+
+    const svPaid = items.filter(tx => tx.kind==='SAVINGS' && tx.status==='SUCCESS' && isToday(tx.created_at));
+    const svTotal = svPaid.reduce((sum, tx)=> sum + Number(tx.fare_amount_kes||0), 0);
+    const svTotalEl = document.getElementById('sv_total');
+    if (svTotalEl){
+      svTotalEl.textContent = `Total: ${fmtKES(svTotal)}`;
+    }
+
+    const lnPaid = items.filter(tx => tx.kind==='LOAN_REPAY' && tx.status==='SUCCESS' && isToday(tx.created_at));
+    const lnTotal = lnPaid.reduce((sum, tx)=> sum + Number(tx.fare_amount_kes||0), 0);
+    const lnTotalEl = document.getElementById('ln_total');
+    if (lnTotalEl){
+      lnTotalEl.textContent = `Total: ${fmtKES(lnTotal)}`;
+    }
   }
 
   // Tabs
