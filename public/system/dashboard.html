@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="/public/css/dashboard-theme.css"/>
   <script src="/public/js/app-config.js"></script>
   <script src="/public/js/api.js"></script>
+  <script src="/public/js/role-guard.js"></script>
 
   
 </head>
@@ -78,7 +79,10 @@
       <select id="mt_sacco">
         <option value="">Select SACCO</option>
       </select>
-      <select id="mt_body_type"><option value="">Matatu type</option><option value="VAN">Van</option><option value="MINI_BUS">Mini Bus</option><option value="BUS">Bus</option></select>
+      <select id="mt_body_type">
+        <option value="">Matatu type</option>
+        <option value="MATATU">Matatu</option>
+      </select>
     </div>
 
 
@@ -301,11 +305,19 @@
         if (!sb) throw new Error('Supabase client not ready');
       } catch (e) {
         console.error('[system] Supabase unavailable', e);
-        const badge = document.getElementById('sess_badge');
-        if (badge){
-          badge.textContent = 'Supabase unavailable';
-          badge.classList.add('err');
+        const badgeEl = document.getElementById('sess_badge');
+        if (badgeEl){
+          badgeEl.textContent = 'Supabase unavailable';
+          badgeEl.classList.add('err');
         }
+        return;
+      }
+
+      // Guard: only System Admin logins may use this dashboard
+      try{
+        await requireRole('SYSTEM_ADMIN', { statusEl:'sess_badge', roleLabel:'System Admin' });
+      }catch(_){
+        // requireRole already redirected to login or role-select; stop initialisation
         return;
       }
 

@@ -146,7 +146,7 @@
 
 <script>
 (async function(){
-  try{ await requireRole(['SACCO_STAFF','SACCO_ADMIN'], { statusEl:'auth_state', roleLabel:'SACCO Staff' }); }catch(_){ return; }
+  try{ await requireRole('SACCO_STAFF', { statusEl:'auth_state', roleLabel:'SACCO Staff' }); }catch(_){ return; }
   const $ = id => document.getElementById(id);
   const todayIso = d => new Date(d).toISOString().slice(0,10);
   const isToday = (ts) => todayIso(ts) === todayIso(new Date());

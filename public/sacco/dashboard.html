@@ -9,6 +9,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <script src="/public/js/app-config.js"></script>
   <script src="/public/js/api.js"></script>
+  <script src="/public/js/role-guard.js"></script>
 
   <!-- Charts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -340,7 +341,12 @@
   </section>
 
   <script>
-  (function(){
+  (async function(){
+    try{
+      await requireRole('SACCO', { statusEl:'auth_state', roleLabel:'SACCO Admin' });
+    }catch(_){
+      return;
+    }
     const $ = id => document.getElementById(id);
     const isoDate = d => new Date(d).toISOString().slice(0,10);
     const today = isoDate(new Date());

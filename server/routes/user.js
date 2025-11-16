@@ -116,9 +116,32 @@ router.get('/me', async (req, res) => {
   try {
     const ctx = await getSaccoContext(req.user.id);
     const roleRow = await getRoleRow(req.user.id);
+
+    let effectiveRole = roleRow?.role || null;
+    let saccoId = ctx.saccoId || roleRow?.sacco_id || null;
+
+    // Allow System Admins (from staff_profiles) to be recognised by role-guard
+    if (!effectiveRole) {
+      try {
+        const { data: staff, error: staffErr } = await supabaseAdmin
+          .from('staff_profiles')
+          .select('role,sacco_id')
+          .eq('user_id', req.user.id)
+          .maybeSingle();
+        if (!staffErr && staff?.role === 'SYSTEM_ADMIN') {
+          effectiveRole = 'SYSTEM_ADMIN';
+          if (!saccoId && staff.sacco_id) {
+            saccoId = staff.sacco_id;
+          }
+        }
+      } catch (_) {
+        // If staff lookup fails we still return the basic profile
+      }
+    }
+
     res.json({
-      role: roleRow?.role || null,
-      sacco_id: ctx.saccoId || roleRow?.sacco_id || null,
+      role: effectiveRole,
+      sacco_id: saccoId,
       matatu_id: ctx.matatu?.id || roleRow?.matatu_id || null,
       matatu_plate: ctx.matatu?.number_plate || null,
       email: req.user?.email || null,
@@ -154,23 +177,49 @@ router.get('/my-saccos', async (req, res) => {
     res.status(500).json({ error: error.message || 'Failed to load saccos' });
   }
 });
+
 // Return vehicles that the signed-in user can manage.
 router.get('/vehicles', async (req, res) => {
   try {
     const ctx = await getSaccoContext(req.user.id);
-    if (ctx.matatu && ctx.matatu.id) {
-      return res.json({ items: [ctx.matatu] });
+    const roleRow = ctx.role || null;
+    const roleName = roleRow?.role || null;
+
+    // Matatu owners: allow multiple vehicles for the same owner (phone/name)
+    if (roleName === 'OWNER' && roleRow?.matatu_id) {
+      const primary = await getMatatu(roleRow.matatu_id);
+      let items = [];
+      if (!primary) {
+        const { data, error } = await supabaseAdmin
+          .from('matatus')
+          .select('*')
+          .eq('id', roleRow.matatu_id)
+          .order('created_at', { ascending: false });
+        if (error) throw error;
+        items = data || [];
+      } else {
+        let query = supabaseAdmin.from('matatus').select('*').order('created_at', { ascending: false });
+        if (primary.owner_phone) {
+          query = query.eq('owner_phone', primary.owner_phone);
+        } else if (primary.owner_name) {
+          query = query.eq('owner_name', primary.owner_name);
+        } else {
+          query = query.eq('id', primary.id);
+        }
+        const { data, error } = await query;
+        if (error) throw error;
+        items = data || [];
+      }
+      return res.json({ items });
     }
-    if (ctx.saccoId) {
-      const { data, error } = await supabaseAdmin
-        .from('matatus')
-        .select('*')
-        .eq('sacco_id', ctx.saccoId)
-        .order('number_plate', { ascending: true });
-      if (error) throw error;
-      return res.json({ items: data || [] });
-    }
-    return res.json({ items: [] });
+
+    // Default behaviour: sacco-scoped or single-matatu roles
+    let query = supabaseAdmin.from('matatus').select('*').order('created_at', { ascending: false });
+    if (ctx.saccoId) query = query.eq('sacco_id', ctx.saccoId);
+    if (ctx.matatu?.id) query = query.eq('id', ctx.matatu.id);
+    const { data, error } = await query;
+    if (error) throw error;
+    res.json({ items: data || [] });
   } catch (e) {
     res.status(500).json({ error: e.message || 'Failed to load vehicles' });
   }
@@ -452,65 +501,6 @@ router.get('/matatu/by-plate', async (req,res)=>{
     res.json(matatu);
   }catch(e){
     res.status(500).json({ error: e.message || 'Failed to lookup matatu' });
-  }
-});
-
-router.get('/me', async (req, res) => {
-  try {
-    const role = await getRoleRow(req.user.id);
-    res.json({
-      id: req.user.id,
-      email: req.user.email,
-      role: role?.role || 'USER',
-      sacco_id: role?.sacco_id || null,
-      matatu_id: role?.matatu_id || null,
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message || 'Failed to load profile' });
-  }
-});
-
-router.get('/vehicles', async (req, res) => {
-  try {
-    const role = await getRoleRow(req.user.id);
-    let items = [];
-
-    // Matatu owners: allow multiple vehicles for the same owner (phone/name)
-    if (role?.role === 'OWNER' && role.matatu_id) {
-      const primary = await getMatatu(role.matatu_id);
-      if (!primary) {
-        const { data, error } = await supabaseAdmin
-          .from('matatus')
-          .select('*')
-          .eq('id', role.matatu_id)
-          .order('created_at', { ascending: false });
-        if (error) throw error;
-        items = data || [];
-      } else {
-        let query = supabaseAdmin.from('matatus').select('*').order('created_at', { ascending: false });
-        if (primary.owner_phone) {
-          query = query.eq('owner_phone', primary.owner_phone);
-        } else if (primary.owner_name) {
-          query = query.eq('owner_name', primary.owner_name);
-        } else {
-          query = query.eq('id', primary.id);
-        }
-        const { data, error } = await query;
-        if (error) throw error;
-        items = data || [];
-      }
-      return res.json({ items });
-    }
-
-    // Default behaviour: sacco-scoped or single-matatu roles
-    let query = supabaseAdmin.from('matatus').select('*').order('created_at', { ascending: false });
-    if (role?.sacco_id) query = query.eq('sacco_id', role.sacco_id);
-    if (role?.matatu_id) query = query.eq('id', role.matatu_id);
-    const { data, error } = await query;
-    if (error) throw error;
-    res.json({ items: data || [] });
-  } catch (error) {
-    res.status(500).json({ error: error.message || 'Failed to load vehicles' });
   }
 });
 
