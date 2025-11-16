@@ -17,6 +17,7 @@
     <p class="eyebrow">SACCO Staff</p>
     <div class="hello" id="welcomeLine">Hello!</div>
     <div class="timestamp" id="dateTimeLine">--</div>
+    <div class="muted" id="saccoNameLine" style="margin-top:4px;font-size:13px;">SACCO: --</div>
   </div>
   <div class="hero-actions">
     <a class="btn ghost" href="/public/auth/role-select.html">Role Select</a>
@@ -161,8 +162,17 @@
   async function loadSaccos(){
     const res=await g('/u/my-saccos');
     const sel=$('sacco'); sel.innerHTML='';
-    (res.items||[]).forEach(s=>{ const o=document.createElement('option'); o.value=s.sacco_id; o.textContent=s.name||s.sacco_id; sel.appendChild(o); });
-    if(res.items?.length){ sel.value=res.items[0].sacco_id; SACCO_ID = sel.value; }
+    const items = res.items||[];
+    items.forEach(s=>{ const o=document.createElement('option'); o.value=s.sacco_id; o.textContent=s.name||s.sacco_id; sel.appendChild(o); });
+    if(items.length){
+      sel.value=items[0].sacco_id;
+      SACCO_ID = sel.value;
+      const line = document.getElementById('saccoNameLine');
+      if (line){
+        const name = items[0].name || items[0].sacco_id || '';
+        line.textContent = name ? `SACCO: ${name}` : 'SACCO: --';
+      }
+    }
   }
   async function loadMatatus(){
     if(!SACCO_ID) return;
