@@ -779,6 +779,15 @@ router.post('/matatu/:id/loan-requests', async (req,res)=>{
     const model = (req.body?.model || 'MONTHLY').toString().toUpperCase();
     const term = Math.max(1, Math.min(6, Number(req.body?.term_months || 1)));
     const note = (req.body?.note || '').toString();
+
+    const payoutRaw = (req.body?.payout_method || '').toString().toUpperCase();
+    const allowedPayout = ['CASH','M_PESA','ACCOUNT'];
+    const payout_method = allowedPayout.includes(payoutRaw) ? payoutRaw : null;
+    const payout_phone_raw = (req.body?.payout_phone || '').toString().trim();
+    const payout_account_raw = (req.body?.payout_account || '').toString().trim();
+    const payout_phone = payout_method === 'M_PESA' && payout_phone_raw ? payout_phone_raw : null;
+    const payout_account = payout_method === 'ACCOUNT' && payout_account_raw ? payout_account_raw : null;
+
     if (!amount) return res.status(400).json({ error:'amount_kes required' });
     if (!['DAILY','WEEKLY','MONTHLY'].includes(model)) return res.status(400).json({ error:'invalid model' });
     const row = {
@@ -789,6 +798,9 @@ router.post('/matatu/:id/loan-requests', async (req,res)=>{
       model,
       term_months: term,
       note,
+      payout_method,
+      payout_phone,
+      payout_account,
       status: 'PENDING'
     };
     const { data, error } = await supabaseAdmin.from('loan_requests').insert(row).select('*').single();
@@ -829,12 +841,62 @@ router.patch('/sacco/:id/loan-requests/:reqId', async (req,res)=>{
       const { data: L, error: lErr } = await supabaseAdmin.from('loans').insert(row).select('*').single();
       if (lErr) throw lErr;
       createdLoan = L;
+      updates.loan_id = L.id;
     }
     const { data: U, error: uErr } = await supabaseAdmin
       .from('loan_requests').update(updates).eq('id', reqId).eq('sacco_id', saccoId).select('*').maybeSingle();
     if (uErr) throw uErr;
     res.json({ request: U, loan: createdLoan });
   }catch(e){ res.status(500).json({ error: e.message || 'Failed to process loan request' }); }
+});
+
+// Mark an approved loan request as disbursed (cash / M-PESA / account transfer)
+router.post('/sacco/:id/loan-requests/:reqId/disburse', async (req,res)=>{
+  const saccoId = req.params.id; const reqId = req.params.reqId;
+  try{
+    const { allowed } = await ensureSaccoAccess(req.user.id, saccoId);
+    if (!allowed) return res.status(403).json({ error:'Forbidden' });
+    const { data: R, error: rErr } = await supabaseAdmin
+      .from('loan_requests').select('*').eq('id', reqId).eq('sacco_id', saccoId).maybeSingle();
+    if (rErr) throw rErr;
+    if (!R) return res.status(404).json({ error:'Request not found' });
+    if (String(R.status||'').toUpperCase() !== 'APPROVED'){
+      return res.status(400).json({ error:'Only approved requests can be disbursed' });
+    }
+    if (R.disbursed_at){
+      return res.status(400).json({ error:'Request already marked as disbursed' });
+    }
+    const allowedMethods = ['CASH','M_PESA','ACCOUNT'];
+    const methodRaw = (req.body?.method || R.payout_method || 'CASH').toString().toUpperCase();
+    if (!allowedMethods.includes(methodRaw)){
+      return res.status(400).json({ error:'Invalid disbursement method' });
+    }
+    const phone = (req.body?.phone || R.payout_phone || '').toString().trim() || null;
+    const account = (req.body?.account || R.payout_account || '').toString().trim() || null;
+    const reference = (req.body?.reference || '').toString().trim() || null;
+
+    const now = new Date().toISOString();
+    const patch = {
+      disbursed_at: now,
+      disbursed_by: req.user.id,
+      disbursed_method: methodRaw,
+      disbursed_reference: reference || null,
+      payout_phone: methodRaw === 'M_PESA' ? phone : R.payout_phone,
+      payout_account: methodRaw === 'ACCOUNT' ? account : R.payout_account
+    };
+
+    const { data: U, error: uErr } = await supabaseAdmin
+      .from('loan_requests')
+      .update(patch)
+      .eq('id', reqId)
+      .eq('sacco_id', saccoId)
+      .select('*')
+      .maybeSingle();
+    if (uErr) throw uErr;
+    res.json(U || {});
+  }catch(e){
+    res.status(500).json({ error: e.message || 'Failed to mark disbursement' });
+  }
 });
 // Loan payment history for a given loan (based on matatu_id and date window)
 router.get('/sacco/:id/loans/:loanId/payments', async (req,res)=>{

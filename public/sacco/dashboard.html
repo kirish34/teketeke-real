@@ -113,8 +113,42 @@
       <div class="row"><h3 style="margin:0">Loan Requests</h3><button id="lnreqReload" class="ghost right">Reload</button></div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Time</th><th>Owner</th><th>Plate</th><th>Amount</th><th>Model</th><th>Term</th><th>Note</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody id="lnreqTbody"><tr><td colspan="9" class="muted">Loading...</td></tr></tbody>
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Owner</th>
+              <th>Plate</th>
+              <th>Amount</th>
+              <th>Model</th>
+              <th>Term</th>
+              <th>Payout</th>
+              <th>Note</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="lnreqTbody"><tr><td colspan="10" class="muted">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div class="row"><h3 style="margin:0">Approved – Pending Disbursement</h3><button id="lnDisbReload" class="ghost right">Reload</button></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Owner</th>
+              <th>Plate</th>
+              <th>Amount</th>
+              <th>Model</th>
+              <th>Term</th>
+              <th>Payout</th>
+              <th>Disbursement</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="lnDisbTbody"><tr><td colspan="9" class="muted">Loading...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -1337,7 +1371,7 @@
       updateLiveStatus();
       updateHeadlineFor(currentSacco);
       const link = document.getElementById('linkStaffLoans'); if (link) link.href = '/public/sacco/staff-loans.html' + (currentSacco ? ('?sacco='+encodeURIComponent(currentSacco)) : '');
-      await Promise.all([ loadMatatus(), loadTxAndTotals(), loadStaff(), loadLoans(), loadLoanRequests(), loadRoutesAdmin(), loadDailyFeeRatesAdmin() ]);
+      await Promise.all([ loadMatatus(), loadTxAndTotals(), loadStaff(), loadLoans(), loadLoanRequests(), loadLoanDisbursements(), loadRoutesAdmin(), loadDailyFeeRatesAdmin() ]);
       await loadNotifications();
     };
 
@@ -1349,9 +1383,16 @@
         const T=$('lnreqTbody'); if(!T) return; T.innerHTML='';
         (res.items||[]).forEach(r=>{
           const plate = (matatuMap.get(r.matatu_id)||'');
+          const payout = (function(){
+            const m = (r.payout_method||'').toUpperCase();
+            if (!m) return '-';
+            if (m === 'M_PESA') return `M-PESA ${r.payout_phone||''}`.trim();
+            if (m === 'ACCOUNT') return `Account ${r.payout_account||''}`.trim();
+            return 'Cash';
+          })();
           const tr=document.createElement('tr');
           tr.innerHTML = `<td>${new Date(r.created_at).toLocaleString()}</td><td>${r.owner_name||''}</td><td>${plate}</td>`+
-            `<td>${fmtKES(r.amount_kes||0)}</td><td>${r.model||''}</td><td>${r.term_months||0}</td><td>${r.note||''}</td>`+
+            `<td>${fmtKES(r.amount_kes||0)}</td><td>${r.model||''}</td><td>${r.term_months||0}</td><td>${payout}</td><td>${r.note||''}</td>`+
             `<td>${r.status||''}</td>`+
             `<td>`+
               `<button class="ok" data-act="approve" data-id="${r.id}">Approve</button> `+
@@ -1359,8 +1400,52 @@
             `</td>`;
           T.appendChild(tr);
         });
-        if (!(res.items||[]).length){ $('lnreqTbody').innerHTML = '<tr><td colspan="9" class="muted">No pending requests</td></tr>'; }
-      }catch(e){ const T=$('lnreqTbody'); if(T) T.innerHTML = `<tr><td colspan="9" class="err">${parseErr(e)}</td></tr>`; }
+        if (!(res.items||[]).length){ $('lnreqTbody').innerHTML = '<tr><td colspan="10" class="muted">No pending requests</td></tr>'; }
+      }catch(e){ const T=$('lnreqTbody'); if(T) T.innerHTML = `<tr><td colspan="10" class="err">${parseErr(e)}</td></tr>`; }
+    }
+
+    async function loadLoanDisbursements(){
+      if (!currentSacco) return;
+      const T = $('lnDisbTbody'); if (!T) return;
+      T.innerHTML = '<tr><td colspan="9" class="muted">Loading...</td></tr>';
+      try{
+        const res = await jget(`/u/sacco/${currentSacco}/loan-requests?status=APPROVED`);
+        const items = (res.items||[]).filter(r => !r.disbursed_at);
+        if (!items.length){
+          T.innerHTML = '<tr><td colspan="9" class="muted">No approved loans awaiting disbursement</td></tr>';
+          return;
+        }
+        T.innerHTML = '';
+        items.forEach(r=>{
+          const plate = (matatuMap.get(r.matatu_id)||'');
+          const payout = (function(){
+            const m = (r.payout_method||'').toUpperCase();
+            if (!m) return '-';
+            if (m === 'M_PESA') return `M-PESA ${r.payout_phone||''}`.trim();
+            if (m === 'ACCOUNT') return `Account ${r.payout_account||''}`.trim();
+            return 'Cash';
+          })();
+          const disb = r.disbursed_at ? `${r.disbursed_method||''} @ ${new Date(r.disbursed_at).toLocaleString()}` : 'Not yet';
+          const tr = document.createElement('tr');
+          tr.dataset.reqId = r.id;
+          tr.dataset.payoutMethod = r.payout_method || '';
+          tr.dataset.payoutPhone = r.payout_phone || '';
+          tr.dataset.payoutAccount = r.payout_account || '';
+          tr.innerHTML =
+            `<td>${new Date(r.created_at).toLocaleString()}</td>`+
+            `<td>${r.owner_name||''}</td>`+
+            `<td>${plate}</td>`+
+            `<td>${fmtKES(r.amount_kes||0)}</td>`+
+            `<td>${r.model||''}</td>`+
+            `<td>${r.term_months||0}</td>`+
+            `<td>${payout}</td>`+
+            `<td>${disb}</td>`+
+            `<td><button class="ok" data-act="disburse" data-id="${r.id}">Mark disbursed</button></td>`;
+          T.appendChild(tr);
+        });
+      }catch(e){
+        T.innerHTML = `<tr><td colspan="9" class="err">${parseErr(e)}</td></tr>`;
+      }
     }
     $('applyRange').onclick = ()=> { loadTxAndTotals(); loadStaffCollections(); };
     $('matatuSearch').oninput = ()=> { clearTimeout(window._mtT); window._mtT = setTimeout(loadMatatus, 200); };
@@ -1368,6 +1453,8 @@
     $('txStatus').onchange = loadTxAndTotals;
     $('reloadTx').onclick = ()=> { loadTxAndTotals(); loadStaffCollections(); };
     $('sc_refresh').onclick = loadStaffCollections;
+    const lnDisbReloadBtn = $('lnDisbReload');
+    if (lnDisbReloadBtn){ lnDisbReloadBtn.onclick = loadLoanDisbursements; }
 
     // Export CSV
     $('exportTx').onclick = ()=>{
@@ -1406,8 +1493,42 @@
         if(!confirm(`${act==='approve'?'Approve':'Reject'} this request?`)) return;
         btn.disabled=true; try{
           await parse(await fetch(`/u/sacco/${currentSacco}/loan-requests/${id}`,{ method:'PATCH', headers:{'Content-Type':'application/json',Accept:'application/json'}, body: JSON.stringify({ action: act.toUpperCase() }) }));
-          await loadLoanRequests(); await loadLoans();
+          await loadLoanRequests(); await loadLoanDisbursements(); await loadLoans();
         }catch(err){ alert(err.message); } finally{ btn.disabled=false; }
+      });
+    })();
+
+    (function bindLnDisbActions(){
+      const T = document.getElementById('lnDisbTbody'); if (!T) return;
+      T.addEventListener('click', async (e)=>{
+        const btn = e.target.closest('button'); if (!btn) return;
+        if (btn.dataset.act !== 'disburse') return;
+        const id = btn.dataset.id; if (!id) return;
+        const row = btn.closest('tr');
+        const payoutMethod = (row?.dataset?.payoutMethod || 'CASH').toUpperCase();
+        const payoutPhone = row?.dataset?.payoutPhone || '';
+        const payoutAccount = row?.dataset?.payoutAccount || '';
+        let msg = `Mark this loan as disbursed (${payoutMethod}`;
+        if (payoutMethod === 'M_PESA' && payoutPhone){ msg += ` to ${payoutPhone}`; }
+        if (payoutMethod === 'ACCOUNT' && payoutAccount){ msg += ` to ${payoutAccount}`; }
+        msg += ')?';
+        if (!confirm(msg)) return;
+        btn.disabled = true;
+        try{
+          const body = { method: payoutMethod };
+          if (payoutMethod === 'M_PESA' && payoutPhone) body.phone = payoutPhone;
+          if (payoutMethod === 'ACCOUNT' && payoutAccount) body.account = payoutAccount;
+          await parse(await fetch(`/u/sacco/${currentSacco}/loan-requests/${id}/disburse`,{
+            method:'POST',
+            headers:{ 'Content-Type':'application/json', Accept:'application/json' },
+            body: JSON.stringify(body)
+          }));
+          await loadLoanDisbursements();
+        }catch(err){
+          alert(err.message || String(err));
+        }finally{
+          btn.disabled = false;
+        }
       });
     })();
 

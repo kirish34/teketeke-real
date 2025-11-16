@@ -305,7 +305,28 @@
               <input id="loan_note" placeholder="What is this loan for?"/>
             </label>
           </div>
-          <button id="loan_submit" class="btn ok" type="button">Submit Request</button>
+        </div>
+        <div class="row" style="margin-top:8px;">
+          <div class="field" style="min-width:180px;">
+            <label>Receive loan as
+              <select id="loan_payout">
+                <option value="CASH">Cash at SACCO office</option>
+                <option value="M_PESA">M-PESA to my phone</option>
+                <option value="ACCOUNT">Bank / Till account</option>
+              </select>
+            </label>
+          </div>
+          <div class="field" style="min-width:170px;">
+            <label>Phone for M-PESA (optional)
+              <input id="loan_payout_phone" placeholder="07XXXXXXXX"/>
+            </label>
+          </div>
+          <div class="field" style="flex:1;min-width:200px;">
+            <label>Account or till (optional)
+              <input id="loan_payout_account" placeholder="Account / till number"/>
+            </label>
+          </div>
+          <button id="loan_submit" class="btn ok" type="button" style="align-self:flex-end;">Submit Request</button>
         </div>
         <div id="loan_status" class="muted" style="margin-top:6px;"></div>
       </div>
@@ -665,16 +686,24 @@
         if (term < 1) term = 1;
         if (term > 6) term = 6;
         if (status) status.textContent = 'Submitting...';
+        const payout = ($('loan_payout')?.value || 'CASH').toString().toUpperCase();
+        const payoutPhone = ($('loan_payout_phone')?.value || '').trim();
+        const payoutAccount = ($('loan_payout_account')?.value || '').trim();
         try{
           await jpost(`/u/matatu/${encodeURIComponent(CURRENT_MATATU.id)}/loan-requests`, {
             amount_kes: amount,
             model,
             term_months: term,
-            note
+            note,
+            payout_method: payout,
+            payout_phone: payoutPhone,
+            payout_account: payoutAccount
           });
           if (status) status.textContent = 'Request submitted. Waiting for SACCO approval.';
           if ($('loan_amount')) $('loan_amount').value = '';
           if ($('loan_note')) $('loan_note').value = '';
+          if ($('loan_payout_phone')) $('loan_payout_phone').value = '';
+          if ($('loan_payout_account')) $('loan_payout_account').value = '';
           await loadLoanList();
         }catch(err){
           const msg = err.message || 'Failed to submit request';
@@ -707,13 +736,20 @@
           }else{
             T.innerHTML = rows.map(x=>{
               const dt = x.created_at ? String(x.created_at).substring(0,10) : '';
+              const payout = (function(){
+                const m = (x.payout_method||'').toUpperCase();
+                if (!m) return '';
+                if (m === 'M_PESA') return ` (M-PESA ${x.payout_phone||''})`;
+                if (m === 'ACCOUNT') return ` (Account ${x.payout_account||''})`;
+                return ' (Cash)';
+              })();
               return `<tr>
                 <td>${dt}</td>
                 <td>${fmtKES(x.amount_kes||0)}</td>
                 <td>${x.model||''}</td>
                 <td>${x.term_months||''}</td>
                 <td>${x.status||''}</td>
-                <td>${x.note||''}</td>
+                <td>${(x.note||'')}${payout}</td>
                 <td class="mono">${x.id||''}</td>
               </tr>`;
             }).join('');
