@@ -440,10 +440,23 @@
     }
 
     // --- Recent lists ---
+    function filterToday(rows){
+      const today = new Date();
+      const start = new Date(today.toISOString().slice(0,10) + 'T00:00:00.000Z').getTime();
+      const end = start + 24*3600*1000;
+      return (rows||[]).filter(r=>{
+        const t = r.created_at || r.time || r.timestamp;
+        if(!t) return false;
+        const x = new Date(t).getTime();
+        return x >= start && x < end;
+      });
+    }
+
     async function refreshCash(){
       try{
         const out = await authFetch('/api/taxi/cash?limit=20');
-        const rows = Array.isArray(out?.items) ? out.items : (Array.isArray(out) ? out : []);
+        const rowsRaw = Array.isArray(out?.items) ? out.items : (Array.isArray(out) ? out : []);
+        const rows = filterToday(rowsRaw);
         const tbody = $('cashBody'); tbody.innerHTML='';
         rows.forEach(r=>{
           const tr = document.createElement('tr');
