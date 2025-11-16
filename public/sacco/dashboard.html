@@ -81,7 +81,7 @@
     </div>
     <table>
       <thead>
-        <tr><th>Plate</th><th>Owner</th><th>Phone</th><th>Type</th><th>TLB</th><th>Till</th><th>ID</th></tr>
+        <tr><th>Plate</th><th>Owner</th><th>Phone</th><th>Type</th><th>TLB</th><th>Till</th></tr>
       </thead>
       <tbody id="matatuTbody"></tbody>
     </table>
@@ -217,7 +217,7 @@
     <div class="card" style="margin-top:12px">
       <h3>Current Staff</h3>
       <table>
-        <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Role</th><th>ID</th><th>Actions</th></tr></thead>
+        <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Role</th><th>Actions</th></tr></thead>
         <tbody id="staffTbody"></tbody>
       </table>
     </div>
@@ -247,7 +247,7 @@
       <h3>Loans <a id="linkStaffLoans" class="btn ghost" style="font-size:12px;padding:4px 8px;margin-left:8px" href="/public/sacco/staff-loans.html">Open Staff Loans</a></h3>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Borrower</th><th>Matatu</th><th>Principal</th><th>Rate %</th><th>Term (m)</th><th>Status</th><th>ID</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Borrower</th><th>Matatu</th><th>Principal</th><th>Rate %</th><th>Term (m)</th><th>Status</th><th>Actions</th></tr></thead>
           <tbody id="loanTbody"></tbody>
         </table>
       </div>
@@ -525,8 +525,7 @@
         const tr = document.createElement('tr');
         tr.innerHTML =
           `<td>${m.number_plate||''}</td><td>${m.owner_name||''}</td><td>${m.owner_phone||''}</td>`+
-          `<td>${m.vehicle_type||''}</td><td>${m.tlb_number||''}</td><td>${m.till_number||''}</td>`+
-          `<td class="mono">${m.id}</td>`;
+          `<td>${m.vehicle_type||''}</td><td>${m.tlb_number||''}</td><td>${m.till_number||''}</td>`;
         T.appendChild(tr);
       });
       $('matatuCount').textContent = `${rows.length} matatu(s)`;
@@ -608,7 +607,7 @@
       items.forEach(tx=>{
         const tr=document.createElement('tr');
         tr.innerHTML =
-          `<td>${new Date(tx.created_at).toLocaleString()}</td><td class="mono">${tx.matatu_id||''}</td>`+
+          `<td>${new Date(tx.created_at).toLocaleString()}</td><td class="mono">${matatuMap.get(tx.matatu_id)||''}</td>`+
           `<td class="mono">${tx.passenger_msisdn||''}</td><td>${fmtKES(tx.fare_amount_kes)}</td>`+
           `<td>${fmtKES(tx.service_fee_kes)}</td><td>${tx.status||''}</td><td>${tx.kind||''}</td>`+
           `<td class="mono">${tx.id}</td>`;
@@ -704,12 +703,12 @@
         const T=$('staffTbody'); T.innerHTML='';
         (res.items||[]).forEach(s=>{
           const tr=document.createElement('tr');
-          tr.innerHTML = `<td>${s.name||''}</td><td>${s.phone||''}</td><td>${s.email||''}</td><td>${s.role||''}</td><td class=\"mono\">${s.id}</td>`+
+          tr.innerHTML = `<td>${s.name||''}</td><td>${s.phone||''}</td><td>${s.email||''}</td><td>${s.role||''}</td>`+
             `<td><button class=\"bad\" data-action=\"del-staff\" data-id=\"${s.id}\">Delete</button></td>`;
           T.appendChild(tr);
         });
       }catch(e){
-        $('staffTbody').innerHTML = `<tr><td colspan="5" class="err">${parseErr(e)}</td></tr>`;
+        $('staffTbody').innerHTML = `<tr><td colspan="4" class="err">${parseErr(e)}</td></tr>`;
       }
     }
       $('stAdd').onclick = async ()=>{
@@ -782,9 +781,8 @@
         (res.items||[]).forEach(l=>{
           const tr=document.createElement('tr');
           tr.innerHTML =
-            `<td>${l.borrower_name||''}</td><td>${(l.matatu_id||'')}</td><td>${fmtKES(l.principal_kes||0)}</td>`+
+            `<td>${l.borrower_name||''}</td><td>${(matatuMap.get(l.matatu_id)||l.matatu_id||'')}</td><td>${fmtKES(l.principal_kes||0)}</td>`+
             `<td>${l.interest_rate_pct||0}</td><td>${l.term_months||0}</td><td>${l.status||''}</td>`+
-            `<td class=\"mono\">${l.id}</td>`+
             `<td>`+
               `<button class=\"ghost\" data-action=\"ln-hist\" data-id=\"${l.id}\">History</button> `+
               `<button class=\"ghost\" data-action=\"ln-close\" data-id=\"${l.id}\">Close</button> `+
