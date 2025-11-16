@@ -4,64 +4,33 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>TekeTeke � Matatu Staff (Trips & Cash)</title>
+
+  <link rel="stylesheet" href="/public/css/dashboard-theme.css"/>
   <script src="/public/js/app-config.js"></script>
   <script src="/public/js/api.js"></script>
   <script src="/public/js/role-guard.js"></script>
-  <style>
-    :root{ --brand:#1976d2; --brand-700:#135ba1; --bg:#f6f7fb; --panel:#fff; --border:#e5e7eb; --muted:#6b7280; --ink:#0b0f19; }
-    *{box-sizing:border-box}
-    body{font-family:system-ui, Segoe UI, Arial; background:var(--bg); color:var(--ink); margin:0; padding:20px}
-    h2{color:var(--brand); margin:0 0 12px}
-    h3{margin:0 0 10px}
-    .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
-    .right{margin-left:auto}
-    input,select,button{padding:10px; border:1px solid var(--border); border-radius:8px}
-    button{background:var(--brand); color:#fff; border:none; cursor:pointer}
-    button.ghost{background:#fff; color:#1976d2}
-    .card{background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px; margin-bottom:12px}
-    .muted{color:var(--muted)}
-    .mono{font-family:ui-monospace,Consolas,monospace}
-    table{width:100%; border-collapse:collapse}
-    th,td{padding:8px 10px; border:1px solid var(--border); text-align:left}
-    th{background:var(--brand); color:#fff}
-    .pill{background:#eef2ff; color:#3730a3; border:1px solid #c7d2fe; padding:4px 10px; border-radius:999px; font-size:12px; max-width:40vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-    .table-wrap{max-height:360px; overflow:auto; border:1px solid var(--border); border-radius:10px}
-    #toast{position:fixed; bottom:14px; right:14px; background:#111827; color:#fff; padding:10px 12px; border-radius:8px; opacity:0; pointer-events:none; transition:.2s; box-shadow:0 4px 18px rgba(0,0,0,.2)}
-    #toast.show{opacity:1; pointer-events:auto}
-    /* Admin-style tabs */
-    .tabs{display:flex; gap:8px; margin:12px 0 16px}
-    .tab{padding:10px 14px; background:#1976d2; color:#fff; border-radius:8px; cursor:pointer}
-    .tab.active{background:#135ba1}
-    .panel{display:none; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px; box-shadow:0 2px 8px rgba(0,0,0,.04)}
-    .panel.active{display:block}
-    .amount{width:130px}
-    .w-2{min-width:220px}
-      button.small{padding:6px 8px;font-size:12px}
-    .corner-info{display:flex;flex-direction:column;align-items:flex-start;margin-bottom:10px}
-    .corner-info .hello{font-size:16px;font-weight:600;color:var(--ink)}
-    .corner-info .time{font-size:13px;color:var(--muted)}
-    .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
-    .stat{background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px}
-    .stat-label{font-size:12px;color:var(--muted)}
-    .stat-value{font-size:18px;font-weight:600;color:var(--ink)}
-  </style>
 </head>
 <body>
-  <div class="corner-info">
-    <div class="hello" id="welcomeLine">Hello!</div>
-    <div class="time" id="dateTimeLine">--</div>
-  </div>
-  <div class="row" style="justify-content:space-between; align-items:center; margin-bottom:8px">
-    <a href="/public/auth/role-select.html">Role Select</a>
-    <div class="row" style="gap:8px">
-      <span id="auth_state" class="pill">Checking sign-in�</span>
-      <button id="logoutBtn" style="padding:8px 10px; border-radius:8px; border:1px solid #cfe3ff; background:#0b5cab; color:#fff">Logout</button>
-    </div>
-  </div>
+<div class="hero-card">
+  <div class="hero-stack">
+    <p class="eyebrow">Matatu Staff</p>
+    <div class="hello" id="welcomeLine">Hello!</div>
+    <div class="timestamp" id="dateTimeLine">--</div>
+  </div>
+  <div class="hero-actions">
+    <a class="btn ghost" href="/public/auth/role-select.html">Role Select</a>
+    <span id="auth_state" class="pill">Checking sign-in?</span>
+    <button id="logoutBtn" class="btn bad">Logout</button>
+  </div>
+</div>
+
   <h2>Matatu Staff � Trips & Cash</h2>
 
   <div class="card">
     <div class="row">
+      <label>Route
+        <select id="route"></select>
+      </label>
       <label>SACCO <select id="sacco"></select></label>
       <label>Matatu <select id="matatu"></select></label>
       <button id="reload" class="ghost">Reload</button>
@@ -203,11 +172,19 @@ requireRole('STAFF', { statusEl: 'auth_state', roleLabel: 'Matatu Staff' }).then
 
   // --- State ---
   let SACCO_ID=null; let MATATU_ID=null; let MATATU=null; let CURRENT_TRIP=null; let FALLBACK_SACCO=null;
+  let ROUTES=[];
+  let GEO_WATCH_ID=null;
+  let GEO_BUF=[];
+  const GEO_BUF_LIMIT = 5;
 
   // Persist trips per matatu locally (for UX even if network fails)
   const storeKey = () => `tt_conductor_trips_${MATATU_ID||'na'}`;
   const loadLocalTrips = () => { try{ return JSON.parse(localStorage.getItem(storeKey())||'[]'); }catch{ return []; } };
   const saveLocalTrips = (arr) => { try{ localStorage.setItem(storeKey(), JSON.stringify(arr)); }catch(_){} };
+
+  const manualStoreKey = () => `tt_conductor_manual_${MATATU_ID||'na'}`;
+  const loadManualEntries = () => { try{ return JSON.parse(localStorage.getItem(manualStoreKey())||'[]'); }catch{ return []; } };
+  const saveManualEntries = (arr) => { try{ localStorage.setItem(manualStoreKey(), JSON.stringify(arr)); }catch(_){} };
 
   // --- Tabs ---
   document.querySelectorAll('.tab').forEach(t=>{
@@ -235,6 +212,37 @@ requireRole('STAFF', { statusEl: 'auth_state', roleLabel: 'Matatu Staff' }).then
     items.forEach(m=>{ const o=document.createElement('option'); o.value=m.id; o.textContent=m.number_plate||m.id; sel.appendChild(o); });
     if(items.length){ sel.value=items[0].id; setMatatu(items[0]); }
     $('stat').textContent = `${items.length} matatu(s)`;
+    await loadRoutes();
+  }
+
+  async function loadRoutes(){
+    const sel = $('route');
+    if (!sel){ return; }
+    sel.innerHTML = '';
+    ROUTES = [];
+    if (!SACCO_ID) return;
+    try{
+      const res = await jget(`/u/sacco/${SACCO_ID}/routes`);
+      ROUTES = res.items || res || [];
+      if (!ROUTES.length){
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = 'No routes defined';
+        sel.appendChild(opt);
+        return;
+      }
+      ROUTES.forEach(r=>{
+        const opt = document.createElement('option');
+        opt.value = r.id;
+        opt.textContent = r.code ? `${r.code} – ${r.name}` : r.name;
+        sel.appendChild(opt);
+      });
+    }catch(_){
+      const opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = 'Routes unavailable';
+      sel.appendChild(opt);
+    }
   }
 
   function setMatatu(obj){
@@ -286,7 +294,9 @@ requireRole('STAFF', { statusEl: 'auth_state', roleLabel: 'Matatu Staff' }).then
     }
     const todayTrips = getTodayTrips();
     const dayAuto = todayTrips.reduce((sum,t)=>sum + Number(t.auto_kes||0),0);
-    const dayManual = todayTrips.reduce((sum,t)=>sum + Number(t.manual_kes||0),0);
+    const dayManualTrips = todayTrips.reduce((sum,t)=>sum + Number(t.manual_kes||0),0);
+    const extraManual = loadManualEntries().filter(e => isToday(e.created_at)).reduce((sum,e)=> sum + Number(e.amount||0), 0);
+    const dayManual = dayManualTrips + extraManual;
     const dayAutoEl = $('tot_day_auto');
     if(dayAutoEl){
       dayAutoEl.textContent = fmtKES(dayAuto);
@@ -339,8 +349,18 @@ requireRole('STAFF', { statusEl: 'auth_state', roleLabel: 'Matatu Staff' }).then
   $('startTrip').addEventListener('click', ()=>{
     if(!MATATU_ID) return toast('Pick a matatu');
     if(getActiveTrip()) return toast('A trip is already active');
-    const route = `Trip ${new Date().toLocaleTimeString()}`;
-    const trip = { id: `TRIP_${Date.now()}`, matatu_id: MATATU_ID, route, expected_fare: 0, started_at: new Date().toISOString(), auto_kes:0, manual_kes:0 };
+    const routeSel = $('route');
+    let routeId = null;
+    let routeName = '';
+    if (routeSel && routeSel.value){
+      routeId = routeSel.value;
+      const match = ROUTES.find(r => String(r.id) === String(routeId));
+      routeName = match?.name || routeSel.options[routeSel.selectedIndex]?.text || '';
+    }
+    if (!routeName){
+      routeName = `Trip ${new Date().toLocaleTimeString()}`;
+    }
+    const trip = { id: `TRIP_${Date.now()}`, matatu_id: MATATU_ID, route: routeName, route_id: routeId, expected_fare: 0, started_at: new Date().toISOString(), auto_kes:0, manual_kes:0 };
     putTrip(trip); CURRENT_TRIP = trip;
     $('activeTripCard').style.display='block';
     $('tripStarted').textContent = new Date(trip.started_at).toLocaleString();
@@ -349,6 +369,7 @@ requireRole('STAFF', { statusEl: 'auth_state', roleLabel: 'Matatu Staff' }).then
     $('tripMsg').textContent = 'Trip started';
     updateTotalsPanel();
     updateAutoAmount();
+    startGeoTracking();
   });
 
   $('endTrip').addEventListener('click', ()=>{
@@ -359,6 +380,7 @@ requireRole('STAFF', { statusEl: 'auth_state', roleLabel: 'Matatu Staff' }).then
     toast('Trip ended');
     renderTripsTable();
     updateTotalsPanel();
+    stopGeoTracking();
   });
 
   $('refreshAuto').addEventListener('click', updateAutoAmount);
@@ -416,18 +438,72 @@ requireRole('STAFF', { statusEl: 'auth_state', roleLabel: 'Matatu Staff' }).then
       const amt = Number(amtEl?.value || 0);
       if(!(amt>0)) return toast('Enter amount');
       if(msgEl){ msgEl.textContent = 'Saving...'; msgEl.className='muted'; }
-        try{
-          await jpost('/api/staff/cash', { sacco_id:SACCO_ID, matatu_id:MATATU_ID, kind:'CASH', amount:amt, payer_name:(noteEl?.value.trim()||'Manual cash entry'), payer_phone:'' });
+      try{
+        await jpost('/api/staff/cash', { sacco_id:SACCO_ID, matatu_id:MATATU_ID, kind:'CASH', amount:amt, payer_name:(noteEl?.value.trim()||'Manual cash entry'), payer_phone:'' });
+        // keep a lightweight local record so today's totals include this manual cash
+        const list = loadManualEntries();
+        list.unshift({ id:`MAN_${Date.now()}`, amount:amt, note:noteEl?.value||'', created_at:new Date().toISOString() });
+        saveManualEntries(list);
         if(amtEl) amtEl.value='';
         if(noteEl) noteEl.value='';
         if(msgEl){ msgEl.textContent='Saved'; msgEl.className='ok'; }
         renderTripsTable();
+        updateTotalsPanel();
         toast('Manual cash recorded');
       }catch(err){
         if(msgEl){ msgEl.textContent = err.message||String(err); msgEl.className='err'; }
         toast(err.message||err);
       }
     });
+  }
+
+  function startGeoTracking(){
+    if (!navigator.geolocation) return;
+    if (GEO_WATCH_ID != null) return;
+    GEO_BUF = [];
+    GEO_WATCH_ID = navigator.geolocation.watchPosition(
+      pos => {
+        if (!MATATU_ID || !SACCO_ID) return;
+        const point = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          ts: new Date(pos.timestamp || Date.now()).toISOString()
+        };
+        GEO_BUF.push(point);
+        if (GEO_BUF.length >= GEO_BUF_LIMIT){
+          flushGeoBuffer();
+        }
+      },
+      err => {
+        console.warn('geo error', err);
+      },
+      { enableHighAccuracy:true, maximumAge:10000, timeout:15000 }
+    );
+  }
+
+  function stopGeoTracking(){
+    if (GEO_WATCH_ID != null && navigator.geolocation){
+      navigator.geolocation.clearWatch(GEO_WATCH_ID);
+      GEO_WATCH_ID = null;
+    }
+    flushGeoBuffer();
+  }
+
+  async function flushGeoBuffer(){
+    if (!GEO_BUF.length || !SACCO_ID || !MATATU_ID) return;
+    const batch = GEO_BUF.slice();
+    GEO_BUF = [];
+    try{
+      await jpost('/api/staff/trips/positions', {
+        sacco_id: SACCO_ID,
+        matatu_id: MATATU_ID,
+        route_id: CURRENT_TRIP?.route_id || null,
+        trip_id: CURRENT_TRIP?.id || null,
+        points: batch
+      });
+    }catch(e){
+      console.warn('Failed to send trip positions', e);
+    }
   }
 
   // init
@@ -452,6 +528,7 @@ requireRole('STAFF', { statusEl: 'auth_state', roleLabel: 'Matatu Staff' }).then
     }catch(e){ console.error('Tests failed', e); }
   })();
 })();
+});
 </script>
 
 <script>
@@ -485,7 +562,6 @@ startCornerClock();
     }
   }catch(_){ }
 })();
-}).catch(()=>{});
 </script>
 </body>
 </html>

@@ -1,67 +1,27 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>System Admin — TekeTeke</title>
 
+  <link rel="stylesheet" href="/public/css/dashboard-theme.css"/>
   <script src="/public/js/app-config.js"></script>
   <script src="/public/js/api.js"></script>
+  <script src="/public/js/role-guard.js"></script>
 
-  <style>
-    :root{
-      --brand:#1976d2; --brand-700:#135ba1; --bg:#f6f7fb; --panel:#ffffff; --ink:#0b0f19;
-      --border:#e5e7eb; --muted:#4b5563; --ok:#065f46; --bad:#b91c1c;
-    }
-    *{box-sizing:border-box}
-    body{font-family:system-ui,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--ink);margin:0;padding:14px}
-    h2{margin:0 0 10px}
-    .topbar{display:flex;align-items:center;gap:8px;margin-bottom:10px}
-    .pill{background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;padding:4px 10px;border-radius:999px;font-size:12px}
-    .right{margin-left:auto}
-    .btn{padding:8px 10px;border:1px solid var(--brand);border-radius:8px;background:var(--brand);color:#fff;font-weight:700;cursor:pointer}
-    .btn.ghost{background:#fff;color:var(--brand)}
-    .btn:hover{background:var(--brand-700);border-color:var(--brand-700)}
-    .btn.ghost:hover{background:#f0f7ff}
-    .btn.danger{border-color:#b91c1c;color:#b91c1c;background:#fff}
-    .btn.danger:hover{background:#fee2e2}
-    .field.hidden{display:none}
-    .tabs{display:flex;gap:8px;flex-wrap:wrap}
-    .tab{padding:8px 10px;background:var(--brand);color:#fff;border-radius:8px;cursor:pointer}
-    .tab.active{background:var(--brand-700)}
-    .panel{display:none;background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px;box-shadow:0 6px 18px rgba(0,0,0,.06);margin-top:10px}
-    .panel.active{display:block}
-    .card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(15,23,42,.06);margin-bottom:12px}
-    .grid.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:12px}
-    .metric{padding:12px;border-radius:10px;border:1px solid var(--border);background:#f8fafc}
-    .metric .k{font-size:13px;color:var(--muted)}
-    .metric .v{font-size:24px;font-weight:700;margin-top:6px}
-    .grid.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
-    .table-wrap{overflow:auto}
-    .list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px}
-    .list li{padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:#f8fafc;font-family:monospace}
-    input,select{padding:8px;border:1px solid var(--border);border-radius:8px}
-    table{width:100%;border-collapse:collapse;margin-top:10px}
-    th,td{border:1px solid var(--border);padding:8px;text-align:left;vertical-align:top}
-    th{background:#1976d2;color:#fff}
-    .muted{color:var(--muted)}
-    .status{display:block;font-size:13px}
-    .err{color:var(--bad);font-weight:700}
-    .ok{color:var(--ok);font-weight:700}
-    .row{display:flex;flex-wrap:wrap;gap:8px}
-    .hint{font-size:12px;color:#6b7280;margin-top:4px}
-    .section{margin-top:10px}
-    .stacked{display:flex;flex-direction:column;gap:6px}
-    .stacked .item{padding:6px 0;border-bottom:1px solid var(--border);font-size:13px}
-    .stacked .item:last-child{border-bottom:none}
-    .sacco-matatu-list{font-size:13px}
-  </style>
+  
 </head>
 <body>
-  <div class="topbar">
-    <h2 style="margin:0">System Admin</h2>
-    <span id="sess_badge" class="pill right">Checking session…</span>
-    <button id="logout_btn" class="btn ghost" title="Sign out">Logout</button>
+    <div class="topbar hero-card">
+    <div class="hero-stack">
+      <h2>System Admin</h2>
+      <p class="muted" style="margin:4px 0 0">Central oversight for every fleet.</p>
+    </div>
+    <div class="hero-actions">
+      <span id="sess_badge" class="pill">Checking session???</span>
+      <button id="logout_btn" class="btn ghost" title="Sign out">Logout</button>
+    </div>
   </div>
 
   <div class="tabs" role="tablist" aria-label="Sections">
@@ -72,6 +32,7 @@
     <div class="tab" data-id="bodas" role="tab" aria-selected="false">BodaBodas</div>
     <div class="tab" data-id="pool" role="tab" aria-selected="false">USSD Pool</div>
     <div class="tab" data-id="logins" role="tab" aria-selected="false">Logins</div>
+    <div class="tab" data-id="routes" role="tab" aria-selected="false">Routes Overview</div>
   </div>
 
   <section id="overview" class="panel active" aria-labelledby="tab_overview">
@@ -103,8 +64,8 @@
     </div>
 
     <table>
-      <thead><tr><th>Name</th><th>Contact</th><th>Phone</th><th>Email</th><th>ID</th></tr></thead>
-      <tbody id="sc_list"><tr><td colspan="5" class="muted">Loading…</td></tr></tbody>
+      <thead><tr><th>Name</th><th>Contact</th><th>Phone</th><th>Email</th><th>ID</th><th width="80">Actions</th></tr></thead>
+      <tbody id="sc_list"><tr><td colspan="6" class="muted">Loading…</td></tr></tbody>
     </table>
   </section>
 
@@ -118,7 +79,12 @@
       <select id="mt_sacco">
         <option value="">Select SACCO</option>
       </select>
+      <select id="mt_body_type">
+        <option value="">Matatu type</option>
+        <option value="MATATU">Matatu</option>
+      </select>
     </div>
+
 
     <div class="hint" id="mt_sacco_hint">Select a SACCO to link this matatu.</div>
 
@@ -133,8 +99,8 @@
     </div>
 
     <table>
-      <thead><tr><th>Plate</th><th>Owner</th><th>Type</th><th>SACCO</th><th>ID</th></tr></thead>
-      <tbody id="mt_list"><tr><td colspan="5" class="muted">Loading…</td></tr></tbody>
+      <thead><tr><th>Plate</th><th>Owner</th><th>Type</th><th>SACCO</th><th>ID</th><th width="80">Actions</th></tr></thead>
+      <tbody id="mt_list"><tr><td colspan="6" class="muted">Loading…</td></tr></tbody>
     </table>
   </section>
 
@@ -155,8 +121,8 @@
     </div>
 
     <table>
-      <thead><tr><th>Plate</th><th>SACCO</th><th>ID</th></tr></thead>
-      <tbody id="taxi_list"><tr><td colspan="3" class="muted">Loading…</td></tr></tbody>
+      <thead><tr><th>Plate</th><th>SACCO</th><th>ID</th><th width="80">Actions</th></tr></thead>
+      <tbody id="taxi_list"><tr><td colspan="4" class="muted">Loading…</td></tr></tbody>
     </table>
   </section>
 
@@ -177,8 +143,8 @@
     </div>
 
     <table>
-      <thead><tr><th>Plate</th><th>SACCO</th><th>ID</th></tr></thead>
-      <tbody id="boda_list"><tr><td colspan="3" class="muted">Loading…</td></tr></tbody>
+      <thead><tr><th>Plate</th><th>SACCO</th><th>ID</th><th width="80">Actions</th></tr></thead>
+      <tbody id="boda_list"><tr><td colspan="4" class="muted">Loading…</td></tr></tbody>
     </table>
   </section>
 
@@ -290,6 +256,25 @@
     </div>
   </section>
 
+  <section id="routes" class="panel" aria-labelledby="tab_routes">
+    <div class="card">
+      <h3>Routes Overview</h3>
+      <p class="muted" style="margin:4px 0 8px">See all SACCO routes and where tracking has been active in the last 7 days.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>SACCO ID</th><th>Total Routes</th><th>Routes with Trips</th><th>Trip Positions 7d</th></tr></thead>
+          <tbody id="rt_usage_body"><tr><td colspan="4" class="muted">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <h3>All Routes Map</h3>
+      <p class="muted" style="margin:4px 0 8px">Polylines show recorded route paths; colour is per SACCO. Requires a Google Maps API key.</p>
+      <div id="rt_admin_map" style="width:100%;height:360px;border-radius:8px;border:1px solid #e5e7eb;background:#f9fafb"></div>
+      <div id="rt_admin_status" class="muted" style="margin-top:6px;font-size:12px;">Map: loading routes...</div>
+    </div>
+  </section>
+
 
   <script>
     (function () {
@@ -320,17 +305,30 @@
         if (!sb) throw new Error('Supabase client not ready');
       } catch (e) {
         console.error('[system] Supabase unavailable', e);
-        const badge = document.getElementById('sess_badge');
-        if (badge){
-          badge.textContent = 'Supabase unavailable';
-          badge.classList.add('err');
+        const badgeEl = document.getElementById('sess_badge');
+        if (badgeEl){
+          badgeEl.textContent = 'Supabase unavailable';
+          badgeEl.classList.add('err');
         }
+        return;
+      }
+
+      // Guard: only System Admin logins may use this dashboard
+      try{
+        await requireRole('SYSTEM_ADMIN', { statusEl:'sess_badge', roleLabel:'System Admin' });
+      }catch(_){
+        // requireRole already redirected to login or role-select; stop initialisation
         return;
       }
 
       const $ = (id)=>document.getElementById(id);
       const badge = $('sess_badge');
       const state = { saccos: [], vehicles: [], vehiclesLoaded: false, overview: null, ussdAvailable: [], ussdAllocated: [], logins: [], loginBeingEdited: null };
+      let sysRoutes = [];
+      let sysRoutesMap = null;
+      let sysRoutesTraffic = null;
+      let sysRoutesPolylines = [];
+      let sysGMapsLoading = null;
       const loginRoleMeta = {
         SACCO: { sacco: true, matatu: false, label: 'SACCO Admin' },
         OWNER: { sacco: false, matatu: true, label: 'Matatu Owner' },
@@ -422,6 +420,14 @@
         try { return JSON.parse(tx); } catch { return {}; }
       }
 
+
+      async function jdel(url){
+        const token = await tkn();
+        const r = await fetch(url, { method:'DELETE', headers:{ Authorization:`Bearer ${token}`, Accept:'application/json' }});
+        const tx = await r.text();
+        if (!r.ok) throw tx || r.statusText;
+        try { return JSON.parse(tx); } catch { return {}; }
+      }
       function saccoLabel(id){
         if (!id) return '';
         const sacco = state.saccos.find(s => s.id === id);
@@ -539,8 +545,9 @@
               <td>${row.contact_name||''}</td>
               <td>${row.contact_phone||''}</td>
               <td>${row.contact_email||''}</td>
-              <td>${row.id||''}</td>
-            </tr>`).join('') : '<tr><td colspan="5" class="muted">No SACCOs yet</td></tr>';
+              <td class="mono">${row.id||''}</td>
+              <td><button class="btn ghost" data-del-sacco="${row.id}">Delete</button></td>
+            </tr>`).join('') : '<tr><td colspan="6" class="muted">No SACCOs yet</td></tr>';
           populateMatatuSaccoSelect();
           if (state.vehiclesLoaded) renderVehicleTables();
         }catch(e){
@@ -548,7 +555,7 @@
           populateLoginSelects();
           populateMatatuSaccoSelect();
           if (state.vehiclesLoaded) renderVehicleTables();
-          $('sc_list').innerHTML = `<tr><td colspan="5" class="err">${parseErr(e)}</td></tr>`;
+          $('sc_list').innerHTML = `<tr><td colspan="6" class="err">${parseErr(e)}</td></tr>`;
         }
       }
 
@@ -626,25 +633,45 @@
             <td>${row.owner_name||''}</td>
             <td>${row.vehicle_type||''}</td>
             <td>${saccoLabel(row.sacco_id) || 'N/A'}</td>
-            <td>${row.id||''}</td>
-          </tr>`).join('') : '<tr><td colspan="5" class="muted">No matatus yet</td></tr>';
+            <td class="mono">${row.id||''}</td>
+            <td><button class="btn ghost" data-del-matatu="${row.id}">Delete</button></td>
+          </tr>`).join('') : '<tr><td colspan="6" class="muted">No matatus yet</td></tr>';
 
         $('taxi_list').innerHTML = taxis.length ? taxis.map(row=>`
           <tr>
             <td>${row.number_plate||''}</td>
             <td>${saccoLabel(row.sacco_id) || 'N/A'}</td>
-            <td>${row.id||''}</td>
-          </tr>`).join('') : '<tr><td colspan="3" class="muted">No taxis yet</td></tr>';
+            <td class="mono">${row.id||''}</td>
+            <td><button class="btn ghost" data-del-matatu="${row.id}">Delete</button></td>
+          </tr>`).join('') : '<tr><td colspan="4" class="muted">No taxis yet</td></tr>';
 
         $('boda_list').innerHTML = bodas.length ? bodas.map(row=>`
           <tr>
             <td>${row.number_plate||''}</td>
             <td>${saccoLabel(row.sacco_id) || 'N/A'}</td>
-            <td>${row.id||''}</td>
-          </tr>`).join('') : '<tr><td colspan="3" class="muted">No boda bodas yet</td></tr>';
+            <td class="mono">${row.id||''}</td>
+            <td><button class="btn ghost" data-del-matatu="${row.id}">Delete</button></td>
+          </tr>`).join('') : '<tr><td colspan="4" class="muted">No boda bodas yet</td></tr>';
       }
 
-      async function loadVehicles(){
+            // Delete handlers (event delegation)
+      document.addEventListener('click', async (event) => {
+        const sacBtn = event.target.closest('[data-del-sacco]');
+        if (sacBtn){
+          const id = sacBtn.getAttribute('data-del-sacco');
+          if (id && confirm('Delete this SACCO? This cannot be undone.')){
+            try{ await jdel(`/api/admin/delete-sacco/${id}`); await loadSaccos(); toast('SACCO deleted'); }catch(e){ alert(parseErr(e)); }
+          }
+          return;
+        }
+        const mtBtn = event.target.closest('[data-del-matatu]');
+        if (mtBtn){
+          const id = mtBtn.getAttribute('data-del-matatu');
+          if (id && confirm('Delete this vehicle? This cannot be undone.')){
+            try{ await jdel(`/api/admin/delete-matatu/${id}`); await loadVehicles(); toast('Vehicle deleted'); }catch(e){ alert(parseErr(e)); }
+          }
+        }
+      });async function loadVehicles(){
         try{
           const data = await jget('/api/admin/matatus');
           state.vehicles = Array.isArray(data.items) ? data.items : [];
@@ -656,8 +683,8 @@
           state.vehicles = [];
           state.vehiclesLoaded = false;
           populateLoginSelects();
-          const errMatatu = `<tr><td colspan="5" class="err">${parseErr(e)}</td></tr>`;
-          const errVehicle = `<tr><td colspan="3" class="err">${parseErr(e)}</td></tr>`;
+          const errMatatu = `<tr><td colspan="6" class="err">${parseErr(e)}</td></tr>`;
+          const errVehicle = `<tr><td colspan="4" class="err">${parseErr(e)}</td></tr>`;
           $('mt_list').innerHTML = errMatatu;
           $('taxi_list').innerHTML = errVehicle;
           $('boda_list').innerHTML = errVehicle;
@@ -738,6 +765,7 @@
         const ownerEl = cfg.ownerId ? $(cfg.ownerId) : null;
         const phoneEl = cfg.phoneId ? $(cfg.phoneId) : null;
         const tillEl = cfg.tillId ? $(cfg.tillId) : null;
+        const bodyEl = cfg.bodyId ? $(cfg.bodyId) : null;
 
         const number_plate = (plateEl?.value || '').trim().toUpperCase();
         const saccoValue = (saccoEl?.value || '').trim();
@@ -758,12 +786,15 @@
           return;
         }
 
+        const bodyType = (bodyEl?.value || '').trim();
         const payload = {
           number_plate,
           owner_name: owner_name || null,
           owner_phone: owner_phone || null,
           till_number: till_number || null,
-          vehicle_type: cfg.type,
+          // For matatus, use body type (VAN / MINI_BUS / BUS) when provided.
+          // For TAXI / BODABODA, keep their explicit type.
+          vehicle_type: bodyType || cfg.type,
           sacco_id
         };
 
@@ -772,6 +803,8 @@
           const vehicleId = created?.id;
           msgEl.className = 'ok';
           msgEl.textContent = `${cfg.successLabel} created`;
+
+          if (Array.isArray(cfg.clearIds)) { try{ clearInputs(cfg.clearIds); }catch(_){} }
           await loadVehicles();
           await loadLogins();
         }catch(err){
@@ -795,7 +828,7 @@
           saccoId:'mt_sacco',
           msgId:'mt_msg',
           successLabel:'Matatu',
-          clearIds:['mt_plate','mt_owner','mt_phone','mt_till','mt_sacco']
+          clearIds:['mt_plate','mt_owner','mt_phone','mt_till','mt_sacco','mt_body_type'], bodyId:'mt_body_type'
         });
       });
 
@@ -837,6 +870,10 @@
         }
         tbody.innerHTML = state.logins.map(row => {
           const created = row.created_at ? new Date(row.created_at).toLocaleString() : '—';
+          const canManage = Boolean(loginRoleMeta[row.role || '']);
+          const editBtn = canManage ? `<button class="btn ghost" type="button" data-edit="${row.user_id}">Edit</button>` : '';
+          const deleteBtn = `<button class="btn danger" type="button" data-delete="${row.user_id}">Remove</button>`;
+          const actions = editBtn ? `${editBtn} ${deleteBtn}` : deleteBtn;
           return `
             <tr>
               <td>${row.email || '—'}</td>
@@ -844,10 +881,7 @@
               <td>${row.sacco_id || '—'}</td>
               <td>${row.matatu_id || '—'}</td>
               <td>${created}</td>
-              <td>
-                <button class="btn ghost" type="button" data-edit="${row.user_id}">Edit</button>
-                <button class="btn danger" type="button" data-delete="${row.user_id}">Remove</button>
-              </td>
+              <td>${actions}</td>
             </tr>`;
         }).join('');
       }
@@ -863,6 +897,108 @@
           if (tbody){
             tbody.innerHTML = `<tr><td colspan="6" class="err">${parseErr(e)}</td></tr>`;
           }
+        }
+      }
+
+      async function loadRouteUsage(){
+        const tbody = $('rt_usage_body');
+        if (!tbody) return;
+        tbody.innerHTML = '<tr><td colspan="4" class="muted">Loading...</td></tr>';
+        try{
+          const res = await jget('/api/admin/routes/usage-summary');
+          const items = res.items || [];
+          if (!items.length){
+            tbody.innerHTML = '<tr><td colspan="4" class="muted">No routes yet.</td></tr>';
+            return;
+          }
+          tbody.innerHTML = items.map(r=>`<tr><td>${r.sacco_id||''}</td><td>${r.routes||0}</td><td>${r.active_routes||0}</td><td>${r.trips_7d||0}</td></tr>`).join('');
+        }catch(e){
+          tbody.innerHTML = `<tr><td colspan="4" class="err">${parseErr(e)}</td></tr>`;
+        }
+      }
+
+      function ensureSystemGoogleMaps(){
+        if (window.google && window.google.maps) return Promise.resolve(window.google.maps);
+        if (sysGMapsLoading) return sysGMapsLoading;
+        const key = window.GMAPS_API_KEY || window.GOOGLE_MAPS_API_KEY || '';
+        let src = 'https://maps.googleapis.com/maps/api/js?libraries=geometry';
+        if (key) src += '&key=' + encodeURIComponent(key);
+        sysGMapsLoading = new Promise((resolve, reject)=>{
+          const s = document.createElement('script');
+          s.src = src;
+          s.async = true;
+          s.onerror = ()=> reject(new Error('Failed to load Google Maps API'));
+          s.onload = ()=>{
+            if (window.google && window.google.maps){ resolve(window.google.maps); }
+            else reject(new Error('Google Maps API not available after load'));
+          };
+          document.head.appendChild(s);
+        });
+        return sysGMapsLoading;
+      }
+
+      async function loadRoutesMap(){
+        const statusEl = $('rt_admin_status');
+        if (statusEl) statusEl.textContent = 'Map: loading routes...';
+        try{
+          const res = await jget('/api/admin/routes');
+          sysRoutes = res.items || [];
+          if (!sysRoutes.length){
+            if (statusEl) statusEl.textContent = 'Map: no routes recorded yet.';
+            return;
+          }
+          const maps = await ensureSystemGoogleMaps();
+          const mapDiv = $('rt_admin_map');
+          if (!mapDiv) return;
+          if (!sysRoutesMap){
+            sysRoutesMap = new maps.Map(mapDiv, {
+              center: { lat:-1.286389, lng:36.817223 },
+              zoom: 8,
+              mapTypeControl: false,
+              streetViewControl: false
+            });
+            sysRoutesTraffic = new maps.TrafficLayer();
+            sysRoutesTraffic.setMap(sysRoutesMap);
+          }
+          sysRoutesPolylines.forEach(p=>p.setMap(null));
+          sysRoutesPolylines = [];
+          const saccoColors = new Map();
+          const palette = ['#2563eb','#16a34a','#f97316','#a855f7','#dc2626','#059669','#4b5563'];
+          let colorIdx = 0;
+          const bounds = new maps.LatLngBounds();
+          let anyPoints = false;
+          sysRoutes.forEach(r=>{
+            if (!r.path_points || !Array.isArray(r.path_points) || !r.path_points.length) return;
+            const pts = r.path_points
+              .map(p => (p && typeof p.lat === 'number' && typeof p.lng === 'number') ? { lat:p.lat, lng:p.lng } : null)
+              .filter(Boolean);
+            if (!pts.length) return;
+            anyPoints = true;
+            const sid = String(r.sacco_id||'');
+            let col = saccoColors.get(sid);
+            if (!col){
+              col = palette[colorIdx % palette.length];
+              saccoColors.set(sid, col);
+              colorIdx += 1;
+            }
+            const poly = new maps.Polyline({
+              path: pts,
+              strokeColor: col,
+              strokeOpacity: 0.7,
+              strokeWeight: 3,
+              map: sysRoutesMap
+            });
+            sysRoutesPolylines.push(poly);
+            pts.forEach(pt => bounds.extend(pt));
+          });
+          if (anyPoints){
+            sysRoutesMap.fitBounds(bounds);
+            if (statusEl) statusEl.textContent = 'Map: showing ' + sysRoutesPolylines.length + ' route path(s).';
+          }else{
+            if (statusEl) statusEl.textContent = 'Map: routes found but none have recorded path points yet.';
+          }
+        }catch(e){
+          if ($('rt_admin_status')) $('rt_admin_status').textContent = 'Map error: ' + parseErr(e);
         }
       }
 
@@ -892,12 +1028,6 @@
           if (current) el.value = current;
         });
       }
-
-      function setLoginFieldVisibility(prefix, role){
-        const meta = loginRoleMeta[role] || {};
-        const saccoField = document.querySelector(`[data-login-field=\"${prefix}-sacco\"]`);
-        const matatuField = document.querySelector(`[data-login-field=\"${prefix}-matatu\"]`);
-
 
       function setLoginFieldVisibility(prefix, role){
         const meta = loginRoleMeta[role] || {};
@@ -1065,6 +1195,9 @@
               alert(message);
               return;
             }
+            if (state.loginBeingEdited?.user_id === userId){
+              closeLoginEditor();
+            }
             await loadLogins();
           }
         });
@@ -1072,10 +1205,16 @@
 
       try{
         await ensureSession();
-        await Promise.all([loadOverview(), loadSaccos(), loadVehicles(), loadLogins(), loadUssd()]);
+        await Promise.all([loadOverview(), loadSaccos(), loadVehicles(), loadLogins(), loadUssd(), loadRouteUsage(), loadRoutesMap()]);
       }catch(_){}
     }
     safeInit();
   </script>
 </body>
 </html>
+
+
+
+
+
+
