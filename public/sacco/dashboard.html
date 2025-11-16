@@ -1390,10 +1390,15 @@
             if (m === 'ACCOUNT') return `Account ${r.payout_account||''}`.trim();
             return 'Cash';
           })();
+          const statusRaw = r.status || '';
+          const reason = (r.rejection_reason || '').toString().trim();
+          const statusText = reason && String(statusRaw).toUpperCase() === 'REJECTED'
+            ? `${statusRaw} - ${reason}`
+            : statusRaw;
           const tr=document.createElement('tr');
           tr.innerHTML = `<td>${new Date(r.created_at).toLocaleString()}</td><td>${r.owner_name||''}</td><td>${plate}</td>`+
             `<td>${fmtKES(r.amount_kes||0)}</td><td>${r.model||''}</td><td>${r.term_months||0}</td><td>${payout}</td><td>${r.note||''}</td>`+
-            `<td>${r.status||''}</td>`+
+            `<td>${statusText}</td>`+
             `<td>`+
               `<button class="ok" data-act="approve" data-id="${r.id}">Approve</button> `+
               `<button class="bad" data-act="reject" data-id="${r.id}">Reject</button>`+
@@ -1491,8 +1496,19 @@
       T.addEventListener('click', async (e)=>{
         const btn=e.target.closest('button'); if(!btn) return; const act=btn.dataset.act; const id=btn.dataset.id; if(!id) return;
         if(!confirm(`${act==='approve'?'Approve':'Reject'} this request?`)) return;
+        const payload = { action: act.toUpperCase() };
+        if (act === 'reject'){
+          const reason = prompt('Optional reason for rejection (shown to owner):','');
+          if (reason && reason.trim()){
+            payload.rejection_reason = reason.trim();
+          }
+        }
         btn.disabled=true; try{
-          await parse(await fetch(`/u/sacco/${currentSacco}/loan-requests/${id}`,{ method:'PATCH', headers:{'Content-Type':'application/json',Accept:'application/json'}, body: JSON.stringify({ action: act.toUpperCase() }) }));
+          await parse(await fetch(`/u/sacco/${currentSacco}/loan-requests/${id}`,{
+            method:'PATCH',
+            headers:{'Content-Type':'application/json',Accept:'application/json'},
+            body: JSON.stringify(payload)
+          }));
           await loadLoanRequests(); await loadLoanDisbursements(); await loadLoans();
         }catch(err){ alert(err.message); } finally{ btn.disabled=false; }
       });

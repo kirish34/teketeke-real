@@ -98,6 +98,18 @@
       background:#fef3c7; color:#92400e; border:1px solid #fde68a;
       font-size:13px;
     }
+    .seg-tabs{
+      display:inline-flex; gap:4px; padding:2px;
+      border-radius:999px; background:#f1f5f9; border:1px solid var(--border);
+    }
+    .seg-tab{
+      border:none; background:transparent; border-radius:999px;
+      padding:4px 10px; font-size:13px; cursor:pointer; color:var(--muted);
+    }
+    .seg-tab.active{
+      background:var(--brand); color:#fff;
+      box-shadow:0 6px 12px rgba(14,165,233,.35);
+    }
   </style>
 </head>
 <body>
@@ -308,13 +320,13 @@
         </div>
         <div class="row" style="margin-top:8px;">
           <div class="field" style="min-width:180px;">
-            <label>Receive loan as
-              <select id="loan_payout">
-                <option value="CASH">Cash at SACCO office</option>
-                <option value="M_PESA">M-PESA to my phone</option>
-                <option value="ACCOUNT">Bank / Till account</option>
-              </select>
-            </label>
+            <label>Receive loan as</label>
+            <div class="seg-tabs" id="loan_payout_tabs">
+              <button type="button" class="seg-tab active" data-loan-payout="CASH">Cash at SACCO</button>
+              <button type="button" class="seg-tab" data-loan-payout="M_PESA">M-PESA to my phone</button>
+              <button type="button" class="seg-tab" data-loan-payout="ACCOUNT">Bank / Till account</button>
+            </div>
+            <input type="hidden" id="loan_payout" value="CASH"/>
           </div>
           <div class="field" style="min-width:170px;">
             <label>Phone for M-PESA (optional)
@@ -663,6 +675,18 @@
       function bindLoans(){
         $('loan_submit')?.addEventListener('click', submitLoanRequest);
         $('loan_reload')?.addEventListener('click', loadLoanList);
+        const hidden = $('loan_payout');
+        const tabs = document.querySelectorAll('#loan_payout_tabs .seg-tab');
+        if (hidden && tabs.length){
+          tabs.forEach(btn=>{
+            btn.addEventListener('click', ()=>{
+              const val = (btn.dataset.loanPayout || 'CASH').toString().toUpperCase();
+              tabs.forEach(b=>b.classList.remove('active'));
+              btn.classList.add('active');
+              hidden.value = val || 'CASH';
+            });
+          });
+        }
       }
 
       async function submitLoanRequest(){
@@ -743,12 +767,17 @@
                 if (m === 'ACCOUNT') return ` (Account ${x.payout_account||''})`;
                 return ' (Cash)';
               })();
+              const statusRaw = x.status || '';
+              const reason = (x.rejection_reason || '').toString().trim();
+              const statusText = reason && String(statusRaw).toUpperCase() === 'REJECTED'
+                ? `${statusRaw} - ${reason}`
+                : statusRaw;
               return `<tr>
                 <td>${dt}</td>
                 <td>${fmtKES(x.amount_kes||0)}</td>
                 <td>${x.model||''}</td>
                 <td>${x.term_months||''}</td>
-                <td>${x.status||''}</td>
+                <td>${statusText}</td>
                 <td>${(x.note||'')}${payout}</td>
                 <td class="mono">${x.id||''}</td>
               </tr>`;

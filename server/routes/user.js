@@ -816,13 +816,18 @@ router.patch('/sacco/:id/loan-requests/:reqId', async (req,res)=>{
     const { allowed } = await ensureSaccoAccess(req.user.id, saccoId);
     if (!allowed) return res.status(403).json({ error:'Forbidden' });
     const action = (req.body?.action || '').toString().toUpperCase();
+    const rejectionReason = (req.body?.rejection_reason ?? req.body?.reason ?? '').toString().trim();
     if (!['APPROVE','REJECT'].includes(action)) return res.status(400).json({ error:'action must be APPROVE or REJECT' });
     const { data: R, error: rErr } = await supabaseAdmin
       .from('loan_requests').select('*').eq('id', reqId).eq('sacco_id', saccoId).maybeSingle();
     if (rErr) throw rErr;
     if (!R) return res.status(404).json({ error:'Request not found' });
 
-    let updates = { status: action==='APPROVE' ? 'APPROVED' : 'REJECTED', decided_at: new Date().toISOString() };
+    let updates = {
+      status: action==='APPROVE' ? 'APPROVED' : 'REJECTED',
+      decided_at: new Date().toISOString(),
+      rejection_reason: action === 'REJECT' && rejectionReason ? rejectionReason : null
+    };
     let createdLoan = null;
     if (action === 'APPROVE'){
       const perMonth = (R.model==='DAILY'?10:(R.model==='WEEKLY'?20:30));
@@ -842,6 +847,18 @@ router.patch('/sacco/:id/loan-requests/:reqId', async (req,res)=>{
       if (lErr) throw lErr;
       createdLoan = L;
       updates.loan_id = L.id;
+
+      // Automatically mark disbursement using the requested payout preference
+      const allowedMethods = ['CASH','M_PESA','ACCOUNT'];
+      let disbMethod = (R.payout_method || 'CASH').toString().toUpperCase();
+      if (!allowedMethods.includes(disbMethod)) disbMethod = 'CASH';
+      const now = new Date().toISOString();
+      updates.disbursed_at = now;
+      updates.disbursed_by = req.user.id;
+      updates.disbursed_method = disbMethod;
+      updates.disbursed_reference = null;
+      updates.payout_phone = disbMethod === 'M_PESA' ? (R.payout_phone || null) : (R.payout_phone || null);
+      updates.payout_account = disbMethod === 'ACCOUNT' ? (R.payout_account || null) : (R.payout_account || null);
     }
     const { data: U, error: uErr } = await supabaseAdmin
       .from('loan_requests').update(updates).eq('id', reqId).eq('sacco_id', saccoId).select('*').maybeSingle();
