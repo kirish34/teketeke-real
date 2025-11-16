@@ -125,15 +125,29 @@ router.get('/insights', requireUser, async (req, res) => {
   }
 });
 
-// Recent cash entries
+// Recent cash entries (optional date range)
 router.get('/cash', requireUser, async (req, res) => {
   try{
-    const limit = Math.max(1, Math.min(200, Number(req.query.limit || 20)));
-    const { data, error } = await req.supa
+    const limit = Math.max(1, Math.min(500, Number(req.query.limit || 50)));
+    const startStr = req.query.start ? String(req.query.start) : null;
+    const endStr = req.query.end ? String(req.query.end) : null;
+
+    let query = req.supa
       .from('taxi_cash_entries')
       .select('id,created_at,amount,name,phone,notes')
-      .order('created_at', { ascending:false })
-      .limit(limit);
+      .order('created_at', { ascending:false });
+
+    if (startStr){
+      const startDate = new Date(startStr + 'T00:00:00.000Z');
+      query = query.gte('created_at', startDate.toISOString());
+    }
+    if (endStr){
+      const endDate = new Date(endStr + 'T00:00:00.000Z');
+      const endExclusive = new Date(endDate.getTime() + 24*3600*1000);
+      query = query.lt('created_at', endExclusive.toISOString());
+    }
+
+    const { data, error } = await query.limit(limit);
     if (error) return res.status(500).json({ error: error.message });
     res.json({ items: data||[], limit });
   }catch(e){ res.status(500).json({ error: e.message }); }

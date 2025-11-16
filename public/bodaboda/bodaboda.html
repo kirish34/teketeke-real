@@ -82,6 +82,23 @@
         <tbody id="cashBody"></tbody>
       </table>
     </div>
+
+    <div class="section">
+      <h3>Search History</h3>
+      <div class="row" style="margin-bottom:6px;">
+        <label>From <input type="date" id="bodaCashFrom"/></label>
+        <label>To <input type="date" id="bodaCashTo"/></label>
+        <button id="bodaCashSearchBtn" class="btn ghost" type="button">Search</button>
+        <button id="bodaCashExportBtn" class="btn ghost" type="button">Export CSV</button>
+        <span id="bodaCashSearchHint" class="hint"></span>
+      </div>
+      <table>
+        <thead><tr><th>Time</th><th>Payer</th><th>Phone</th><th>Amount</th><th>Notes</th></tr></thead>
+        <tbody id="bodaCashSearchBody">
+          <tr><td colspan="5" class="hint">No search yet.</td></tr>
+        </tbody>
+      </table>
+    </div>
   </section>
 
   <section id="panel-expenses" class="panel">
@@ -445,6 +462,61 @@
         }
       }
 
+      async function searchBodaCashHistory(){
+        const from = ($('bodaCashFrom')?.value || '').trim();
+        const to = ($('bodaCashTo')?.value || '').trim();
+        const hint = $('bodaCashSearchHint');
+        const body = $('bodaCashSearchBody');
+        if (hint) hint.textContent = '';
+        if (!from && !to){
+          if (hint) hint.textContent = 'Choose a from/to date to search.';
+          return;
+        }
+        if (body) body.innerHTML = '<tr><td colspan="5" class="hint">Searching...</td></tr>';
+        try{
+          const params = new URLSearchParams();
+          params.set('limit','500');
+          if (from) params.set('start', from);
+          if (to) params.set('end', to);
+          const data = await authFetch(`/api/boda/cash?${params.toString()}`);
+          const rows = Array.isArray(data?.items) ? data.items : (Array.isArray(data) ? data : []);
+          if (!rows.length){
+            if (body) body.innerHTML = '<tr><td colspan="5" class="hint">No results for that range.</td></tr>';
+            return;
+          }
+          body.innerHTML = rows.map(x=>{
+            const t = x.created_at || x.time || x.timestamp;
+            return `<tr>
+              <td>${t ? new Date(t).toLocaleString() : '--'}</td>
+              <td>${x.payer_name || ''}</td>
+              <td>${x.phone || ''}</td>
+              <td>${fmt(x.amount || 0)}</td>
+              <td>${x.notes || ''}</td>
+            </tr>`;
+          }).join('');
+        }catch(e){
+          if (body) body.innerHTML = '<tr><td colspan="5" class="hint">Failed to search history.</td></tr>';
+          if (hint) hint.textContent = e.message || 'Error searching';
+        }
+      }
+
+      function exportBodaCashSearchCsv(){
+        const T = $('bodaCashSearchBody');
+        const table = T?.closest('table');
+        if (!table) return;
+        const rows = Array.from(table.querySelectorAll('tr'));
+        if (!rows.length) return;
+        const csv = rows.map(r=>{
+          const cells = Array.from(r.querySelectorAll('th,td')).map(c=>`"${(c.innerText||'').replace(/"/g,'""')}"`);
+          return cells.join(',');
+        }).join('\n');
+        const blob = new Blob([csv],{type:'text/csv'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'boda-cash-history.csv';
+        a.click();
+      }
+
       async function loadSettings(){
         try{
           const data = await authFetch('/api/boda/settings');
@@ -625,6 +697,8 @@
 
         $('btnCash').addEventListener('click', collectCash);
         $('btnExpense').addEventListener('click', saveExpense);
+        const hsBtn = $('bodaCashSearchBtn'); hsBtn?.addEventListener('click', searchBodaCashHistory);
+        const exBtn = $('bodaCashExportBtn'); exBtn?.addEventListener('click', exportBodaCashSearchCsv);
         const btnSaveTarget = $('btnSaveTarget'); btnSaveTarget?.addEventListener('click', saveTarget);
         initMpesaSection();
 

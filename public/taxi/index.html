@@ -86,6 +86,25 @@
         <tbody id="cashBody"></tbody>
       </table>
     </div>
+
+    <div class="section">
+      <h3>Search History</h3>
+      <div class="row" style="margin-bottom:6px;">
+        <label>From <input type="date" id="cashFrom"/></label>
+        <label>To <input type="date" id="cashTo"/></label>
+        <button id="cashSearchBtn" class="btn ghost" type="button">Search</button>
+        <button id="cashExportBtn" class="btn ghost" type="button">Export CSV</button>
+        <span id="cashSearchHint" class="hint"></span>
+      </div>
+      <table>
+        <thead>
+          <tr><th>Time</th><th>Name</th><th>Phone</th><th>Amount</th></tr>
+        </thead>
+        <tbody id="cashSearchBody">
+          <tr><td colspan="4" class="hint">No search yet.</td></tr>
+        </tbody>
+      </table>
+    </div>
   </section>
 
   <section id="panel-expenses" class="panel">
@@ -467,6 +486,60 @@
       }catch(e){/* ignore */}
     }
 
+    async function searchCashHistory(){
+      const from = ($('cashFrom')?.value || '').trim();
+      const to = ($('cashTo')?.value || '').trim();
+      const hint = $('cashSearchHint');
+      const body = $('cashSearchBody');
+      if (hint) hint.textContent = '';
+      if (!from && !to){
+        if (hint) hint.textContent = 'Choose a from/to date to search.';
+        return;
+      }
+      if (body) body.innerHTML = '<tr><td colspan="4" class="hint">Searching...</td></tr>';
+      try{
+        const params = new URLSearchParams();
+        params.set('limit','500');
+        if (from) params.set('start', from);
+        if (to) params.set('end', to);
+        const data = await authFetch(`/api/taxi/cash?${params.toString()}`);
+        const rows = Array.isArray(data?.items) ? data.items : (Array.isArray(data) ? data : []);
+        if (!rows.length){
+          if (body) body.innerHTML = '<tr><td colspan="4" class="hint">No results for that range.</td></tr>';
+          return;
+        }
+        body.innerHTML = rows.map(r=>{
+          const t = r.created_at || r.time || r.timestamp;
+          return `<tr>
+            <td>${t? new Date(t).toLocaleString():'?'}</td>
+            <td>${r.name||''}</td>
+            <td>${r.phone||''}</td>
+            <td>${fmt(r.amount||0)}</td>
+          </tr>`;
+        }).join('');
+      }catch(e){
+        if (body) body.innerHTML = '<tr><td colspan="4" class="hint">Failed to search history.</td></tr>';
+        if (hint) hint.textContent = e.message || 'Error searching';
+      }
+    }
+
+    function exportCashSearchCsv(){
+      const T = $('cashSearchBody');
+      const table = T?.closest('table');
+      if (!table) return;
+      const rows = Array.from(table.querySelectorAll('tr'));
+      if (!rows.length) return;
+      const csv = rows.map(r=>{
+        const cells = Array.from(r.querySelectorAll('th,td')).map(c=>`"${(c.innerText||'').replace(/"/g,'""')}"`);
+        return cells.join(',');
+      }).join('\n');
+      const blob = new Blob([csv],{type:'text/csv'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'taxi-cash-history.csv';
+      a.click();
+    }
+
     async function refreshExp(){
       try{
         const out = await authFetch('/api/taxi/expenses?limit=20');
@@ -702,6 +775,8 @@
       document.getElementById('btnCash').addEventListener('click', saveCash);
       document.getElementById('btnExp').addEventListener('click', saveExpense);
       document.getElementById('btnSaveTarget').addEventListener('click', saveTarget);
+      const hsBtn = $('cashSearchBtn'); hsBtn?.addEventListener('click', searchCashHistory);
+      const exBtn = $('cashExportBtn'); exBtn?.addEventListener('click', exportCashSearchCsv);
       initMpesaSection();
 
       // background refresh
