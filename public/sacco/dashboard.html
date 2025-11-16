@@ -1384,6 +1384,13 @@
         const link = document.getElementById('linkStaffLoans'); if (link) link.href = '/public/sacco/staff-loans.html' + (currentSacco ? ('?sacco='+encodeURIComponent(currentSacco)) : '');
         await Promise.all([ loadMatatus(), loadTxAndTotals(), loadStaffCollections(), loadStaff(), loadLoans(), loadLoanRequests(), loadRoutesAdmin(), loadDailyFeeRatesAdmin() ]);
         await loadNotifications();
+        // Auto-refresh key views every 60 seconds (if SACCO selected)
+        setInterval(async ()=>{
+          if (!currentSacco) return;
+          try{
+            await Promise.all([ loadTxAndTotals(), loadStaffCollections(), loadNotifications() ]);
+          }catch(_){ /* ignore background refresh errors */ }
+        }, 60000);
 
     // Approve/Reject loan requests
     (function bindLnReqActions(){
