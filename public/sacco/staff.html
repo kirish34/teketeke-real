@@ -393,12 +393,16 @@ const friendlyName = (user)=>{
 };
 function startCornerClock(){ const el=document.getElementById('dateTimeLine'); if(!el) return; const update=()=>{ el.textContent=new Date().toLocaleString(); }; update(); setInterval(update,1000); }
 startCornerClock();
-(function hideRoleSelectInApp(){
+(function tweakForNativeApp(){
   try{
     const inApp = !!(window.Capacitor && window.Capacitor.isNativePlatform);
     if (!inApp) return;
+    // Hide web-only navigation
     const link = document.getElementById('roleSelectLink');
     if (link) link.style.display = 'none';
+    // Special header text for offline app
+    const h2 = document.querySelector('h2');
+    if (h2) h2.textContent = 'SACCO Staff – Offline Cash Desk';
   }catch(_){}
 })();
 (async function(){ try{ if(window.TT && window.TT.getSupabase){ const supa = await window.TT.getSupabase(); const {data:{session}}=await supa.auth.getSession(); const el=document.getElementById('auth_state'); if(el) el.textContent = session?.user?.email ? (`Signed in as ${session.user.email}`) : 'Not signed in'; const welcome=document.getElementById('welcomeLine'); if(welcome) welcome.textContent = `Hello, ${friendlyName(session?.user)}`; const b=document.getElementById('logoutBtn'); b?.addEventListener('click', async ()=>{ try{ await supa.auth.signOut(); }catch(_){} localStorage.removeItem('auth_token'); localStorage.removeItem('tt_root_token'); localStorage.removeItem('tt_admin_token'); location.reload(); }); } }catch(_){ } })();
