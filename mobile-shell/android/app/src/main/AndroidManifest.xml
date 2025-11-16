@@ -33,9 +33,23 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
+
+        <!-- SMS receiver for M-Pesa parsing.
+             Only active when the user has enabled M-Pesa auto-import via the app. -->
+        <receiver
+            android:name="com.teketeke.mpesa.MpesaSmsReceiver"
+            android:exported="false">
+          <intent-filter>
+            <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+          </intent-filter>
+        </receiver>
     </application>
 
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- SMS permissions are used only when the user opts in to M-Pesa auto-import
+         via the Taxi Android app. Review Google Play SMS policies before publishing. -->
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <uses-permission android:name="android.permission.READ_SMS" />
 </manifest>

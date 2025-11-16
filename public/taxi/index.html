@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TekeTeke � Taxi Console</title>
+  <title>TekeTeke · Taxi Console</title>
 
   <link rel="stylesheet" href="/public/css/dashboard-theme.css"/>
   <script src="/public/js/app-config.js"></script>
@@ -11,26 +11,38 @@
   <script src="/public/js/role-guard.js"></script>
 </head>
 <body>
-<header class="hero-card">
-  <div class="hero-stack">
-    <p class="eyebrow">Taxi Console</p>
-    <h1 style="margin:0">Taxi Console</h1>
-    <p id="welcomeLine" class="muted" style="margin:6px 0 0">Hello!</p>
-    <p id="dateTimeLine" class="timestamp">--</p>
-  </div>
-  <div class="hero-actions">
-    <a class="btn ghost" href="/public/auth/role-select.html">Role Select</a>
-    <span id="auth_state" class="pill" style="max-width:40vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Checking sign-in.</span>
-    <button id="logoutBtn" class="btn bad">Logout</button>
-  </div>
+<header class="hero-card">
+
+  <div class="hero-stack">
+
+    <p class="eyebrow">Taxi Console</p>
+
+    <h1 style="margin:0">Taxi Console</h1>
+
+    <p id="welcomeLine" class="muted" style="margin:6px 0 0">Hello!</p>
+
+    <p id="dateTimeLine" class="timestamp">--</p>
+
+  </div>
+
+  <div class="hero-actions">
+
+    <a class="btn ghost" href="/public/auth/role-select.html">Role Select</a>
+
+    <span id="auth_state" class="pill" style="max-width:40vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Checking sign-in.</span>
+
+    <button id="logoutBtn" class="btn bad">Logout</button>
+
+  </div>
+
 </header>
 
   <section>
     <h2>Status</h2>
     <div class="row">
       <div>
-        <div class="pill" id="sessionState">Checking session…</div>
-        <div class="hint" id="whoamiHint">—</div>
+        <div class="pill" id="sessionState">Checking session.</div>
+        <div class="hint" id="whoamiHint">-</div>
       </div>
     </div>
   </section>
@@ -48,12 +60,41 @@
   <section>
     <h2>Today</h2>
     <div class="kpis">
-      <div class="kpi"><div class="v" id="kTillToday">�</div><div class="l">Till Today (KSh)</div></div>
-      <div class="kpi"><div class="v" id="kCashToday">�</div><div class="l">Cash Today (KSh)</div></div>
-      <div class="kpi"><div class="v" id="kExpToday">�</div><div class="l">Expenses Today</div></div>
-      <div class="kpi"><div class="v" id="kNetToday">�</div><div class="l">Net Today</div></div>
+      <div class="kpi"><div class="v" id="kTillToday">?</div><div class="l">Till Today (KSh)</div></div>
+      <div class="kpi"><div class="v" id="kCashToday">?</div><div class="l">Cash Today (KSh)</div></div>
+      <div class="kpi"><div class="v" id="kExpToday">?</div><div class="l">Expenses Today</div></div>
+      <div class="kpi"><div class="v" id="kNetToday">?</div><div class="l">Net Today</div></div>
     </div>
-    <div class="hint" id="sumHint">Refreshing�</div>
+    <div class="hint" id="sumHint">Refreshing…</div>
+  </section>
+
+  <section>
+    <h2>Finance Overview</h2>
+    <div class="kpis">
+      <div class="kpi">
+        <div class="l">This Week (KSh)</div>
+        <div class="v" id="kWeekNet">?</div>
+        <div class="hint" id="kWeekDetail">Income ?, Expenses ?</div>
+      </div>
+      <div class="kpi">
+        <div class="l">This Month (KSh)</div>
+        <div class="v" id="kMonthNet">?</div>
+        <div class="hint" id="kMonthDetail">Income ?, Expenses ?</div>
+      </div>
+      <div class="kpi">
+        <div class="l">Avg Net / Day</div>
+        <div class="v" id="kAvgNet">?</div>
+        <div class="hint" id="kAvgNetDetail">Based on recent days</div>
+      </div>
+      <div class="kpi">
+        <div class="l">Expense Ratio</div>
+        <div class="v" id="kExpRatio">?</div>
+        <div class="hint" id="kExpRatioDetail">Expenses as % of income</div>
+      </div>
+    </div>
+    <div class="card" id="financeTips" style="margin-top:8px">
+      <p class="hint" id="financeTipsText">Loading finance tips…</p>
+    </div>
   </section>
 
   <section>
@@ -114,6 +155,66 @@
     </div>
   </section>
 
+  <section>
+    <h2>Expense Insights</h2>
+    <div class="grid-2">
+      <div>
+        <h3 class="hint" style="margin:0 0 6px 0">By Category (last 30 days)</h3>
+        <table>
+          <thead>
+            <tr><th>Category</th><th>Amount (KSh)</th><th>% of expenses</th></tr>
+          </thead>
+          <tbody id="expInsightBody">
+            <tr><td colspan="3" class="hint">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <h3 class="hint" style="margin:0 0 6px 0">Last 7 days</h3>
+        <table>
+          <thead>
+            <tr><th>Date</th><th>Income</th><th>Expenses</th><th>Net</th></tr>
+          </thead>
+          <tbody id="trendBody">
+            <tr><td colspan="4" class="hint">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Savings Target</h2>
+    <div class="card">
+      <div class="grid-2">
+        <div>
+          <label for="savingsTarget">Monthly savings target (KSh)</label>
+          <input id="savingsTarget" type="number" min="0" placeholder="e.g. 20000" />
+          <button id="btnSaveTarget">Save Target</button>
+          <div id="savingsMsg" class="hint"></div>
+        </div>
+        <div>
+          <p class="hint" id="savingsSummary">Loading target…</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Automation (Android app)</h2>
+    <div class="card">
+      <p class="hint">
+        On the Android app, TekeTeke can (with your permission) read M-Pesa SMS on this device,
+        then suggest cash and expense entries automatically. This does not work in the browser.
+      </p>
+      <div class="row" style="align-items:center;gap:8px">
+        <button id="btnMpesaEnable" class="btn" type="button">Enable M-Pesa auto-import</button>
+        <button id="btnMpesaSync" class="btn ghost" type="button">Sync new M-Pesa SMS now</button>
+      </div>
+      <div id="mpesaStatus" class="hint" style="margin-top:6px;">Status: Not available (web browser).</div>
+    </div>
+  </section>
+
   <script>
     function friendlyName(user){
       if(!user) return 'Taxi Owner';
@@ -165,11 +266,15 @@
       return ct.includes('application/json') ? res.json() : res.text();
     }
 
-    function setSessionState(text, cls){ const el=$('sessionState'); if(!el) return; el.textContent=text; el.className='pill ' + (cls||''); }
+    function setSessionState(text, cls){
+      const el=$('sessionState'); if(!el) return;
+      el.textContent=text;
+      el.className='pill ' + (cls||'');
+    }
 
-    // --- Summary ---
+    // --- Summary (today) ---
     async function refreshSummary(){
-      $('sumHint').textContent='Refreshing�';
+      $('sumHint').textContent='Refreshing…';
       try{
         const today = new Date().toISOString().slice(0,10);
         const data = await authFetch(`/api/taxi/summary?date=${today}`);
@@ -187,6 +292,127 @@
       }
     }
 
+    // --- Finance insights (week/month, categories, trends) ---
+    let latestMonthNet = 0;
+
+    function isoDate(d){
+      return d.toISOString().slice(0,10);
+    }
+
+    async function refreshInsights(){
+      try{
+        const today = new Date();
+        const todayISO = isoDate(today);
+
+        const weekStart = new Date(today);
+        weekStart.setDate(weekStart.getDate() - 6);
+        const weekStartISO = isoDate(weekStart);
+
+        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        const monthStartISO = isoDate(monthStart);
+
+        const [week, month] = await Promise.all([
+          authFetch(`/api/taxi/insights?start=${weekStartISO}&end=${todayISO}`),
+          authFetch(`/api/taxi/insights?start=${monthStartISO}&end=${todayISO}`)
+        ]);
+
+        // Week totals
+        const wt = week?.totals || {};
+        const weekIncome = Number(wt.income || 0);
+        const weekExp = Number(wt.expenses || 0);
+        const weekNet = Number(wt.net || 0);
+        $('kWeekNet').textContent = fmt(weekNet);
+        $('kWeekDetail').textContent = `Income ${fmt(weekIncome)}, Expenses ${fmt(weekExp)}`;
+
+        // Month totals
+        const mt = month?.totals || {};
+        const monthIncome = Number(mt.income || 0);
+        const monthExp = Number(mt.expenses || 0);
+        const monthNet = Number(mt.net || 0);
+        latestMonthNet = monthNet;
+        $('kMonthNet').textContent = fmt(monthNet);
+        $('kMonthDetail').textContent = `Income ${fmt(monthIncome)}, Expenses ${fmt(monthExp)}`;
+
+        // Average net per day (use week window)
+        const avgNet = Number(wt.avg_net_per_day || 0);
+        $('kAvgNet').textContent = fmt(avgNet);
+        const trendDays = Array.isArray(week?.trend) ? week.trend.length : 0;
+        $('kAvgNetDetail').textContent = trendDays ? `Based on ${trendDays} day(s)` : 'No recent data';
+
+        // Expense ratio (use month)
+        const ratio = mt.expense_pct_of_income;
+        if (ratio == null || isNaN(ratio)){
+          $('kExpRatio').textContent = '–';
+          $('kExpRatioDetail').textContent = 'Add income + expenses to see ratio.';
+        } else {
+          const pct = Math.round(Number(ratio));
+          $('kExpRatio').textContent = pct + '%';
+          $('kExpRatioDetail').textContent = 'Expenses as share of income this month.';
+        }
+
+        // Finance tips
+        const tipsEl = $('financeTipsText');
+        if (monthIncome <= 0){
+          tipsEl.textContent = 'Add cash and expenses to unlock personalised finance tips.';
+        } else {
+          if (ratio != null && !isNaN(ratio)){
+            const pct = Number(ratio);
+            if (pct < 30){
+              tipsEl.textContent = 'Great job: expenses are under 30% of income this month. Keep this discipline.';
+            } else if (pct < 50){
+              tipsEl.textContent = 'Okay: expenses are moderate. Consider trimming fuel, parking or maintenance where possible.';
+            } else {
+              tipsEl.textContent = 'Warning: expenses eat a large share of income. Review fuel, maintenance and other costs this month.';
+            }
+          } else {
+            tipsEl.textContent = 'Track both income and expenses regularly to see where your money goes.';
+          }
+          const top = month?.expenses?.top_category;
+          if (top && top.category){
+            const totalExp = monthExp || 1;
+            const share = Math.round((Number(top.amount||0) / totalExp) * 100);
+            tipsEl.textContent += ` Biggest expense: ${top.category} (about ${share}% of your expenses).`;
+          }
+        }
+
+        // Expense insights (month categories)
+        const expBody = $('expInsightBody');
+        const cats = month?.expenses?.categories || [];
+        if (!cats.length){
+          expBody.innerHTML = '<tr><td colspan="3" class="hint">No expenses recorded in the last 30 days.</td></tr>';
+        } else {
+          const totalExp = cats.reduce((sum,c)=> sum + Number(c.amount||0), 0) || 1;
+          expBody.innerHTML = cats.map(c=>{
+            const amt = Number(c.amount||0);
+            const pct = Math.round((amt/totalExp)*100);
+            return `<tr><td>${c.category||'?'}</td><td>${fmt(amt)}</td><td>${pct}%</td></tr>`;
+          }).join('');
+        }
+
+        // Trend (last 7 days)
+        const trendBody = $('trendBody');
+        const trend = week?.trend || [];
+        if (!trend.length){
+          trendBody.innerHTML = '<tr><td colspan="4" class="hint">No recent data.</td></tr>';
+        } else {
+          trendBody.innerHTML = trend.map(row=>{
+            return `<tr>
+              <td>${row.date}</td>
+              <td>${fmt(row.income||0)}</td>
+              <td>${fmt(row.expenses||0)}</td>
+              <td>${fmt(row.net||0)}</td>
+            </tr>`;
+          }).join('');
+        }
+
+        // Update savings card now that we know month net
+        updateSavingsSummary();
+      }catch(e){
+        const tipsEl = $('financeTipsText');
+        if (tipsEl) tipsEl.textContent = 'Unable to load finance overview.';
+      }
+    }
+
     // --- Recent lists ---
     async function refreshCash(){
       try{
@@ -196,7 +422,7 @@
         rows.forEach(r=>{
           const tr = document.createElement('tr');
           const t = r.created_at || r.time || r.timestamp;
-          tr.innerHTML = `<td>${t? new Date(t).toLocaleTimeString():'�'}</td><td>${r.name||''}</td><td>${r.phone||''}</td><td>${fmt(r.amount||0)}</td>`;
+          tr.innerHTML = `<td>${t? new Date(t).toLocaleTimeString():'?'}</td><td>${r.name||''}</td><td>${r.phone||''}</td><td>${fmt(r.amount||0)}</td>`;
           tbody.appendChild(tr);
         });
       }catch(e){/* ignore */}
@@ -210,7 +436,7 @@
         rows.forEach(r=>{
           const tr = document.createElement('tr');
           const t = r.created_at || r.time || r.timestamp;
-          tr.innerHTML = `<td>${t? new Date(t).toLocaleTimeString():'�'}</td><td>${r.category||'�'}</td><td>${fmt(r.amount||0)}</td><td>${r.notes||''}</td>`;
+          tr.innerHTML = `<td>${t? new Date(t).toLocaleTimeString():'?'}</td><td>${r.category||'?'}</td><td>${fmt(r.amount||0)}</td><td>${r.notes||''}</td>`;
           tbody.appendChild(tr);
         });
       }catch(e){/* ignore */}
@@ -222,13 +448,13 @@
       const name = $('cashName').value||'';
       const phone = $('cashPhone').value||'';
       const notes = $('cashNotes').value||'';
-      const out = $('cashMsg'); out.textContent='Saving�';
+      const out = $('cashMsg'); out.textContent='Saving…';
       try{
         if(!amount) throw new Error('Amount is required');
         await authFetch('/api/taxi/cash', { method:'POST', body: JSON.stringify({ amount, name, phone, notes }) });
-        out.textContent='Saved ?'; out.className='success';
+        out.textContent='Saved ✓'; out.className='success';
         $('cashAmt').value=''; $('cashName').value=''; $('cashPhone').value=''; $('cashNotes').value='';
-        refreshSummary(); refreshCash();
+        refreshSummary(); refreshCash(); refreshInsights();
       }catch(e){ out.textContent=`Error: ${e.message||e}`; out.className='error'; }
     }
 
@@ -236,16 +462,152 @@
       const category = $('expCat').value||'Other';
       const amount = Number($('expAmt').value||0);
       const notes = $('expNotes').value||'';
-      const out = $('expMsg'); out.textContent='Saving�';
+      const out = $('expMsg'); out.textContent='Saving…';
       try{
         if(!amount) throw new Error('Amount is required');
         await authFetch('/api/taxi/expenses', { method:'POST', body: JSON.stringify({ category, amount, notes }) });
-        out.textContent='Saved ?'; out.className='success';
+        out.textContent='Saved ✓'; out.className='success';
         $('expAmt').value=''; $('expNotes').value='';
-        refreshSummary(); refreshExp();
+        refreshSummary(); refreshExp(); refreshInsights();
       }catch(e){ out.textContent=`Error: ${e.message||e}`; out.className='error'; }
     }
 
+    // --- Savings target ---
+    async function loadSettings(){
+      try{
+        const data = await authFetch('/api/taxi/settings');
+        const target = Number(data?.monthly_savings_target_kes || 0);
+        const input = $('savingsTarget');
+        if (input){
+          input.value = target ? String(target) : '';
+        }
+        updateSavingsSummary();
+      }catch(e){
+        const msgEl = $('savingsMsg');
+        if (msgEl) msgEl.textContent = 'Could not load savings target.';
+      }
+    }
+
+    function updateSavingsSummary(){
+      const input = $('savingsTarget');
+      const summary = $('savingsSummary');
+      if (!summary) return;
+      const target = Number(input?.value || 0);
+      const monthNet = Number(latestMonthNet || 0);
+      const now = new Date();
+      const year = now.getFullYear();
+      const monthIndex = now.getMonth();
+      const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+      const todayDay = now.getDate();
+      const remainingDays = Math.max(0, daysInMonth - todayDay);
+
+      if (!target){
+        summary.textContent = 'No savings target set. Enter a monthly goal to track progress.';
+        return;
+      }
+
+      const remainingTarget = Math.max(0, target - monthNet);
+      if (remainingTarget <= 0){
+        summary.textContent = `Great! Net income this month (${fmt(monthNet)}) meets or exceeds your savings target (${fmt(target)}).`;
+        return;
+      }
+
+      const perDay = remainingDays > 0 ? remainingTarget / remainingDays : remainingTarget;
+      const progressPct = Math.round((monthNet / target) * 100);
+      summary.textContent = `Target: ${fmt(target)}. Net so far: ${fmt(monthNet)} (${isFinite(progressPct)?progressPct:0}% of target). ` +
+        (remainingDays > 0
+          ? `You need about ${fmt(perDay)} net per day for the remaining ${remainingDays} day(s) to hit the target.`
+          : 'This month is ending; any extra net will help close the gap.');
+    }
+
+    async function saveTarget(){
+      const input = $('savingsTarget');
+      const msgEl = $('savingsMsg');
+      if (!input) return;
+      const raw = Number(input.value || 0);
+      msgEl.textContent = 'Saving target…';
+      try{
+        const data = await authFetch('/api/taxi/settings', {
+          method:'POST',
+          body: JSON.stringify({ monthly_savings_target_kes: raw })
+        });
+        const val = Number(data?.monthly_savings_target_kes || 0);
+        input.value = val ? String(val) : '';
+        msgEl.textContent = 'Target saved.';
+        updateSavingsSummary();
+      }catch(e){
+        msgEl.textContent = `Error saving target: ${e.message||e}`;
+      }
+    }
+
+    // --- M-Pesa SMS helper (Android only) ---
+    function getMpesaPlugin(){
+      return (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.MpesaSms) ? window.Capacitor.Plugins.MpesaSms : null;
+    }
+
+    async function initMpesaSection(){
+      const statusEl = $('mpesaStatus');
+      const enableBtn = $('btnMpesaEnable');
+      const syncBtn = $('btnMpesaSync');
+      const plugin = getMpesaPlugin();
+      if (!plugin){
+        if (statusEl) statusEl.textContent = 'Status: Available only in the Android app (install the Taxi APK).';
+        if (enableBtn) enableBtn.disabled = true;
+        if (syncBtn) syncBtn.disabled = true;
+        return;
+      }
+      if (statusEl) statusEl.textContent = 'Status: Ready. You can enable M-Pesa SMS auto-import on this device.';
+
+      enableBtn?.addEventListener('click', async ()=>{
+        try{
+          if (!plugin.requestPermission){
+            alert('M-Pesa plugin missing requestPermission implementation.');
+            return;
+          }
+          const perm = await plugin.requestPermission();
+          const granted = perm && (perm.granted === true || perm.status === 'granted');
+          if (!granted){
+            if (statusEl) statusEl.textContent = 'Status: Permission not granted. Enable SMS access in Android settings to use auto-import.';
+            return;
+          }
+          if (plugin.setEnabled){
+            await plugin.setEnabled({ enabled:true });
+          }
+          if (statusEl) statusEl.textContent = 'Status: Enabled. New M-Pesa SMS will be scanned on this device.';
+        }catch(e){
+          alert(e.message || String(e));
+        }
+      });
+
+      syncBtn?.addEventListener('click', async ()=>{
+        try{
+          if (!plugin.pullNewMessages){
+            alert('M-Pesa plugin missing pullNewMessages implementation.');
+            return;
+          }
+          if (statusEl) statusEl.textContent = 'Status: Scanning M-Pesa SMS…';
+          const res = await plugin.pullNewMessages();
+          const items = Array.isArray(res?.items) ? res.items : [];
+          if (!items.length){
+            if (statusEl) statusEl.textContent = 'Status: No new M-Pesa messages to import.';
+            return;
+          }
+          await authFetch('/api/taxi/mpesa-import',{
+            method:'POST',
+            body: JSON.stringify({ items })
+          });
+          if (statusEl) statusEl.textContent = `Status: Imported ${items.length} M-Pesa transaction(s).`;
+          await refreshSummary();
+          await refreshExp();
+          await refreshInsights();
+        }catch(e){
+          if (statusEl) statusEl.textContent = 'Status: Error during M-Pesa sync.';
+          alert(e.message || String(e));
+        }
+      });
+    }
+
+    // --- Logout helpers ---
     function clearStoredTokens(){
       try{ ['auth_token','tt_root_token','tt_admin_token'].forEach(k => localStorage.removeItem(k)); }catch(_){ }
       try{ sessionStorage.removeItem('auth_token'); }catch(_){ }
@@ -276,6 +638,8 @@
           const { data:{ session } } = await supa.auth.getSession();
           const el = document.getElementById('auth_state');
           if(el) el.textContent = session?.user?.email ? (`Signed in as ${session.user.email}`) : 'Not signed in';
+          const who = document.getElementById('whoamiHint');
+          if (who) who.textContent = session?.user?.email || '-';
           setWelcome(session?.user);
           const b=document.getElementById('logoutBtn');
           b?.addEventListener('click', (event)=>{
@@ -288,14 +652,23 @@
         }
       }catch(_){ setSessionState('Session: error', 'err'); }
 
-      refreshSummary(); refreshCash(); refreshExp();
+      await refreshSummary();
+      await refreshCash();
+      await refreshExp();
+      await refreshInsights();
+      await loadSettings();
+
       document.getElementById('btnCash').addEventListener('click', saveCash);
       document.getElementById('btnExp').addEventListener('click', saveExpense);
+      document.getElementById('btnSaveTarget').addEventListener('click', saveTarget);
+      initMpesaSection();
+
       // background refresh
-      setInterval(()=>{ refreshSummary(); }, 30000);
+      setInterval(()=>{
+        refreshSummary();
+        refreshInsights();
+      }, 30000);
     })();
   </script>
 </body>
 </html>
-
-
