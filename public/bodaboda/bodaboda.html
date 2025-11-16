@@ -1,4 +1,4 @@
-ï»¿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -11,54 +11,53 @@
   <script src="/public/js/role-guard.js"></script>
 </head>
 <body>
-<div class="wrap">
-  <header class="hero-card">
-    <div class="hero-stack brand-stack">
-      <p class="eyebrow">Boda Console</p>
-      <h1 style="margin:0">Boda Boda Console</h1>
-      <div class="hello" id="welcomeLine">Hello, Rider</div>
-      <div class="timestamp" id="dateTimeLine">--</div>
-    </div>
-    <div class="hero-actions">
-      <span id="auth_state" class="pill" style="max-width:40vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Checking sign-in.</span>
-      <button id="logoutBtn" class="btn bad">Logout</button>
-    </div>
-  </header>
-
-  <section id="status">
-      <h2>Status</h2>
-      <div class="row">
-        <div>
-          <div class="pill" id="authState">Checking session...</div>
-          <div class="hint" id="whoamiHint">-</div>
-        </div>
-      </div>
-    </section>
+<header class="hero-card">
 
-    <div class="card" style="background:#e0f2fe;border:1px dashed #60a5fa">
-      <div class="row" style="align-items:center;gap:12px">
-        <div style="flex:1">
-          <h3 style="margin:0 0 4px;color:#0f172a">Install the Boda Boda app</h3>
-          <p class="hint" style="margin:0">Offline-first Android build tailored for riders.</p>
-        </div>
-        <a class="btn" href="/public/downloads/teketeke-go-boda.apk" download>Download APK</a>
-      </div>
+  <div class="hero-stack brand-stack">
+
+    <p class="eyebrow">Boda Console</p>
+
+    <h1 style="margin:0">Boda Boda Console</h1>
+
+    <div class="hello" id="welcomeLine">Hello, Rider</div>
+
+    <div class="timestamp" id="dateTimeLine">--</div>
+
+  </div>
+
+  <div class="hero-actions">
+
+    <span id="auth_state" class="pill" style="max-width:40vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Checking sign-in.</span>
+
+    <button id="logoutBtn" class="btn bad">Logout</button>
+
+  </div>
+
+</header>
+
+  <div class="tabs">
+    <button class="tab active" type="button" data-panel="today">Today</button>
+    <button class="tab" type="button" data-panel="cashin">Cash In</button>
+    <button class="tab" type="button" data-panel="expenses">Expenses</button>
+    <button class="tab" type="button" data-panel="insights">Insights</button>
+  </div>
+
+  <section id="panel-today" class="panel active">
+    <h2>Today</h2>
+    <div class="kpis">
+      <div class="kpi"><div class="v" id="kpiTill">-</div><div class="l">Till (M-Pesa) Today</div></div>
+      <div class="kpi"><div class="v" id="kpiCash">-</div><div class="l">Cash Today</div></div>
+      <div class="kpi"><div class="v" id="kpiExp">-</div><div class="l">Expenses Today</div></div>
+      <div class="kpi"><div class="v" id="kpiNet">-</div><div class="l">Net Today</div></div>
     </div>
+    <div class="hint" id="sumHint">Refreshing...</div>
+  </section>
 
-    <section>
-      <h2>Today's Totals</h2>
-      <div class="kpis">
-        <div class="kpi"><div class="v" id="kpiTill">-</div><div class="l">Till (M-Pesa) Today</div></div>
-        <div class="kpi"><div class="v" id="kpiCash">-</div><div class="l">Cash Today</div></div>
-        <div class="kpi"><div class="v" id="kpiExp">-</div><div class="l">Expenses Today</div></div>
-        <div class="kpi"><div class="v" id="kpiNet">-</div><div class="l">Net Today</div></div>
-      </div>
-      <div class="hint" id="sumHint">Refreshing...</div>
-    </section>
-
-    <section>
-      <h2>Collect Cash</h2>
-      <div class="row">
+  <section id="panel-cashin" class="panel">
+    <h2>Cash In</h2>
+    <div class="section">
+      <h3>Collect Cash</h3>
+      <div class="grid-2">
         <div>
           <label for="cashAmount">Amount (KES)</label>
           <input id="cashAmount" type="number" min="0" placeholder="e.g., 150" />
@@ -72,18 +71,32 @@
           <div id="cashMsg" class="hint"></div>
         </div>
       </div>
-    </section>
+    </div>
 
-    <section>
-      <h2>Enter Expense</h2>
-      <div class="row">
+    <div class="section">
+      <h3>Recent Cash Receipts</h3>
+      <table>
+        <thead><tr><th>Time</th><th>Payer</th><th>Phone</th><th>Amount</th><th>Notes</th></tr></thead>
+        <tbody id="cashBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="panel-expenses" class="panel">
+    <h2>Expenses</h2>
+    <div class="section">
+      <h3>Enter Expense</h3>
+      <div class="grid-2">
         <div>
           <label for="expCat">Category</label>
           <select id="expCat">
-            <option value="fuel">Fuel</option>
-            <option value="maintenance">Maintenance</option>
-            <option value="parking">Parking</option>
-            <option value="other">Other</option>
+            <option value="Fuel">Fuel</option>
+            <option value="Maintenance">Maintenance</option>
+            <option value="Parking">Parking</option>
+            <option value="Airtime">Airtime</option>
+            <option value="Food">Food</option>
+            <option value="Liquor">Liquor</option>
+            <option value="Other">Other</option>
           </select>
           <label for="expAmount">Amount (KES)</label>
           <input id="expAmount" type="number" min="0" placeholder="e.g., 50" />
@@ -93,257 +106,272 @@
           <div id="expMsg" class="hint"></div>
         </div>
       </div>
-    </section>
+    </div>
 
-    <section>
-      <h2>Recent Activity</h2>
-      <div class="row">
-        <div>
-          <h3 style="margin:0 0 6px 0;color:var(--sky-600);font-size:16px;font-weight:900">Cash Receipts</h3>
-          <table>
-            <thead><tr><th>Time</th><th>Payer</th><th>Phone</th><th>Amount</th><th>Notes</th></tr></thead>
-            <tbody id="cashBody"></tbody>
-          </table>
-        </div>
-        <div>
-          <h3 style="margin:0 0 6px 0;color:var(--sky-600);font-size:16px;font-weight:900">Expenses</h3>
-          <table>
-            <thead><tr><th>Time</th><th>Category</th><th>Amount</th><th>Notes</th></tr></thead>
-            <tbody id="expBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-  </div>
+    <div class="section">
+      <h3>Recent Expenses</h3>
+      <table>
+        <thead><tr><th>Time</th><th>Category</th><th>Amount</th><th>Notes</th></tr></thead>
+        <tbody id="expBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="panel-insights" class="panel">
+    <h2>Insights</h2>
+    <div class="section">
+      <h3>Expense Breakdown (today)</h3>
+      <table>
+        <thead><tr><th>Category</th><th>Amount (KES)</th></tr></thead>
+        <tbody id="expSummaryBody">
+          <tr><td colspan="2" class="hint">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer style="max-width:1100px;margin:24px auto 0;">
+    <div class="card" style="text-align:center;">
+      <p class="hint" style="margin:0 0 8px;">Prefer the Android app?</p>
+      <a class="btn" href="/public/downloads/teketeke-go-boda.apk" download>Download Boda App (APK)</a>
+    </div>
+  </footer>
 
   <script>
-  (async function(){
-    try{
-      await requireRole('BODA', { statusEl: 'authState', roleLabel: 'BodaBoda' });
-    }catch(_){
-      return;
-    }
-    const $ = (id) => document.getElementById(id);
-    const fmt = (n) => new Intl.NumberFormat('en-KE', { maximumFractionDigits: 0 }).format(Number(n || 0));
-    const friendlyName = (user) => {
-      if (!user) return 'rider';
-      const meta = user.user_metadata || {};
-      const email = user.email || '';
-      return meta.full_name || meta.name || meta.display_name || meta.displayName || (email ? email.split('@')[0] : 'rider');
-    };
-    const isSameDay = (date, ref = new Date()) => date.toDateString() === ref.toDateString();
+    (function(){
+      function $(id){ return document.getElementById(id); }
+      const fmt = (n)=> new Intl.NumberFormat('en-KE',{maximumFractionDigits:0}).format(Number(n||0));
 
-    function startCornerClock() {
-      const el = $('dateTimeLine');
-      if (!el) return;
-      const update = () => { el.textContent = new Date().toLocaleString(); };
-      update();
-      setInterval(update, 1000);
-    }
-    startCornerClock();
+      function friendlyName(user){
+        if(!user) return 'Rider';
+        const meta = user.user_metadata || {};
+        const email = user.email || '';
+        return meta.full_name || meta.name || meta.display_name || meta.displayName || (email ? email.split('@')[0] : 'Rider');
+      }
 
-    async function getAuthHeader() {
-      try {
-        if (window.TT && window.TT.getSupabase) {
-          const supa = await window.TT.getSupabase();
-          const { data: { session } } = await supa.auth.getSession();
-          if (session?.access_token) return { Authorization: `Bearer ${session.access_token}` };
-        }
-      } catch (_) { /* ignore */ }
-      return {};
-    }
+      function startClock(){
+        const el = $('dateTimeLine');
+        if(!el) return;
+        const update = ()=>{ el.textContent = new Date().toLocaleString(); };
+        update();
+        setInterval(update, 1000);
+      }
 
-    async function authFetch(url, opts = {}) {
-      const hdr = await getAuthHeader();
-      const res = await fetch(url, { ...opts, headers: { 'Content-Type': 'application/json', ...(opts.headers || {}), ...hdr } });
-      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-      const ct = res.headers.get('content-type') || '';
-      return ct.includes('application/json') ? res.json() : res.text();
-    }
-
-    async function setAuthState() {
-      const pill = $('authState');
-      try {
-        if (window.TT && window.TT.getSupabase) {
-          const supa = await window.TT.getSupabase();
-          const { data: { session } } = await supa.auth.getSession();
-          if (session) {
-            pill.textContent = 'Session: OK'; pill.classList.add('ok');
-            const welcome = $('welcomeLine');
-            if (welcome) welcome.textContent = `Hello, ${friendlyName(session.user)}`;
-          } else {
-            pill.textContent = 'Session: missing'; pill.classList.add('warn');
+      async function getAuthHeader(){
+        try{
+          if (window.TT && typeof TT.getAuth === 'function'){
+            const t = TT.getAuth(); if (t) return { Authorization:'Bearer '+t };
           }
-        } else {
-          pill.textContent = 'Session: unknown'; pill.classList.add('warn');
+          if (window.TT && typeof TT.getSupabase === 'function'){
+            const supa = await TT.getSupabase();
+            const { data:{ session } } = await supa.auth.getSession();
+            if (session?.access_token) return { Authorization:'Bearer '+session.access_token };
+          }
+        }catch(_){ }
+        return {};
+      }
+
+      async function authFetch(url, opts={}){
+        const headers = { 'Content-Type':'application/json', ...(opts.headers||{}), ...(await getAuthHeader()) };
+        const res = await fetch(url, { ...opts, headers });
+        if(!res.ok){
+          let msg = res.status+' '+res.statusText; try{ const j = await res.clone().json(); msg = j.error||j.message||msg; }catch{ }
+          throw new Error(msg);
         }
-      } catch (_) {
-        pill.textContent = 'Session: unknown'; pill.classList.add('warn');
+        const ct = res.headers.get('content-type')||'';
+        return ct.includes('application/json') ? res.json() : res.text();
       }
-    }
 
-    async function loadWhoAmI() {
-      try {
-        const me = await authFetch('/u/me');
-        $('whoamiHint').textContent = me?.email ? `Hello, ${me.email}` : 'Ready';
-      } catch (e) {
-        $('whoamiHint').textContent = 'Could not load user (login first)';
-      }
-    }
-
-    async function refreshSummary() {
-      $('sumHint').textContent = 'Refreshing...';
-      try {
-        const today = new Date().toISOString().slice(0, 10);
-        const res = await authFetch(`/api/boda/summary?date=${today}`);
-        const sum = res?.summary || res || {};
-        const till = Number(sum.till_today || sum.till || 0);
-        const cash = Number(sum.cash_today || sum.cash || 0);
-        const exp = Number(sum.expenses_today || sum.expenses || 0);
-        $('kpiTill').textContent = fmt(till);
-        $('kpiCash').textContent = fmt(cash);
-        $('kpiExp').textContent = fmt(exp);
-        $('kpiNet').textContent = fmt(till + cash - exp);
-        $('sumHint').textContent = '';
-      } catch (_) {
-        $('sumHint').textContent = 'No summary yet';
-      }
-    }
-
-    function filterToday(rows) {
-      const today = new Date();
-      return rows.filter(row => {
-        const stamp = row.created_at || row.time || row.timestamp;
-        if (!stamp) return false;
-        return isSameDay(new Date(stamp), today);
-      });
-    }
-
-    function renderTableRows(rows, tbody, builder, emptyMessage, colSpan) {
-      if (!rows.length) {
-        tbody.innerHTML = `<tr><td colspan="${colSpan}" class="hint">${emptyMessage}</td></tr>`;
-        return;
-      }
-      tbody.innerHTML = rows.map(builder).join('');
-    }
-
-    async function refreshCash() {
-      try {
-        const res = await authFetch('/api/boda/cash?limit=200');
-        const rows = filterToday(Array.isArray(res?.items) ? res.items : (Array.isArray(res) ? res : []));
-        renderTableRows(rows, $('cashBody'), (x) => {
-          const t = x.created_at || x.time || x.timestamp;
-          return `<tr>
-            <td>${t ? new Date(t).toLocaleTimeString() : '--'}</td>
-            <td>${x.payer_name || ''}</td>
-            <td>${x.phone || ''}</td>
-            <td>${fmt(x.amount || 0)}</td>
-            <td>${x.notes || ''}</td>
-          </tr>`;
-        }, 'No cash entries today', 5);
-      } catch (_) {
-        $('cashBody').innerHTML = '<tr><td colspan="5" class="error">Unable to load cash</td></tr>';
-      }
-    }
-
-    async function refreshExpenses() {
-      try {
-        const res = await authFetch('/api/boda/expenses?limit=200');
-        const rows = filterToday(Array.isArray(res?.items) ? res.items : (Array.isArray(res) ? res : []));
-        renderTableRows(rows, $('expBody'), (x) => {
-          const t = x.created_at || x.time || x.timestamp;
-          return `<tr>
-            <td>${t ? new Date(t).toLocaleTimeString() : '--'}</td>
-            <td>${x.category || x.cat || '-'}</td>
-            <td>${fmt(x.amount || 0)}</td>
-            <td>${x.notes || ''}</td>
-          </tr>`;
-        }, 'No expenses today', 4);
-      } catch (_) {
-        $('expBody').innerHTML = '<tr><td colspan="4" class="error">Unable to load expenses</td></tr>';
-      }
-    }
-
-    async function collectCash() {
-      const amount = Number(($('cashAmount').value || '').trim());
-      const payer_name = ($('payerName').value || '').trim();
-      const phone = ($('payerPhone').value || '').trim();
-      const notes = ($('cashNotes').value || '').trim();
-      const out = $('cashMsg'); out.textContent = 'Saving...'; out.className = 'hint';
-      try {
-        if (!(amount > 0)) throw new Error('Enter amount');
-        await authFetch('/api/boda/cash', { method: 'POST', body: JSON.stringify({ amount, payer_name, phone, notes }) });
-        out.textContent = 'Saved!'; out.className = 'success';
-        $('cashAmount').value = ''; $('payerName').value = ''; $('payerPhone').value = ''; $('cashNotes').value = '';
-        refreshSummary(); refreshCash();
-      } catch (err) {
-        out.textContent = `Error: ${err.message || err}`; out.className = 'error';
-      }
-    }
-
-    async function saveExpense() {
-      const category = $('expCat').value;
-      const amount = Number(($('expAmount').value || '').trim());
-      const notes = ($('expNotes').value || '').trim();
-      const out = $('expMsg'); out.textContent = 'Saving...'; out.className = 'hint';
-      try {
-        if (!(amount > 0)) throw new Error('Enter amount');
-        await authFetch('/api/boda/expenses', { method: 'POST', body: JSON.stringify({ category, amount, notes }) });
-        out.textContent = 'Saved!'; out.className = 'success';
-        $('expAmount').value = ''; $('expNotes').value = '';
-        refreshSummary(); refreshExpenses();
-      } catch (err) {
-        out.textContent = `Error: ${err.message || err}`; out.className = 'error';
-      }
-    }
-
-    (function init() {
-      setAuthState();
-      loadWhoAmI();
-      refreshSummary(); refreshCash(); refreshExpenses();
-      $('btnCash').addEventListener('click', collectCash);
-      $('btnExpense').addEventListener('click', saveExpense);
-      setInterval(refreshSummary, 30000);
-    })();
-  })();
-  </script>
-  <script>
-    function clearStoredTokens(){
-      try{ ['auth_token','tt_root_token','tt_admin_token'].forEach(k => localStorage.removeItem(k)); }catch(_){ }
-      try{ sessionStorage.removeItem('auth_token'); }catch(_){ }
-    }
-
-    async function logoutToLogin(opts = {}){
-      const { keepNext = false } = opts;
-      try{
-        const supa = await window.TT?.getSupabase?.();
-        await supa?.auth?.signOut();
-      }catch(_){ }
-      clearStoredTokens();
-      const next = keepNext ? `?next=${encodeURIComponent(location.pathname + location.search)}` : '';
-      location.href = '/public/auth/login.html' + next;
-    }
-
-    // Auth banner + logout using Supabase session
-    (async function(){
-      try{
-        if(window.TT && window.TT.getSupabase){
-          const supa = await window.TT.getSupabase();
-          const {data:{session}} = await supa.auth.getSession();
-          const el = document.getElementById('auth_state');
-          if(el) el.textContent = session?.user?.email ? (`Signed in as ${session.user.email}`) : 'Not signed in';
-          const welcome = document.getElementById('welcomeLine');
-          if (welcome) welcome.textContent = `Hello, ${friendlyName(session?.user)}`;
-          const b = document.getElementById('logoutBtn');
-          b?.addEventListener('click', (e)=>{
-            e.preventDefault();
-            logoutToLogin({ keepNext:false });
+      function bindTabs(){
+        const tabs = document.querySelectorAll('.tabs .tab');
+        const panels = document.querySelectorAll('.panel');
+        tabs.forEach(tab=>{
+          tab.addEventListener('click', ()=>{
+            const key = tab.getAttribute('data-panel');
+            tabs.forEach(t=>t.classList.remove('active'));
+            tab.classList.add('active');
+            panels.forEach(p=>{
+              if (p.id === 'panel-' + key) p.classList.add('active');
+              else p.classList.remove('active');
+            });
           });
+        });
+      }
+
+      async function refreshSummary(){
+        $('sumHint').textContent = 'Refreshing...';
+        try{
+          const today = new Date().toISOString().slice(0,10);
+          const data = await authFetch(`/api/boda/summary?date=${today}`);
+          const s = data?.summary || data || {};
+          const till = s.till_today || 0;
+          const cash = s.cash_today || 0;
+          const exp  = s.expenses_today || s.exp_today || 0;
+          $('kpiTill').textContent = fmt(till);
+          $('kpiCash').textContent = fmt(cash);
+          $('kpiExp').textContent  = fmt(exp);
+          $('kpiNet').textContent  = fmt(Number(till) + Number(cash) - Number(exp));
+          $('sumHint').textContent = '';
+        }catch(e){
+          $('sumHint').textContent = 'No summary (check permissions).';
         }
-      }catch(_){ }
+      }
+
+      function filterToday(rows){
+        const today = new Date();
+        const start = new Date(today.toISOString().slice(0,10) + 'T00:00:00.000Z').getTime();
+        const end = start + 24*3600*1000;
+        return (rows||[]).filter(r=>{
+          const t = r.created_at || r.time || r.timestamp;
+          if(!t) return false;
+          const x = new Date(t).getTime();
+          return x >= start && x < end;
+        });
+      }
+
+      function renderTableRows(rows, tbody, mapRow, emptyMessage, colSpan){
+        if (!tbody) return;
+        if (!rows.length){
+          tbody.innerHTML = `<tr><td colspan="${colSpan}" class="hint">${emptyMessage}</td></tr>`;
+          return;
+        }
+        tbody.innerHTML = rows.map(mapRow).join('');
+      }
+
+      async function refreshCash(){
+        try{
+          const res = await authFetch('/api/boda/cash?limit=200');
+          const rows = filterToday(Array.isArray(res?.items) ? res.items : (Array.isArray(res) ? res : []));
+          renderTableRows(rows, $('cashBody'), (x)=>{
+            const t = x.created_at || x.time || x.timestamp;
+            return `<tr>
+              <td>${t ? new Date(t).toLocaleTimeString() : '--'}</td>
+              <td>${x.payer_name || ''}</td>
+              <td>${x.phone || ''}</td>
+              <td>${fmt(x.amount || 0)}</td>
+              <td>${x.notes || ''}</td>
+            </tr>`;
+          }, 'No cash receipts today', 5);
+        }catch(_){
+          $('cashBody').innerHTML = '<tr><td colspan="5" class="error">Unable to load cash receipts</td></tr>';
+        }
+      }
+
+      async function refreshExpenses(){
+        try{
+          const res = await authFetch('/api/boda/expenses?limit=200');
+          const rows = filterToday(Array.isArray(res?.items) ? res.items : (Array.isArray(res) ? res : []));
+          renderTableRows(rows, $('expBody'), (x)=>{
+            const t = x.created_at || x.time || x.timestamp;
+            return `<tr>
+              <td>${t ? new Date(t).toLocaleTimeString() : '--'}</td>
+              <td>${x.category || x.cat || '-'}</td>
+              <td>${fmt(x.amount || 0)}</td>
+              <td>${x.notes || ''}</td>
+            </tr>`;
+          }, 'No expenses today', 4);
+
+          // Summary by category for insights tab
+          const summary = {};
+          rows.forEach(x=>{
+            const cat = (x.category || x.cat || 'Other').toString();
+            summary[cat] = (summary[cat] || 0) + Number(x.amount || 0);
+          });
+          const body = $('expSummaryBody');
+          const entries = Object.entries(summary);
+          if (!entries.length){
+            body.innerHTML = '<tr><td colspan="2" class="hint">No expenses today to summarise.</td></tr>';
+          }else{
+            body.innerHTML = entries.map(([cat, amt])=> `<tr><td>${cat}</td><td>${fmt(amt)}</td></tr>`).join('');
+          }
+        }catch(_){
+          $('expBody').innerHTML = '<tr><td colspan="4" class="error">Unable to load expenses</td></tr>';
+        }
+      }
+
+      async function collectCash(){
+        const amount = Number(($('cashAmount').value || '').trim());
+        const payer_name = ($('payerName').value || '').trim();
+        const phone = ($('payerPhone').value || '').trim();
+        const notes = ($('cashNotes').value || '').trim();
+        const out = $('cashMsg'); out.textContent = 'Saving...'; out.className = 'hint';
+        try{
+          if (!(amount > 0)) throw new Error('Enter amount');
+          await authFetch('/api/boda/cash', { method: 'POST', body: JSON.stringify({ amount, payer_name, phone, notes }) });
+          out.textContent = 'Saved!'; out.className = 'success';
+          $('cashAmount').value = ''; $('payerName').value = ''; $('payerPhone').value = ''; $('cashNotes').value = '';
+          refreshSummary(); refreshCash();
+        }catch(err){
+          out.textContent = `Error: ${err.message || err}`; out.className = 'error';
+        }
+      }
+
+      async function saveExpense(){
+        const category = $('expCat').value;
+        const amount = Number(($('expAmount').value || '').trim());
+        const notes = ($('expNotes').value || '').trim();
+        const out = $('expMsg'); out.textContent = 'Saving...'; out.className = 'hint';
+        try{
+          if (!(amount > 0)) throw new Error('Enter amount');
+          await authFetch('/api/boda/expenses', { method: 'POST', body: JSON.stringify({ category, amount, notes }) });
+          out.textContent = 'Saved!'; out.className = 'success';
+          $('expAmount').value = ''; $('expNotes').value = '';
+          refreshSummary(); refreshExpenses();
+        }catch(err){
+          out.textContent = `Error: ${err.message || err}`; out.className = 'error';
+        }
+      }
+
+      function clearStoredTokens(){
+        try{ ['auth_token','tt_root_token','tt_admin_token'].forEach(k => localStorage.removeItem(k)); }catch(_){ }
+        try{ sessionStorage.removeItem('auth_token'); }catch(_){ }
+      }
+
+      async function logoutToLogin(opts = {}){
+        const { keepNext = false } = opts;
+        try{
+          const supa = await window.TT?.getSupabase?.();
+          await supa?.auth?.signOut();
+        }catch(_){ }
+        clearStoredTokens();
+        const next = keepNext ? `?next=${encodeURIComponent(location.pathname + location.search)}` : '';
+        location.href = '/public/auth/login.html' + next;
+      }
+
+      (async function init(){
+        startClock();
+        bindTabs();
+        try{
+          await requireRole('BODA', { statusEl: 'authState', roleLabel: 'Boda' });
+        }catch(_){
+          return;
+        }
+        try{
+          if(window.TT && window.TT.getSupabase){
+            const supa = await window.TT.getSupabase();
+            const {data:{session}} = await supa.auth.getSession();
+            const el = document.getElementById('auth_state');
+            if(el) el.textContent = session?.user?.email ? (`Signed in as ${session.user.email}`) : 'Not signed in';
+            const welcome = document.getElementById('welcomeLine');
+            if (welcome) welcome.textContent = `Hello, ${friendlyName(session?.user)}`;
+            const b = document.getElementById('logoutBtn');
+            b?.addEventListener('click', (e)=>{
+              e.preventDefault();
+              logoutToLogin({ keepNext:false });
+            });
+          }
+        }catch(_){ }
+
+        await refreshSummary();
+        await refreshCash();
+        await refreshExpenses();
+
+        $('btnCash').addEventListener('click', collectCash);
+        $('btnExpense').addEventListener('click', saveExpense);
+
+        setInterval(refreshSummary, 30000);
+      })();
     })();
   </script>
 </body>
 </html>
-
-
