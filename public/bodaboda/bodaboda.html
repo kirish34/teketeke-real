@@ -40,6 +40,8 @@
     <button class="tab" type="button" data-panel="cashin">Cash In</button>
     <button class="tab" type="button" data-panel="expenses">Expenses</button>
     <button class="tab" type="button" data-panel="insights">Insights</button>
+    <button class="tab" type="button" data-panel="goals">Goals</button>
+    <button class="tab" type="button" data-panel="automation">Automation</button>
   </div>
 
   <section id="panel-today" class="panel active">
@@ -120,6 +122,31 @@
   <section id="panel-insights" class="panel">
     <h2>Insights</h2>
     <div class="section">
+      <h3>Finance Overview</h3>
+      <div class="kpis">
+        <div class="kpi">
+          <div class="l">This Week (KSh)</div>
+          <div class="v" id="kWeekNet">?</div>
+          <div class="hint" id="kWeekDetail">Income ?, Expenses ?</div>
+        </div>
+        <div class="kpi">
+          <div class="l">This Month (KSh)</div>
+          <div class="v" id="kMonthNet">?</div>
+          <div class="hint" id="kMonthDetail">Income ?, Expenses ?</div>
+        </div>
+        <div class="kpi">
+          <div class="l">Avg Net / Day</div>
+          <div class="v" id="kAvgNet">?</div>
+          <div class="hint" id="kAvgNetDetail">Based on recent days</div>
+        </div>
+        <div class="kpi">
+          <div class="l">Expense Ratio</div>
+          <div class="v" id="kExpRatio">?</div>
+          <div class="hint" id="kExpRatioDetail">Expenses as % of income</div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
       <h3>Expense Breakdown (today)</h3>
       <table>
         <thead><tr><th>Category</th><th>Amount (KES)</th></tr></thead>
@@ -127,6 +154,38 @@
           <tr><td colspan="2" class="hint">Loading...</td></tr>
         </tbody>
       </table>
+    </div>
+  </section>
+
+  <section id="panel-goals" class="panel">
+    <h2>Goals</h2>
+    <div class="card">
+      <div class="grid-2">
+        <div>
+          <label for="savingsTarget">Monthly savings target (KSh)</label>
+          <input id="savingsTarget" type="number" min="0" placeholder="e.g. 20000" />
+          <button id="btnSaveTarget">Save Target</button>
+          <div id="savingsMsg" class="hint"></div>
+        </div>
+        <div>
+          <p class="hint" id="savingsSummary">Loading target...</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="panel-automation" class="panel">
+    <h2>Automation (Android app)</h2>
+    <div class="card">
+      <p class="hint">
+        On the Android app, TekeTeke can (with your permission) read M-Pesa SMS on this device,
+        then suggest cash and expense entries automatically. This does not work in the browser.
+      </p>
+      <div class="row" style="align-items:center;gap:8px">
+        <button id="btnMpesaEnable" class="btn" type="button">Enable M-Pesa auto-import</button>
+        <button id="btnMpesaSync" class="btn ghost" type="button">Sync new M-Pesa SMS now</button>
+      </div>
+      <div id="mpesaStatus" class="hint" style="margin-top:6px;">Status: Not available (web browser).</div>
     </div>
   </section>
 
@@ -257,6 +316,70 @@
         }
       }
 
+      let latestMonthNet = 0;
+
+      function isoDate(d){
+        return d.toISOString().slice(0,10);
+      }
+
+      async function refreshInsights(){
+        try{
+          const today = new Date();
+          const todayISO = isoDate(today);
+
+          const weekStart = new Date(today);
+          weekStart.setDate(weekStart.getDate() - 6);
+          const weekStartISO = isoDate(weekStart);
+
+          const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+          const monthStartISO = isoDate(monthStart);
+
+          const [week, month] = await Promise.all([
+            authFetch(`/api/boda/insights?start=${weekStartISO}&end=${todayISO}`),
+            authFetch(`/api/boda/insights?start=${monthStartISO}&end=${todayISO}`)
+          ]);
+
+          // Week totals
+          const wt = week?.totals || {};
+          const weekIncome = Number(wt.income || 0);
+          const weekExp = Number(wt.expenses || 0);
+          const weekNet = Number(wt.net || 0);
+          $('kWeekNet').textContent = fmt(weekNet);
+          $('kWeekDetail').textContent = `Income ${fmt(weekIncome)}, Expenses ${fmt(weekExp)}`;
+
+          // Month totals
+          const mt = month?.totals || {};
+          const monthIncome = Number(mt.income || 0);
+          const monthExp = Number(mt.expenses || 0);
+          const monthNet = Number(mt.net || 0);
+          latestMonthNet = monthNet;
+          $('kMonthNet').textContent = fmt(monthNet);
+          $('kMonthDetail').textContent = `Income ${fmt(monthIncome)}, Expenses ${fmt(monthExp)}`;
+
+          // Average net per day (use week window)
+          const avgNet = Number(wt.avg_net_per_day || 0);
+          $('kAvgNet').textContent = fmt(avgNet);
+          const trendDays = Array.isArray(week?.trend) ? week.trend.length : 0;
+          $('kAvgNetDetail').textContent = trendDays ? `Based on ${trendDays} day(s)` : 'No recent data';
+
+          // Expense ratio (use month)
+          const ratio = mt.expense_pct_of_income;
+          if (ratio == null || isNaN(ratio)){
+            $('kExpRatio').textContent = '–';
+            $('kExpRatioDetail').textContent = 'Add income + expenses to see ratio.';
+          } else {
+            const pct = Math.round(Number(ratio));
+            $('kExpRatio').textContent = pct + '%';
+            $('kExpRatioDetail').textContent = 'Expenses as share of income this month.';
+          }
+
+          // Expense breakdown by category (today) remains handled in refreshExpenses
+          updateSavingsSummary();
+        }catch(e){
+          // keep insights section quiet on error
+        }
+      }
+
       async function refreshExpenses(){
         try{
           const res = await authFetch('/api/boda/expenses?limit=200');
@@ -322,6 +445,138 @@
         }
       }
 
+      async function loadSettings(){
+        try{
+          const data = await authFetch('/api/boda/settings');
+          const target = Number(data?.monthly_savings_target_kes || 0);
+          const input = $('savingsTarget');
+          if (input){
+            input.value = target ? String(target) : '';
+          }
+          updateSavingsSummary();
+        }catch(e){
+          const msgEl = $('savingsMsg');
+          if (msgEl) msgEl.textContent = 'Could not load savings target.';
+        }
+      }
+
+      function updateSavingsSummary(){
+        const input = $('savingsTarget');
+        const summary = $('savingsSummary');
+        if (!summary) return;
+        const target = Number(input?.value || 0);
+        const monthNet = Number(latestMonthNet || 0);
+        const now = new Date();
+        const year = now.getFullYear();
+        const monthIndex = now.getMonth();
+        const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+        const todayDay = now.getDate();
+        const remainingDays = Math.max(0, daysInMonth - todayDay);
+
+        if (!target){
+          summary.textContent = 'No savings target set. Enter a monthly goal to track progress.';
+          return;
+        }
+
+        const remainingTarget = Math.max(0, target - monthNet);
+        if (remainingTarget <= 0){
+          summary.textContent = `Great! Net income this month (${fmt(monthNet)}) meets or exceeds your savings target (${fmt(target)}).`;
+          return;
+        }
+
+        const perDay = remainingDays > 0 ? remainingTarget / remainingDays : remainingTarget;
+        const progressPct = Math.round((monthNet / target) * 100);
+        summary.textContent = `Target: ${fmt(target)}. Net so far: ${fmt(monthNet)} (${isFinite(progressPct)?progressPct:0}% of target). ` +
+          (remainingDays > 0
+            ? `You need about ${fmt(perDay)} net per day for the remaining ${remainingDays} day(s) to hit the target.`
+            : 'This month is ending; any extra net will help close the gap.');
+      }
+
+      async function saveTarget(){
+        const input = $('savingsTarget');
+        const msgEl = $('savingsMsg');
+        if (!input) return;
+        const raw = Number(input.value || 0);
+        msgEl.textContent = 'Saving target...';
+        try{
+          const data = await authFetch('/api/boda/settings', {
+            method:'POST',
+            body: JSON.stringify({ monthly_savings_target_kes: raw })
+          });
+          const val = Number(data?.monthly_savings_target_kes || 0);
+          input.value = val ? String(val) : '';
+          msgEl.textContent = 'Target saved.';
+          updateSavingsSummary();
+        }catch(e){
+          msgEl.textContent = `Error saving target: ${e.message||e}`;
+        }
+      }
+
+      function getMpesaPlugin(){
+        return (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.MpesaSms) ? window.Capacitor.Plugins.MpesaSms : null;
+      }
+
+      async function initMpesaSection(){
+        const statusEl = $('mpesaStatus');
+        const enableBtn = $('btnMpesaEnable');
+        const syncBtn = $('btnMpesaSync');
+        const plugin = getMpesaPlugin();
+        if (!plugin){
+          if (statusEl) statusEl.textContent = 'Status: Available only in the Android app (install the Boda APK).';
+          if (enableBtn) enableBtn.disabled = true;
+          if (syncBtn) syncBtn.disabled = true;
+          return;
+        }
+        if (statusEl) statusEl.textContent = 'Status: Ready. You can enable M-Pesa SMS auto-import on this device.';
+
+        enableBtn?.addEventListener('click', async ()=>{
+          try{
+            if (!plugin.requestPermission){
+              alert('M-Pesa plugin missing requestPermission implementation.');
+              return;
+            }
+            const perm = await plugin.requestPermission();
+            const granted = perm && (perm.granted === true || perm.status === 'granted');
+            if (!granted){
+              if (statusEl) statusEl.textContent = 'Status: Permission not granted. Enable SMS access in Android settings to use auto-import.';
+              return;
+            }
+            if (plugin.setEnabled){
+              await plugin.setEnabled({ enabled:true });
+            }
+            if (statusEl) statusEl.textContent = 'Status: Enabled. New M-Pesa SMS will be scanned on this device.';
+          }catch(e){
+            alert(e.message || String(e));
+          }
+        });
+
+        syncBtn?.addEventListener('click', async ()=>{
+          try{
+            if (!plugin.pullNewMessages){
+              alert('M-Pesa plugin missing pullNewMessages implementation.');
+              return;
+            }
+            if (statusEl) statusEl.textContent = 'Status: Scanning M-Pesa SMS...';
+            const res = await plugin.pullNewMessages();
+            const items = Array.isArray(res?.items) ? res.items : [];
+            if (!items.length){
+              if (statusEl) statusEl.textContent = 'Status: No new M-Pesa messages to import.';
+              return;
+            }
+            await authFetch('/api/boda/mpesa-import',{
+              method:'POST',
+              body: JSON.stringify({ items })
+            });
+            if (statusEl) statusEl.textContent = `Status: Imported ${items.length} M-Pesa transaction(s).`;
+            await refreshSummary();
+            await refreshExpenses();
+          }catch(e){
+            if (statusEl) statusEl.textContent = 'Status: Error during M-Pesa sync.';
+            alert(e.message || String(e));
+          }
+        });
+      }
+
       function clearStoredTokens(){
         try{ ['auth_token','tt_root_token','tt_admin_token'].forEach(k => localStorage.removeItem(k)); }catch(_){ }
         try{ sessionStorage.removeItem('auth_token'); }catch(_){ }
@@ -365,11 +620,18 @@
         await refreshSummary();
         await refreshCash();
         await refreshExpenses();
+        await refreshInsights();
+        await loadSettings();
 
         $('btnCash').addEventListener('click', collectCash);
         $('btnExpense').addEventListener('click', saveExpense);
+        const btnSaveTarget = $('btnSaveTarget'); btnSaveTarget?.addEventListener('click', saveTarget);
+        initMpesaSection();
 
-        setInterval(refreshSummary, 30000);
+        setInterval(()=>{
+          refreshSummary();
+          refreshInsights();
+        }, 30000);
       })();
     })();
   </script>
