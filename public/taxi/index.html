@@ -37,7 +37,15 @@
 
 </header>
 
-  <section>
+  <div class="tabs">
+    <button class="tab active" type="button" data-panel="today">Today</button>
+    <button class="tab" type="button" data-panel="history">History</button>
+    <button class="tab" type="button" data-panel="insights">Insights</button>
+    <button class="tab" type="button" data-panel="goals">Goals</button>
+    <button class="tab" type="button" data-panel="automation">Automation</button>
+  </div>
+
+  <section id="panel-today" class="panel active">
     <h2>Today</h2>
     <div class="kpis">
       <div class="kpi"><div class="v" id="kTillToday">?</div><div class="l">Till Today (KSh)</div></div>
@@ -48,123 +56,129 @@
     <div class="hint" id="sumHint">Refreshing…</div>
   </section>
 
-  <section>
-    <h2>Finance Overview</h2>
-    <div class="kpis">
-      <div class="kpi">
-        <div class="l">This Week (KSh)</div>
-        <div class="v" id="kWeekNet">?</div>
-        <div class="hint" id="kWeekDetail">Income ?, Expenses ?</div>
-      </div>
-      <div class="kpi">
-        <div class="l">This Month (KSh)</div>
-        <div class="v" id="kMonthNet">?</div>
-        <div class="hint" id="kMonthDetail">Income ?, Expenses ?</div>
-      </div>
-      <div class="kpi">
-        <div class="l">Avg Net / Day</div>
-        <div class="v" id="kAvgNet">?</div>
-        <div class="hint" id="kAvgNetDetail">Based on recent days</div>
-      </div>
-      <div class="kpi">
-        <div class="l">Expense Ratio</div>
-        <div class="v" id="kExpRatio">?</div>
-        <div class="hint" id="kExpRatioDetail">Expenses as % of income</div>
+  <section id="panel-history" class="panel">
+    <h2>History</h2>
+    <div class="section">
+      <h3>Actions</h3>
+      <div class="grid-2">
+        <div>
+          <label for="cashAmt">Collect Cash (KSh)</label>
+          <input id="cashAmt" type="number" min="0" placeholder="e.g., 500" />
+          <label for="cashName">Payer Name</label>
+          <input id="cashName" placeholder="optional" />
+          <label for="cashPhone">Phone</label>
+          <input id="cashPhone" placeholder="optional" />
+          <label for="cashNotes">Notes</label>
+          <textarea id="cashNotes" placeholder="optional"></textarea>
+          <button id="btnCash">Save Cash</button>
+          <div id="cashMsg" class="hint"></div>
+        </div>
+
+        <div>
+          <label for="expCat">Enter Expense</label>
+          <select id="expCat">
+            <option value="Fuel">Fuel</option>
+            <option value="Parking">Parking</option>
+            <option value="Maintenance">Maintenance</option>
+            <option value="Other">Other</option>
+          </select>
+          <label for="expAmt">Amount (KSh)</label>
+          <input id="expAmt" type="number" min="0" placeholder="e.g., 200" />
+          <label for="expNotes">Notes</label>
+          <textarea id="expNotes" placeholder="optional"></textarea>
+          <button id="btnExp">Save Expense</button>
+          <div id="expMsg" class="hint"></div>
+        </div>
       </div>
     </div>
-    <div class="card" id="financeTips" style="margin-top:8px">
-      <p class="hint" id="financeTipsText">Loading finance tips…</p>
-    </div>
-  </section>
 
-  <section>
-    <h2>Actions</h2>
-    <div class="grid-2">
-      <div>
-        <label for="cashAmt">Collect Cash (KSh)</label>
-        <input id="cashAmt" type="number" min="0" placeholder="e.g., 500" />
-        <label for="cashName">Payer Name</label>
-        <input id="cashName" placeholder="optional" />
-        <label for="cashPhone">Phone</label>
-        <input id="cashPhone" placeholder="optional" />
-        <label for="cashNotes">Notes</label>
-        <textarea id="cashNotes" placeholder="optional"></textarea>
-        <button id="btnCash">Save Cash</button>
-        <div id="cashMsg" class="hint"></div>
-      </div>
-
-      <div>
-        <label for="expCat">Enter Expense</label>
-        <select id="expCat">
-          <option value="Fuel">Fuel</option>
-          <option value="Parking">Parking</option>
-          <option value="Maintenance">Maintenance</option>
-          <option value="Other">Other</option>
-        </select>
-        <label for="expAmt">Amount (KSh)</label>
-        <input id="expAmt" type="number" min="0" placeholder="e.g., 200" />
-        <label for="expNotes">Notes</label>
-        <textarea id="expNotes" placeholder="optional"></textarea>
-        <button id="btnExp">Save Expense</button>
-        <div id="expMsg" class="hint"></div>
+    <div class="section">
+      <h3>Recent</h3>
+      <div class="grid-2">
+        <div>
+          <h3 class="hint" style="margin:0 0 6px 0">Cash</h3>
+          <table>
+            <thead>
+              <tr><th>Time</th><th>Name</th><th>Phone</th><th>Amount</th></tr>
+            </thead>
+            <tbody id="cashBody"></tbody>
+          </table>
+        </div>
+        <div>
+          <h3 class="hint" style="margin:0 0 6px 0">Expenses</h3>
+          <table>
+            <thead>
+              <tr><th>Time</th><th>Category</th><th>Amount</th><th>Notes</th></tr>
+            </thead>
+            <tbody id="expBody"></tbody>
+          </table>
+        </div>
       </div>
     </div>
   </section>
 
-  <section>
-    <h2>Recent</h2>
-    <div class="grid-2">
-      <div>
-        <h3 class="hint" style="margin:0 0 6px 0">Cash</h3>
-        <table>
-          <thead>
-            <tr><th>Time</th><th>Name</th><th>Phone</th><th>Amount</th></tr>
-          </thead>
-          <tbody id="cashBody"></tbody>
-        </table>
+  <section id="panel-insights" class="panel">
+    <h2>Insights</h2>
+    <div class="section">
+      <h3>Finance Overview</h3>
+      <div class="kpis">
+        <div class="kpi">
+          <div class="l">This Week (KSh)</div>
+          <div class="v" id="kWeekNet">?</div>
+          <div class="hint" id="kWeekDetail">Income ?, Expenses ?</div>
+        </div>
+        <div class="kpi">
+          <div class="l">This Month (KSh)</div>
+          <div class="v" id="kMonthNet">?</div>
+          <div class="hint" id="kMonthDetail">Income ?, Expenses ?</div>
+        </div>
+        <div class="kpi">
+          <div class="l">Avg Net / Day</div>
+          <div class="v" id="kAvgNet">?</div>
+          <div class="hint" id="kAvgNetDetail">Based on recent days</div>
+        </div>
+        <div class="kpi">
+          <div class="l">Expense Ratio</div>
+          <div class="v" id="kExpRatio">?</div>
+          <div class="hint" id="kExpRatioDetail">Expenses as % of income</div>
+        </div>
       </div>
-      <div>
-        <h3 class="hint" style="margin:0 0 6px 0">Expenses</h3>
-        <table>
-          <thead>
-            <tr><th>Time</th><th>Category</th><th>Amount</th><th>Notes</th></tr>
-          </thead>
-          <tbody id="expBody"></tbody>
-        </table>
+      <div class="card" id="financeTips" style="margin-top:8px">
+        <p class="hint" id="financeTipsText">Loading finance tips…</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Expense Insights</h3>
+      <div class="grid-2">
+        <div>
+          <h3 class="hint" style="margin:0 0 6px 0">By Category (last 30 days)</h3>
+          <table>
+            <thead>
+              <tr><th>Category</th><th>Amount (KSh)</th><th>% of expenses</th></tr>
+            </thead>
+            <tbody id="expInsightBody">
+              <tr><td colspan="3" class="hint">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <h3 class="hint" style="margin:0 0 6px 0">Last 7 days</h3>
+          <table>
+            <thead>
+              <tr><th>Date</th><th>Income</th><th>Expenses</th><th>Net</th></tr>
+            </thead>
+            <tbody id="trendBody">
+              <tr><td colspan="4" class="hint">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </section>
 
-  <section>
-    <h2>Expense Insights</h2>
-    <div class="grid-2">
-      <div>
-        <h3 class="hint" style="margin:0 0 6px 0">By Category (last 30 days)</h3>
-        <table>
-          <thead>
-            <tr><th>Category</th><th>Amount (KSh)</th><th>% of expenses</th></tr>
-          </thead>
-          <tbody id="expInsightBody">
-            <tr><td colspan="3" class="hint">Loading…</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div>
-        <h3 class="hint" style="margin:0 0 6px 0">Last 7 days</h3>
-        <table>
-          <thead>
-            <tr><th>Date</th><th>Income</th><th>Expenses</th><th>Net</th></tr>
-          </thead>
-          <tbody id="trendBody">
-            <tr><td colspan="4" class="hint">Loading…</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </section>
-
-  <section>
-    <h2>Savings Target</h2>
+  <section id="panel-goals" class="panel">
+    <h2>Goals</h2>
     <div class="card">
       <div class="grid-2">
         <div>
@@ -180,7 +194,7 @@
     </div>
   </section>
 
-  <section>
+  <section id="panel-automation" class="panel">
     <h2>Automation (Android app)</h2>
     <div class="card">
       <p class="hint">
@@ -257,6 +271,23 @@
       const el=$('sessionState'); if(!el) return;
       el.textContent=text;
       el.className='pill ' + (cls||'');
+    }
+
+    // Tabs
+    function bindTabs(){
+      const tabs = document.querySelectorAll('.tabs .tab');
+      const panels = document.querySelectorAll('.panel');
+      tabs.forEach(tab=>{
+        tab.addEventListener('click', ()=>{
+          const key = tab.getAttribute('data-panel');
+          tabs.forEach(t=>t.classList.remove('active'));
+          tab.classList.add('active');
+          panels.forEach(p=>{
+            if (p.id === 'panel-' + key) p.classList.add('active');
+            else p.classList.remove('active');
+          });
+        });
+      });
     }
 
     // --- Summary (today) ---
@@ -423,7 +454,7 @@
         rows.forEach(r=>{
           const tr = document.createElement('tr');
           const t = r.created_at || r.time || r.timestamp;
-          tr.innerHTML = `<td>${t? new Date(t).toLocaleTimeString():'?'}</td><td>${r.category||'?'}</td><td>${fmt(r.amount||0)}</td><td>${r.notes||''}</td>`;
+          tr.innerHTML = `<td>${t? new Date(t).toLocaleTimeString():'?'}</td><td>${r.category||'?'}<\/td><td>${fmt(r.amount||0)}</td><td>${r.notes||''}</td>`;
           tbody.appendChild(tr);
         });
       }catch(e){/* ignore */}
@@ -639,6 +670,8 @@
         }
       }catch(_){ setSessionState('Session: error', 'err'); }
 
+      bindTabs();
+
       await refreshSummary();
       await refreshCash();
       await refreshExp();
@@ -659,3 +692,4 @@
   </script>
 </body>
 </html>
+
