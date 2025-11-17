@@ -198,6 +198,55 @@ label{font-size:12px;font-weight:600;color:var(--muted);display:flex;flex-direct
 .stack .card{margin:0}
 .stacked{display:flex;flex-direction:column;gap:8px}
 .stacked .item{padding:6px 0;border-bottom:1px solid var(--border);font-size:13px}
+.route-tiles-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.route-tile{
+  flex:1 1 150px;
+  min-width:140px;
+  max-width:220px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:8px;
+  font-size:12px;
+  cursor:pointer;
+  background:#f9fafb;
+}
+.route-tile.selected{
+  border-color:var(--brand);
+  box-shadow:0 0 0 1px var(--brand);
+  background:#eff6ff;
+}
+.route-tile .title{
+  font-weight:600;
+  margin-bottom:4px;
+}
+.route-tile .meta{
+  color:var(--muted);
+  font-size:11px;
+}
+.route-tile .mini-line{
+  height:4px;
+  border-radius:999px;
+  background:linear-gradient(to right,#2563eb,#1d4ed8);
+  margin:4px 0;
+}
+.rt-dot{
+  display:inline-block;
+  width:6px;
+  height:6px;
+  border-radius:999px;
+  margin-right:4px;
+  background:var(--muted);
+}
+.rt-status-live .rt-dot{
+  background:var(--ok);
+}
+.rt-status-offline .rt-dot{
+  background:var(--muted);
+}
 .stacked .item:last-child{border-bottom:none}
 .sacco-matatu-list{font-size:13px}
 .section-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}

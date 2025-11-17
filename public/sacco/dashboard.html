@@ -354,6 +354,13 @@
         <div id="liveStatus" class="muted" style="margin-top:6px;font-size:12px;">Live: no route selected.</div>
       </div>
     </div>
+    <div class="card" style="margin-top:12px">
+      <h3 style="margin-top:0">Route Tiles</h3>
+      <p class="muted" style="margin:4px 0 8px">Click a tile to move that route to the live map above.</p>
+      <div id="routeTilesRow" class="route-tiles-row">
+        <div class="muted">No routes yet.</div>
+      </div>
+    </div>
   </section>
 
   <script>
@@ -1023,6 +1030,37 @@
     let saccoRoutes = [];
     let selectedRouteId = null;
     let livePollTimer = null;
+    let routeLiveCounts = new Map();
+
+    function renderRouteTiles(routes){
+      const row = $('routeTilesRow');
+      if (!row) return;
+      if (!routes || !routes.length){
+        row.innerHTML = '<div class="muted">No routes yet.</div>';
+        return;
+      }
+      row.innerHTML = '';
+      routes.forEach(r=>{
+        const div = document.createElement('div');
+        div.className = 'route-tile';
+        div.dataset.routeId = r.id;
+        const name = r.name || r.code || ('Route ' + (r.id||''));
+        const start = r.start_stop || '';
+        const end = r.end_stop || '';
+        const liveCount = routeLiveCounts.get(String(r.id)) || 0;
+        const liveLabel = liveCount > 0 ? `${liveCount} matatu live` : 'no live data';
+        const liveClass = liveCount > 0 ? 'rt-status-live' : 'rt-status-offline';
+        div.innerHTML =
+          `<div class="title">${name}</div>`+
+          `<div class="mini-line"></div>`+
+          `<div class="meta">${start || '-'} \u2192 ${end || '-'}</div>`+
+          `<div class="meta ${liveClass}"><span class="rt-dot"></span> ${liveLabel}</div>`;
+        if (selectedRouteId && String(r.id) === String(selectedRouteId)){
+          div.classList.add('selected');
+        }
+        row.appendChild(div);
+      });
+    }
 
     async function loadRoutesAdmin(){
       if (!currentSacco) return;
@@ -1042,6 +1080,7 @@
           updateLiveStatus();
           return;
         }
+        renderRouteTiles(items);
         T.innerHTML = '';
         items.forEach(r=>{
           const tr=document.createElement('tr');
@@ -1058,23 +1097,6 @@
           T.appendChild(tr);
         });
 
-        // Auto-select a route for this SACCO (first active, else first)
-        if (!selectedRouteId){
-          const active = items.find(r => r.active);
-          const first = active || items[0];
-          if (first && first.id){
-            selectedRouteId = first.id;
-            try{
-              showRouteOnMap(first).catch(()=>{});
-              if (livePollTimer) clearInterval(livePollTimer);
-              livePollTimer = setInterval(()=>{ refreshLivePositions().catch(()=>{}); }, 30000);
-              liveLastCount = 0;
-              liveLastTs = null;
-              updateLiveStatus();
-              refreshLivePositions().catch(()=>{});
-            }catch(_){}
-          }
-        }
       }catch(e){
         T.innerHTML = `<tr><td colspan="6" class="err">${parseErr(e)}</td></tr>`;
       }
@@ -1109,15 +1131,19 @@
       if (!el){
         return;
       }
-      if (!currentSacco || !selectedRouteId){
-        el.textContent = 'Live: no route selected.';
+      if (!currentSacco){
+        el.textContent = 'Live: no SACCO selected.';
         updateRouteStyle();
         return;
       }
-      const route = saccoRoutes.find(r => String(r.id) === String(selectedRouteId));
+      const route = selectedRouteId
+        ? saccoRoutes.find(r => String(r.id) === String(selectedRouteId))
+        : null;
       const name = route?.name || '';
       if (!liveLastCount && !liveLastTs){
-        el.textContent = name ? `Live: ${name} - waiting for positions...` : 'Live: waiting for positions...';
+        el.textContent = name
+          ? `Live: ${name} - waiting for positions...`
+          : 'Live: all routes - waiting for positions...';
         updateRouteStyle();
         return;
       }
@@ -1126,13 +1152,13 @@
       if (!liveLastCount){
         el.textContent = name
           ? `Live: ${name} - no matatu positions in the last window (last update at ${timeStr}).`
-          : `Live: no matatu positions in the last window (last update at ${timeStr}).`;
+          : `Live: all routes - no matatu positions in the last window (last update at ${timeStr}).`;
         updateRouteStyle();
         return;
       }
       el.textContent = name
         ? `Live: ${name} - ${liveLastCount} matatu(s) active, last update at ${timeStr}.`
-        : `Live: ${liveLastCount} matatu(s) active, last update at ${timeStr}.`;
+        : `Live: all routes - ${liveLastCount} matatu(s) active, last update at ${timeStr}.`;
       updateRouteStyle();
     }
 
@@ -1207,10 +1233,13 @@
 
     async function refreshLivePositions(){
       if (!currentSacco) return;
-      if (!selectedRouteId) return;
       let res;
       try{
-        res = await jget(`/u/sacco/${currentSacco}/live-positions?route_id=${encodeURIComponent(selectedRouteId)}&window_min=60`);
+        const base = `/u/sacco/${currentSacco}/live-positions`;
+        const url = selectedRouteId
+          ? `${base}?route_id=${encodeURIComponent(selectedRouteId)}&window_min=60`
+          : `${base}?window_min=60`;
+        res = await jget(url);
       }catch(e){
         console.warn('live positions error', e);
         liveLastCount = 0;
@@ -1222,6 +1251,7 @@
       const maps = await ensureRouteMap();
       const used = new Set();
       let latestTs = null;
+      routeLiveCounts = new Map();
       if (!items.length){
         // Clear markers if no recent positions
         gmapLiveMarkers.forEach((marker, id)=>{
@@ -1237,6 +1267,10 @@
         const id = String(row.matatu_id||'');
         if (!id) return;
         used.add(id);
+        const routeKey = row.route_id ? String(row.route_id) : null;
+        if (routeKey){
+          routeLiveCounts.set(routeKey, (routeLiveCounts.get(routeKey)||0) + 1);
+        }
         const pos = { lat:Number(row.lat), lng:Number(row.lng) };
         if (!Number.isFinite(pos.lat) || !Number.isFinite(pos.lng)) return;
         if (row.recorded_at){
@@ -1277,7 +1311,30 @@
       liveLastCount = used.size;
       liveLastTs = latestTs ? new Date(latestTs).toISOString() : null;
       updateLiveStatus();
+      renderRouteTiles(saccoRoutes);
     }
+
+    // Route tiles click (CCTV-style mini screens)
+    (function bindRouteTiles(){
+      const row = document.getElementById('routeTilesRow'); if (!row) return;
+      row.addEventListener('click', async (e)=>{
+        const card = e.target.closest('.route-tile'); if (!card) return;
+        const routeId = card.dataset.routeId || null; if (!routeId) return;
+        selectedRouteId = routeId;
+        const route = saccoRoutes.find(r => String(r.id) === String(routeId));
+        if (!route) return;
+        try{
+          await showRouteOnMap(route);
+          if (livePollTimer) clearInterval(livePollTimer);
+          livePollTimer = setInterval(()=>{ refreshLivePositions().catch(()=>{}); }, 30000);
+          liveLastCount = 0;
+          liveLastTs = null;
+          updateLiveStatus();
+          refreshLivePositions().catch(()=>{});
+          renderRouteTiles(saccoRoutes);
+        }catch(_){}
+      });
+    })();
 
     // Events
     $('saccoSelect').onchange = async ()=>{
@@ -1477,15 +1534,6 @@
           selectedRouteId = routeId;
           const route = saccoRoutes.find(r => String(r.id) === String(routeId));
           if (route){
-            // Reflect selected route details in read-only inputs
-            const nameEl = $('rtName');
-            const codeEl = $('rtCode');
-            const startEl = $('rtStart');
-            const endEl = $('rtEnd');
-            if (nameEl) nameEl.value = route.name || '';
-            if (codeEl) codeEl.value = route.code || '';
-            if (startEl) startEl.value = route.start_stop || '';
-            if (endEl) endEl.value = route.end_stop || '';
             showRouteOnMap(route).catch(err=>console.warn(err));
             if (livePollTimer) clearInterval(livePollTimer);
             livePollTimer = setInterval(()=>{ refreshLivePositions().catch(()=>{}); }, 30000);
@@ -1493,6 +1541,7 @@
             liveLastTs = null;
             updateLiveStatus();
             refreshLivePositions().catch(()=>{});
+            renderRouteTiles(saccoRoutes);
           }
         }
         if (!btn) return;
