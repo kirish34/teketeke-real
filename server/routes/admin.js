@@ -482,6 +482,10 @@ router.patch('/routes/:routeId', async (req,res)=>{
       const end_stop = (req.body?.end_stop || '').toString().trim();
       updates.end_stop = end_stop || null;
     }
+    if ('sacco_id' in req.body) {
+      const sacco_id = req.body?.sacco_id || null;
+      updates.sacco_id = sacco_id;
+    }
     if ('active' in req.body) {
       updates.active = !!req.body.active;
     }
@@ -529,6 +533,22 @@ router.patch('/routes/:routeId', async (req,res)=>{
     res.json(data);
   }catch(e){
     res.status(500).json({ error: e.message || 'Failed to update route' });
+  }
+});
+
+// Delete a route (system admin only)
+router.delete('/routes/:routeId', async (req,res)=>{
+  const routeId = req.params.routeId;
+  if (!routeId) return res.status(400).json({ error: 'routeId required' });
+  try{
+    const { error } = await supabaseAdmin
+      .from('routes')
+      .delete()
+      .eq('id', routeId);
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json({ ok:true });
+  }catch(e){
+    res.status(500).json({ error: e.message || 'Failed to delete route' });
   }
 });
 
