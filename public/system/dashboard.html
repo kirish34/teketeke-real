@@ -1509,17 +1509,13 @@
           const startEl = $('rt_admin_start');
           const endEl = $('rt_admin_end');
           const msgEl = $('rt_admin_msg');
-          if (!saccoId){
-            if (msgEl){ msgEl.textContent = 'Select a SACCO first.'; msgEl.className = 'muted err'; }
-            return;
-          }
           const name = (nameEl?.value || '').trim();
           if (!name){
             if (msgEl){ msgEl.textContent = 'Route name is required.'; msgEl.className = 'muted err'; }
             return;
           }
           const payload = {
-            sacco_id: saccoId,
+            sacco_id: saccoId || null,
             name,
             code: (codeEl?.value || '').trim() || null,
             start_stop: (startEl?.value || '').trim() || null,

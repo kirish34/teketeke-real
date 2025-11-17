@@ -415,8 +415,7 @@ router.get('/routes/usage-summary', async (_req,res)=>{
 // Create a new route (system admin only)
 router.post('/routes', async (req,res)=>{
   try{
-    const sacco_id = req.body?.sacco_id;
-    if (!sacco_id) return res.status(400).json({ error: 'sacco_id required' });
+    const sacco_id = req.body?.sacco_id || null;
     const name = (req.body?.name || '').toString().trim();
     const code = (req.body?.code || '').toString().trim() || null;
     const start_stop = (req.body?.start_stop || '').toString().trim() || null;
