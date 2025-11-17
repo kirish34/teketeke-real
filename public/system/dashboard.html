@@ -287,17 +287,11 @@
       </div>
     </div>
     <div class="card" style="margin-top:12px">
-      <h3>Manage SACCO Routes</h3>
+      <h3>Routes Creation</h3>
       <p class="muted" style="margin:4px 0 8px">
         Create and name routes centrally. SACCO dashboards can record the live GPS path for routes you define here.
       </p>
       <div class="row">
-        <select id="rt_admin_sacco">
-          <option value="">Select SACCO</option>
-        </select>
-        <span id="rt_admin_msg" class="muted" style="align-self:center;"></span>
-      </div>
-      <div class="row" style="margin-top:8px">
         <input id="rt_admin_name" placeholder="Route name (e.g. CBD - Githurai)"/>
         <input id="rt_admin_code" placeholder="Code (optional, for commuters app)"/>
       </div>
@@ -305,6 +299,7 @@
         <input id="rt_admin_start" placeholder="Start stage (local name)"/>
         <input id="rt_admin_end" placeholder="End stage (local name)"/>
         <button id="rt_admin_create" class="btn">Create Route</button>
+        <span id="rt_admin_msg" class="muted" style="align-self:center;"></span>
       </div>
       <div class="table-wrap" style="margin-top:12px">
         <table>
@@ -1493,17 +1488,9 @@
       }
 
       // Routes admin events
-      const rtAdminSacco = $('rt_admin_sacco');
-      if (rtAdminSacco){
-        rtAdminSacco.addEventListener('change', ()=>{
-          loadRoutesForSacco().catch(()=>{});
-        });
-      }
-
       const rtAdminCreate = $('rt_admin_create');
       if (rtAdminCreate){
         rtAdminCreate.addEventListener('click', async ()=>{
-          const saccoId = $('rt_admin_sacco') ? $('rt_admin_sacco').value : '';
           const nameEl = $('rt_admin_name');
           const codeEl = $('rt_admin_code');
           const startEl = $('rt_admin_start');
@@ -1515,7 +1502,7 @@
             return;
           }
           const payload = {
-            sacco_id: saccoId || null,
+            sacco_id: null,
             name,
             code: (codeEl?.value || '').trim() || null,
             start_stop: (startEl?.value || '').trim() || null,
@@ -1588,12 +1575,6 @@
           el.innerHTML = saccoOptions.join('');
           if (current) el.value = current;
         });
-        const rtSacco = $('rt_admin_sacco');
-        if (rtSacco){
-          const currentRt = rtSacco.value;
-          rtSacco.innerHTML = saccoOptions.join('');
-          if (currentRt) rtSacco.value = currentRt;
-        }
         const rtEditSacco = $('rt_edit_sacco_select');
         if (rtEditSacco){
           const currentEdit = rtEditSacco.value;
