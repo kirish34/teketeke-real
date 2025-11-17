@@ -337,41 +337,22 @@
 
   <!-- Routes -->
   <section id="p_routes" class="panel">
-    <div class="card">
-      <h3 style="margin-top:0">Route Recording</h3>
-      <p class="muted" style="margin:4px 0 8px">
-        Routes are created and named by the System Admin. Select a route below, then record and attach its live GPS path here.
-      </p>
-      <div class="row">
-        <input id="rtName" placeholder="Route name (read-only)" readonly/>
-        <input id="rtCode" placeholder="Code (read-only)" readonly/>
+    <div class="row stretch">
+      <div class="card" style="flex:1 1 0;min-width:0">
+        <h3 style="margin-top:0">Routes for this SACCO</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Code</th><th>Name</th><th>Start</th><th>End</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="rtTbody"><tr><td colspan="6" class="muted">No routes yet.</td></tr></tbody>
+          </table>
+        </div>
       </div>
-      <div class="row" style="margin-top:8px">
-        <input id="rtStart" placeholder="Start stop (read-only)" readonly/>
-        <input id="rtEnd" placeholder="End stop (read-only)" readonly/>
-        <button id="rtCreate">Save Recording to Route</button>
-        <span id="rtStatus" class="muted" style="align-self:center"></span>
+      <div class="card" style="flex:1 1 0;min-width:0">
+        <h3 style="margin-top:0">Route Map & Live Matatus</h3>
+        <p class="muted" style="margin:4px 0 8px">Click a route in the table to focus it, or view the automatically selected route. Requires a Google Maps API key.</p>
+        <div id="routeMap" style="width:100%;height:360px;border-radius:8px;border:1px solid #e5e7eb;background:#f9fafb"></div>
+        <div id="liveStatus" class="muted" style="margin-top:6px;font-size:12px;">Live: no route selected.</div>
       </div>
-      <div class="row" style="margin-top:8px">
-        <button id="rtStartRec" class="ghost">Start live record</button>
-        <button id="rtStopRec" class="ghost" disabled>Stop</button>
-        <span id="rtRecInfo" class="muted" style="align-self:center">Not recording</span>
-      </div>
-    </div>
-    <div class="card" style="margin-top:12px">
-      <h3 style="margin-top:0">Routes for this SACCO</h3>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Code</th><th>Name</th><th>Start</th><th>End</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody id="rtTbody"><tr><td colspan="6" class="muted">No routes yet.</td></tr></tbody>
-        </table>
-      </div>
-    </div>
-    <div class="card" style="margin-top:12px">
-      <h3 style="margin-top:0">Route Map & Live Matatus</h3>
-      <p class="muted" style="margin:4px 0 8px">Click a route in the table above to draw its path and see matatu positions. Requires a Google Maps API key.</p>
-      <div id="routeMap" style="width:100%;height:360px;border-radius:8px;border:1px solid #e5e7eb;background:#f9fafb"></div>
-      <div id="liveStatus" class="muted" style="margin-top:6px;font-size:12px;">Live: no route selected.</div>
     </div>
   </section>
 
@@ -550,8 +531,6 @@
 
     let currentSacco = null;
     let matatuMap = new Map();
-    let routeRecWatchId = null;
-    let routeRecBuf = [];
     let gmapApiLoading = null;
     let gmapMap = null;
     let gmapRoutePolyline = null;
@@ -1079,79 +1058,29 @@
           T.appendChild(tr);
         });
 
-        // If a route is already selected, keep the inputs in sync
-        const selected = selectedRouteId && saccoRoutes.find(r => String(r.id) === String(selectedRouteId));
-        if (selected){
-          const nameEl = $('rtName');
-          const codeEl = $('rtCode');
-          const startEl = $('rtStart');
-          const endEl = $('rtEnd');
-          if (nameEl) nameEl.value = selected.name || '';
-          if (codeEl) codeEl.value = selected.code || '';
-          if (startEl) startEl.value = selected.start_stop || '';
-          if (endEl) endEl.value = selected.end_stop || '';
+        // Auto-select a route for this SACCO (first active, else first)
+        if (!selectedRouteId){
+          const active = items.find(r => r.active);
+          const first = active || items[0];
+          if (first && first.id){
+            selectedRouteId = first.id;
+            try{
+              showRouteOnMap(first).catch(()=>{});
+              if (livePollTimer) clearInterval(livePollTimer);
+              livePollTimer = setInterval(()=>{ refreshLivePositions().catch(()=>{}); }, 30000);
+              liveLastCount = 0;
+              liveLastTs = null;
+              updateLiveStatus();
+              refreshLivePositions().catch(()=>{});
+            }catch(_){}
+          }
         }
       }catch(e){
         T.innerHTML = `<tr><td colspan="6" class="err">${parseErr(e)}</td></tr>`;
       }
     }
 
-    function updateRouteRecInfo(msg){
-      const el = $('rtRecInfo');
-      if (!el) return;
-      el.textContent = msg;
-    }
-
-    function stopRouteRecording(){
-      const startBtn = $('rtStartRec');
-      const stopBtn = $('rtStopRec');
-      if (routeRecWatchId != null && navigator.geolocation){
-        try{
-          navigator.geolocation.clearWatch(routeRecWatchId);
-        }catch(_){}
-        routeRecWatchId = null;
-      }
-      if (startBtn) startBtn.disabled = false;
-      if (stopBtn) stopBtn.disabled = true;
-      if (routeRecBuf && routeRecBuf.length){
-        updateRouteRecInfo(`Recorded ${routeRecBuf.length} point(s). Will attach when you create the route.`);
-      }else{
-        updateRouteRecInfo('Recording stopped (no points captured).');
-      }
-    }
-
-    function startRouteRecording(){
-      if (!navigator.geolocation){
-        updateRouteRecInfo('Geolocation not supported in this browser.');
-        return;
-      }
-      if (routeRecWatchId != null){
-        updateRouteRecInfo('Already recording route.');
-        return;
-      }
-      routeRecBuf = [];
-      const startBtn = $('rtStartRec');
-      const stopBtn = $('rtStopRec');
-      if (startBtn) startBtn.disabled = true;
-      if (stopBtn) stopBtn.disabled = false;
-      updateRouteRecInfo('Requesting location and starting recording...');
-      routeRecWatchId = navigator.geolocation.watchPosition(
-        pos => {
-          const point = {
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
-            ts: new Date(pos.timestamp || Date.now()).toISOString()
-          };
-          routeRecBuf.push(point);
-          updateRouteRecInfo(`Recording: ${routeRecBuf.length} point(s) captured...`);
-        },
-        err => {
-          console.warn('route geo error', err);
-          updateRouteRecInfo('Location error: ' + (err.message || err.code || 'unknown'));
-        },
-        { enableHighAccuracy:true, maximumAge:5000, timeout:15000 }
-      );
-    }
+    // Route live status + map (view-only)
 
     function updateRouteStyle(){
       if (!gmapRoutePolyline){
@@ -1245,7 +1174,10 @@
 
     async function showRouteOnMap(route){
       if (!route || !route.path_points || !route.path_points.length){
-        updateRouteRecInfo('Selected route has no recorded path yet.');
+        const el = $('liveStatus');
+        if (el){
+          el.textContent = `Live: ${route?.name || 'Route'} - no recorded path yet.`;
+        }
         return;
       }
       const maps = await ensureRouteMap();
@@ -1253,7 +1185,10 @@
         .map(p => (p && typeof p.lat === 'number' && typeof p.lng === 'number') ? { lat:p.lat, lng:p.lng } : null)
         .filter(Boolean);
       if (!pts.length){
-        updateRouteRecInfo('Selected route has no valid path points.');
+        const el = $('liveStatus');
+        if (el){
+          el.textContent = `Live: ${route?.name || 'Route'} - no valid path points.`;
+        }
         return;
       }
       if (!gmapRoutePolyline){
@@ -1268,7 +1203,6 @@
       const bounds = new maps.LatLngBounds();
       pts.forEach(pt => bounds.extend(pt));
       gmapMap.fitBounds(bounds);
-      updateRouteRecInfo(`Showing route "${route.name||''}" with ${pts.length} point(s).`);
     }
 
     async function refreshLivePositions(){
@@ -1345,58 +1279,9 @@
       updateLiveStatus();
     }
 
-    const rtCreateBtn = $('rtCreate');
-    if (rtCreateBtn){
-      rtCreateBtn.onclick = async ()=>{
-        if (!currentSacco) return alert('Pick a SACCO first');
-        const statusEl = $('rtStatus');
-        if (!selectedRouteId){
-          if (statusEl){ statusEl.textContent = 'Select a route in the table below first.'; statusEl.className = 'err'; }
-          return;
-        }
-        if (!routeRecBuf || !routeRecBuf.length){
-          if (statusEl){ statusEl.textContent = 'No recording to save. Start a live record first.'; statusEl.className = 'err'; }
-          return;
-        }
-        const body = { path_points: routeRecBuf.slice() };
-        rtCreateBtn.disabled = true;
-        if (statusEl){ statusEl.textContent = 'Saving recording...'; statusEl.className = 'muted'; }
-        try{
-          await parse(await fetch(`/u/sacco/${currentSacco}/routes/${encodeURIComponent(selectedRouteId)}`,{
-            method:'PATCH',
-            headers:{ 'Content-Type':'application/json', Accept:'application/json' },
-            body: JSON.stringify(body)
-          }));
-          routeRecBuf = [];
-          const startBtn = $('rtStartRec');
-          const stopBtn = $('rtStopRec');
-          if (startBtn) startBtn.disabled = false;
-          if (stopBtn) stopBtn.disabled = true;
-          const recInfo = $('rtRecInfo');
-          if (recInfo) recInfo.textContent = 'Recording saved to selected route. Buffer cleared.';
-          if (statusEl){ statusEl.textContent = 'Recording attached to route'; statusEl.className = 'ok'; }
-          await loadRoutesAdmin();
-        }catch(e){
-          if (statusEl){ statusEl.textContent = e.message || 'Failed to save recording'; statusEl.className = 'err'; }
-        }finally{
-          rtCreateBtn.disabled = false;
-        }
-      };
-    }
-
-    const rtStartRecBtn = $('rtStartRec');
-    if (rtStartRecBtn){
-      rtStartRecBtn.onclick = ()=>{ startRouteRecording(); };
-    }
-    const rtStopRecBtn = $('rtStopRec');
-    if (rtStopRecBtn){
-      rtStopRecBtn.onclick = ()=>{ stopRouteRecording(); };
-    }
-
     // Events
     $('saccoSelect').onchange = async ()=>{
       currentSacco = $('saccoSelect').value || null;
-      try{ stopRouteRecording(); }catch(_){}
       selectedRouteId = null;
       liveLastCount = 0;
       liveLastTs = null;
