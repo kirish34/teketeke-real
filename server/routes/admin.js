@@ -412,6 +412,126 @@ router.get('/routes/usage-summary', async (_req,res)=>{
   }
 });
 
+// Create a new route (system admin only)
+router.post('/routes', async (req,res)=>{
+  try{
+    const sacco_id = req.body?.sacco_id;
+    if (!sacco_id) return res.status(400).json({ error: 'sacco_id required' });
+    const name = (req.body?.name || '').toString().trim();
+    const code = (req.body?.code || '').toString().trim() || null;
+    const start_stop = (req.body?.start_stop || '').toString().trim() || null;
+    const end_stop = (req.body?.end_stop || '').toString().trim() || null;
+    if (!name) return res.status(400).json({ error: 'name required' });
+
+    let path_points = null;
+    if (Array.isArray(req.body?.path_points)) {
+      path_points = req.body.path_points
+        .map(p => {
+          const lat = Number(p.lat);
+          const lng = Number(p.lng);
+          if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+          const point = { lat, lng };
+          if (p.ts) {
+            try {
+              point.ts = new Date(p.ts).toISOString();
+            } catch {
+              point.ts = null;
+            }
+          }
+          return point;
+        })
+        .filter(Boolean);
+      if (!path_points.length) {
+        path_points = null;
+      }
+    }
+
+    const row = { sacco_id, name, code, start_stop, end_stop, active: true, path_points };
+    const { data, error } = await supabaseAdmin
+      .from('routes')
+      .insert(row)
+      .select('*')
+      .single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data);
+  }catch(e){
+    res.status(500).json({ error: e.message || 'Failed to create route' });
+  }
+});
+
+// Update an existing route (system admin only)
+router.patch('/routes/:routeId', async (req,res)=>{
+  const routeId = req.params.routeId;
+  if (!routeId) return res.status(400).json({ error: 'routeId required' });
+  try{
+    const updates = {};
+    if ('name' in req.body) {
+      const name = (req.body?.name || '').toString().trim();
+      if (!name) return res.status(400).json({ error: 'name required' });
+      updates.name = name;
+    }
+    if ('code' in req.body) {
+      const code = (req.body?.code || '').toString().trim();
+      updates.code = code || null;
+    }
+    if ('start_stop' in req.body) {
+      const start_stop = (req.body?.start_stop || '').toString().trim();
+      updates.start_stop = start_stop || null;
+    }
+    if ('end_stop' in req.body) {
+      const end_stop = (req.body?.end_stop || '').toString().trim();
+      updates.end_stop = end_stop || null;
+    }
+    if ('active' in req.body) {
+      updates.active = !!req.body.active;
+    }
+
+    if ('path_points' in req.body) {
+      let path_points = null;
+      if (Array.isArray(req.body?.path_points)) {
+        path_points = req.body.path_points
+          .map(p => {
+            const lat = Number(p.lat);
+            const lng = Number(p.lng);
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+            const point = { lat, lng };
+            if (p.ts) {
+              try {
+                point.ts = new Date(p.ts).toISOString();
+              } catch {
+                point.ts = null;
+              }
+            }
+            return point;
+          })
+          .filter(Boolean);
+        if (!path_points.length) {
+          path_points = null;
+        }
+      }
+      updates.path_points = path_points;
+    }
+
+    if (!Object.keys(updates).length) {
+      return res.status(400).json({ error: 'No updates provided' });
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from('routes')
+      .update(updates)
+      .eq('id', routeId)
+      .select('*')
+      .maybeSingle();
+
+    if (error) return res.status(500).json({ error: error.message });
+    if (!data) return res.status(404).json({ error: 'Route not found' });
+
+    res.json(data);
+  }catch(e){
+    res.status(500).json({ error: e.message || 'Failed to update route' });
+  }
+});
+
 module.exports = router;
 
 

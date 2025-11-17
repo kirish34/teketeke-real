@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "com.teketeke.driver"
+    namespace "com.teketeke.saccostaff"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.teketeke.driver"
+        applicationId "com.teketeke.saccostaff"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -55,4 +55,12 @@ try {
     }
 } catch(Exception e) {
     logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}
+
+// Ensure Java 17 is used even if Capacitor regenerates compileOptions with Java 21.
+android {
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
 }

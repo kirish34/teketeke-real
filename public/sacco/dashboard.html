@@ -36,8 +36,6 @@
 
   <div class="top-actions hero-actions">
 
-    <a class="btn ghost" href="/public/auth/role-select.html">Role Select</a>
-
     <span id="auth_state" class="pill">Checking sign-in.</span>
 
     <button id="logoutBtn" class="btn bad">Logout</button>
@@ -340,15 +338,18 @@
   <!-- Routes -->
   <section id="p_routes" class="panel">
     <div class="card">
-      <h3 style="margin-top:0">Route Settings</h3>
+      <h3 style="margin-top:0">Route Recording</h3>
+      <p class="muted" style="margin:4px 0 8px">
+        Routes are created and named by the System Admin. Select a route below, then record and attach its live GPS path here.
+      </p>
       <div class="row">
-        <input id="rtName" placeholder="Route name (e.g. CBD - Githurai)"/>
-        <input id="rtCode" placeholder="Code (optional)"/>
+        <input id="rtName" placeholder="Route name (read-only)" readonly/>
+        <input id="rtCode" placeholder="Code (read-only)" readonly/>
       </div>
       <div class="row" style="margin-top:8px">
-        <input id="rtStart" placeholder="Start stop (optional)"/>
-        <input id="rtEnd" placeholder="End stop (optional)"/>
-        <button id="rtCreate">Create Route</button>
+        <input id="rtStart" placeholder="Start stop (read-only)" readonly/>
+        <input id="rtEnd" placeholder="End stop (read-only)" readonly/>
+        <button id="rtCreate">Save Recording to Route</button>
         <span id="rtStatus" class="muted" style="align-self:center"></span>
       </div>
       <div class="row" style="margin-top:8px">
@@ -376,8 +377,14 @@
 
   <script>
   (async function(){
+    const loginForSaccoAdmin = '/public/auth/login.html?next=' + encodeURIComponent('/public/sacco/dashboard.html');
     try{
-      await requireRole('SACCO', { statusEl:'auth_state', roleLabel:'SACCO Admin' });
+      await requireRole('SACCO', {
+        statusEl: 'auth_state',
+        roleLabel: 'SACCO Admin',
+        loginUrl: loginForSaccoAdmin,
+        onMismatch: loginForSaccoAdmin
+      });
     }catch(_){
       return;
     }
@@ -1071,6 +1078,19 @@
             `<td><button class="ghost" data-act="rt-toggle" data-id="${r.id}" data-active="${r.active ? '1' : '0'}">${btnLabel}</button></td>`;
           T.appendChild(tr);
         });
+
+        // If a route is already selected, keep the inputs in sync
+        const selected = selectedRouteId && saccoRoutes.find(r => String(r.id) === String(selectedRouteId));
+        if (selected){
+          const nameEl = $('rtName');
+          const codeEl = $('rtCode');
+          const startEl = $('rtStart');
+          const endEl = $('rtEnd');
+          if (nameEl) nameEl.value = selected.name || '';
+          if (codeEl) codeEl.value = selected.code || '';
+          if (startEl) startEl.value = selected.start_stop || '';
+          if (endEl) endEl.value = selected.end_stop || '';
+        }
       }catch(e){
         T.innerHTML = `<tr><td colspan="6" class="err">${parseErr(e)}</td></tr>`;
       }
@@ -1133,6 +1153,28 @@
       );
     }
 
+    function updateRouteStyle(){
+      if (!gmapRoutePolyline){
+        return;
+      }
+      // Offline / no recent positions: thick blue line
+      if (!liveLastCount){
+        gmapRoutePolyline.setOptions({
+          strokeColor:'#2563eb',
+          strokeOpacity:0.9,
+          strokeWeight:6
+        });
+        return;
+      }
+      // Live: thinner blue line so Google traffic colours underneath are visible,
+      // acting like a blue outline on top of the coloured road.
+      gmapRoutePolyline.setOptions({
+        strokeColor:'#2563eb',
+        strokeOpacity:0.9,
+        strokeWeight:3
+      });
+    }
+
     function updateLiveStatus(){
       const el = $('liveStatus');
       if (!el){
@@ -1140,25 +1182,29 @@
       }
       if (!currentSacco || !selectedRouteId){
         el.textContent = 'Live: no route selected.';
+        updateRouteStyle();
         return;
       }
       const route = saccoRoutes.find(r => String(r.id) === String(selectedRouteId));
       const name = route?.name || '';
       if (!liveLastCount && !liveLastTs){
-        el.textContent = name ? `Live: ${name} – waiting for positions...` : 'Live: waiting for positions...';
+        el.textContent = name ? `Live: ${name} - waiting for positions...` : 'Live: waiting for positions...';
+        updateRouteStyle();
         return;
       }
       const when = liveLastTs ? new Date(liveLastTs) : null;
       const timeStr = when ? when.toLocaleTimeString() : 'n/a';
       if (!liveLastCount){
         el.textContent = name
-          ? `Live: ${name} – no matatu positions in the last window (last update at ${timeStr}).`
+          ? `Live: ${name} - no matatu positions in the last window (last update at ${timeStr}).`
           : `Live: no matatu positions in the last window (last update at ${timeStr}).`;
+        updateRouteStyle();
         return;
       }
       el.textContent = name
-        ? `Live: ${name} – ${liveLastCount} matatu(s) active, last update at ${timeStr}.`
+        ? `Live: ${name} - ${liveLastCount} matatu(s) active, last update at ${timeStr}.`
         : `Live: ${liveLastCount} matatu(s) active, last update at ${timeStr}.`;
+      updateRouteStyle();
     }
 
     function ensureGoogleMaps(){
@@ -1214,7 +1260,7 @@
         gmapRoutePolyline = new maps.Polyline({
           strokeColor: '#2563eb',
           strokeOpacity: 0.9,
-          strokeWeight: 4,
+          strokeWeight: 6,
           map: gmapMap
         });
       }
@@ -1303,48 +1349,35 @@
     if (rtCreateBtn){
       rtCreateBtn.onclick = async ()=>{
         if (!currentSacco) return alert('Pick a SACCO first');
-        const nameEl = $('rtName');
-        const codeEl = $('rtCode');
-        const startEl = $('rtStart');
-        const endEl = $('rtEnd');
         const statusEl = $('rtStatus');
-        const name = (nameEl?.value || '').trim();
-        if (!name){
-          if (statusEl){ statusEl.textContent = 'Name is required'; statusEl.className = 'err'; }
+        if (!selectedRouteId){
+          if (statusEl){ statusEl.textContent = 'Select a route in the table below first.'; statusEl.className = 'err'; }
           return;
         }
-        const body = {
-          name,
-          code: (codeEl?.value || '').trim() || null,
-          start_stop: (startEl?.value || '').trim() || null,
-          end_stop: (endEl?.value || '').trim() || null
-        };
-        if (routeRecBuf && routeRecBuf.length){
-          body.path_points = routeRecBuf.slice();
+        if (!routeRecBuf || !routeRecBuf.length){
+          if (statusEl){ statusEl.textContent = 'No recording to save. Start a live record first.'; statusEl.className = 'err'; }
+          return;
         }
+        const body = { path_points: routeRecBuf.slice() };
         rtCreateBtn.disabled = true;
-        if (statusEl){ statusEl.textContent = 'Saving...'; statusEl.className = 'muted'; }
+        if (statusEl){ statusEl.textContent = 'Saving recording...'; statusEl.className = 'muted'; }
         try{
-          await parse(await fetch(`/u/sacco/${currentSacco}/routes`,{
-            method:'POST',
+          await parse(await fetch(`/u/sacco/${currentSacco}/routes/${encodeURIComponent(selectedRouteId)}`,{
+            method:'PATCH',
             headers:{ 'Content-Type':'application/json', Accept:'application/json' },
             body: JSON.stringify(body)
           }));
-          if (nameEl) nameEl.value = '';
-          if (codeEl) codeEl.value = '';
-          if (startEl) startEl.value = '';
-          if (endEl) endEl.value = '';
           routeRecBuf = [];
           const startBtn = $('rtStartRec');
           const stopBtn = $('rtStopRec');
           if (startBtn) startBtn.disabled = false;
           if (stopBtn) stopBtn.disabled = true;
           const recInfo = $('rtRecInfo');
-          if (recInfo) recInfo.textContent = 'Route saved. Recording cleared.';
-          if (statusEl){ statusEl.textContent = 'Route created'; statusEl.className = 'ok'; }
+          if (recInfo) recInfo.textContent = 'Recording saved to selected route. Buffer cleared.';
+          if (statusEl){ statusEl.textContent = 'Recording attached to route'; statusEl.className = 'ok'; }
           await loadRoutesAdmin();
         }catch(e){
-          if (statusEl){ statusEl.textContent = e.message || 'Failed to create route'; statusEl.className = 'err'; }
+          if (statusEl){ statusEl.textContent = e.message || 'Failed to save recording'; statusEl.className = 'err'; }
         }finally{
           rtCreateBtn.disabled = false;
         }
@@ -1559,6 +1592,15 @@
           selectedRouteId = routeId;
           const route = saccoRoutes.find(r => String(r.id) === String(routeId));
           if (route){
+            // Reflect selected route details in read-only inputs
+            const nameEl = $('rtName');
+            const codeEl = $('rtCode');
+            const startEl = $('rtStart');
+            const endEl = $('rtEnd');
+            if (nameEl) nameEl.value = route.name || '';
+            if (codeEl) codeEl.value = route.code || '';
+            if (startEl) startEl.value = route.start_stop || '';
+            if (endEl) endEl.value = route.end_stop || '';
             showRouteOnMap(route).catch(err=>console.warn(err));
             if (livePollTimer) clearInterval(livePollTimer);
             livePollTimer = setInterval(()=>{ refreshLivePositions().catch(()=>{}); }, 30000);

@@ -1,7 +1,7 @@
 ﻿{
-    "appId":  "com.teketeke.driver",
+    "appId":  "com.teketeke.saccostaff",
     "webDir":  "web",
-    "appName":  "TekeTeke Go Driver",
+    "appName":  "TekeTeke Sacco Staff",
     "server":  {
                    "androidScheme":  "https"
                },

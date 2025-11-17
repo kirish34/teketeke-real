@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">TekeTeke Go Driver</string>
-    <string name="title_activity_main">TekeTeke Go Driver</string>
-    <string name="package_name">com.teketeke.driver</string>
-    <string name="custom_url_scheme">com.teketeke.driver</string>
+    <string name="app_name">TekeTeke Sacco Staff</string>
+    <string name="title_activity_main">TekeTeke Sacco Staff</string>
+    <string name="package_name">com.teketeke.saccostaff</string>
+    <string name="custom_url_scheme">com.teketeke.saccostaff</string>
 </resources>

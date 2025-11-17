@@ -19,7 +19,6 @@
     <div class="hero-actions">
       <a class="btn ghost" href="/public/sacco/staff-daily.html">Daily Fee</a>
       <a class="btn ghost" href="/public/sacco/staff-savings.html">Savings</a>
-      <a class="btn" href="/public/auth/role-select.html">Role Select</a>
       <span id="auth_state" class="pill">Checking sign-in…</span>
     </div>
   </div>
@@ -84,7 +83,15 @@
 
   <script>
   (async function(){
-    try{ await requireRole(['SACCO_STAFF','SACCO_ADMIN'], { statusEl:'auth_state', roleLabel:'SACCO Staff/Admin' }); }catch(_){ return; }
+    const loginForSaccoStaff = '/public/auth/login.html?next=' + encodeURIComponent('/public/sacco/staff-loans.html');
+    try{
+      await requireRole(['SACCO_STAFF','SACCO_ADMIN'], {
+        statusEl: 'auth_state',
+        roleLabel: 'SACCO Staff/Admin',
+        loginUrl: loginForSaccoStaff,
+        onMismatch: loginForSaccoStaff
+      });
+    }catch(_){ return; }
     const $ = (id)=>document.getElementById(id);
     const iso = (d)=> new Date(d).toISOString().slice(0,10);
     const today = iso(new Date());

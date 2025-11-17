@@ -20,7 +20,6 @@
     <div class="muted" id="saccoNameLine" style="margin-top:4px;font-size:13px;">SACCO: --</div>
   </div>
   <div class="hero-actions">
-    <a class="btn ghost" id="roleSelectLink" href="/public/auth/role-select.html">Role Select</a>
     <span id="auth_state" class="pill">Checking sign-in...</span>
     <button id="logoutBtn" class="btn bad">Logout</button>
   </div>
@@ -144,21 +143,151 @@
   </div>
 </section>
 
-<div class="card" style="margin:24px auto;max-width:640px;background:#eef2ff;border:1px dashed #c7d2fe">
-  <div class="row" style="align-items:center;gap:12px">
-    <div style="flex:1">
-      <strong>Need offline mode?</strong>
-      <div class="muted">Download the SACCO Staff Android app for better offline recording.</div>
-    </div>
-    <a class="btn" href="/public/downloads/teketeke-go-sacco-staff.apk" download>Download APK</a>
+<div class="card" style="margin:24px auto;max-width:480px">
+  <h3 style="margin:0 0 4px">Device PIN (offline lock)</h3>
+  <p class="muted" style="margin:0 0 8px">
+    Protect this device with a 4 digit PIN. The PIN is stored only on this device so you can still open the app while offline.
+  </p>
+  <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap">
+    <input id="pin_new" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="New PIN" style="max-width:90px"/>
+    <input id="pin_confirm" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="Confirm PIN" style="max-width:120px"/>
+    <button id="pin_save">Save PIN</button>
+    <button id="pin_clear" class="ghost">Remove PIN</button>
   </div>
+  <div id="pin_msg" class="muted" style="margin-top:6px;font-size:13px;"></div>
 </div>
 
 <div id="toast" role="status" aria-live="polite"></div>
 
 <script>
 (async function(){
-  try{ await requireRole('SACCO_STAFF', { statusEl:'auth_state', roleLabel:'SACCO Staff' }); }catch(_){ return; }
+  const PIN_STORAGE_KEY = 'tt_sacco_device_pin_v1';
+  const PIN_SESSION_KEY = 'tt_sacco_device_pin_ok';
+
+  async function hashPin(pin){
+    try{
+      if (window.crypto?.subtle && window.TextEncoder){
+        const data = new TextEncoder().encode(pin);
+        const buf = await window.crypto.subtle.digest('SHA-256', data);
+        return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+      }
+    }catch(_){}
+    return 'pin:' + pin;
+  }
+
+  async function ensurePinUnlocked(){
+    const stored = localStorage.getItem(PIN_STORAGE_KEY);
+    if (!stored) return;
+    const ok = sessionStorage.getItem(PIN_SESSION_KEY);
+    if (ok && ok === stored) return;
+
+    return new Promise((resolve)=>{
+      const overlay = document.createElement('div');
+      overlay.id = 'pinGate';
+      overlay.style.position = 'fixed';
+      overlay.style.inset = '0';
+      overlay.style.zIndex = '9999';
+      overlay.style.background = 'rgba(15,23,42,0.8)';
+      overlay.style.display = 'flex';
+      overlay.style.alignItems = 'center';
+      overlay.style.justifyContent = 'center';
+
+      overlay.innerHTML = `
+        <div style="background:#ffffff;border-radius:16px;padding:20px;max-width:320px;width:90%;box-shadow:0 18px 40px rgba(0,0,0,.35);text-align:center">
+          <h3 style="margin:0 0 8px;font-size:18px;">Enter device PIN</h3>
+          <p style="margin:0 0 12px;font-size:13px;color:#6b7280;">This 4 digit PIN protects this device even when you are offline.</p>
+          <input id="pinGateInput" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" style="letter-spacing:0.4em;text-align:center;font-size:20px;padding:10px 6px;border-radius:10px;border:1px solid #e5e7eb;width:160px;" autofocus />
+          <div id="pinGateMsg" style="margin-top:8px;font-size:13px;color:#b91c1c;min-height:18px;"></div>
+          <button id="pinGateUnlock" style="margin-top:10px;padding:8px 14px;border-radius:999px;border:none;background:#1976d2;color:#fff;font-weight:700;cursor:pointer;">Unlock</button>
+        </div>
+      `;
+
+      document.body.appendChild(overlay);
+      const input = overlay.querySelector('#pinGateInput');
+      const msgEl = overlay.querySelector('#pinGateMsg');
+      const btn = overlay.querySelector('#pinGateUnlock');
+
+      function setMsg(t){ if (msgEl) msgEl.textContent = t || ''; }
+
+      async function tryUnlock(){
+        const val = (input.value || '').trim();
+        if (!/^[0-9]{4}$/.test(val)){
+          setMsg('PIN must be 4 digits');
+          return;
+        }
+        const hash = await hashPin(val);
+        if (hash === stored){
+          sessionStorage.setItem(PIN_SESSION_KEY, stored);
+          document.body.removeChild(overlay);
+          resolve();
+        } else {
+          setMsg('Incorrect PIN');
+          input.value = '';
+          input.focus();
+        }
+      }
+
+      if (btn) btn.addEventListener('click', (e)=>{ e.preventDefault(); tryUnlock(); });
+      if (input) input.addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); tryUnlock(); } });
+      setTimeout(()=>{ try{ input && input.focus(); }catch(_){ } }, 0);
+    });
+  }
+
+  function initPinSettings(){
+    const newEl = document.getElementById('pin_new');
+    const confirmEl = document.getElementById('pin_confirm');
+    const msgEl = document.getElementById('pin_msg');
+    const saveBtn = document.getElementById('pin_save');
+    const clearBtn = document.getElementById('pin_clear');
+    if (!newEl || !confirmEl || !msgEl || !saveBtn || !clearBtn) return;
+
+    function setMsg(text, isError){
+      msgEl.textContent = text || '';
+      msgEl.style.color = isError ? '#b91c1c' : '#6b7280';
+    }
+
+    if (localStorage.getItem(PIN_STORAGE_KEY)){
+      setMsg('PIN is enabled on this device.', false);
+    }
+
+    saveBtn.onclick = async ()=>{
+      const a = (newEl.value || '').trim();
+      const b = (confirmEl.value || '').trim();
+      if (!/^[0-9]{4}$/.test(a)){
+        setMsg('PIN must be exactly 4 digits.', true);
+        return;
+      }
+      if (a !== b){
+        setMsg('PIN values do not match.', true);
+        return;
+      }
+      const hash = await hashPin(a);
+      localStorage.setItem(PIN_STORAGE_KEY, hash);
+      sessionStorage.removeItem(PIN_SESSION_KEY);
+      newEl.value = '';
+      confirmEl.value = '';
+      setMsg('PIN saved for this device.', false);
+    };
+
+    clearBtn.onclick = ()=>{
+      localStorage.removeItem(PIN_STORAGE_KEY);
+      sessionStorage.removeItem(PIN_SESSION_KEY);
+      newEl.value = '';
+      confirmEl.value = '';
+      setMsg('PIN removed for this device.', false);
+    };
+  }
+
+  const loginForSaccoStaff = '/public/auth/login.html?next=' + encodeURIComponent('/public/sacco/staff.html');
+  try{
+    await requireRole('SACCO_STAFF', {
+      statusEl: 'auth_state',
+      roleLabel: 'SACCO Staff',
+      loginUrl: loginForSaccoStaff,
+      onMismatch: loginForSaccoStaff
+    });
+  }catch(_){ return; }
+  await ensurePinUnlocked();
   const $ = id => document.getElementById(id);
   const todayIso = d => new Date(d).toISOString().slice(0,10);
   const isToday = (ts) => todayIso(ts) === todayIso(new Date());
@@ -375,6 +504,8 @@
   }
   $('df_collect').onclick = ()=>{ const id=$('df_matatu').value; const amt=Number($('df_amount').value||0); if(!id||!amt) return toast('Pick matatu & amount'); quickCollect('DAILY_FEE', id, amt).then(()=>{$('df_amount').value='';}); };
   $('sv_collect').onclick = ()=>{ const id=$('sv_matatu').value; const amt=Number($('sv_amount').value||0); if(!id||!amt) return toast('Pick matatu & amount'); quickCollect('SAVINGS', id, amt).then(()=>{$('sv_amount').value='';}); };
+
+  initPinSettings();
 
   await loadSaccos();
   await loadMatatus();

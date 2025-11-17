@@ -9,7 +9,7 @@
     "cap:init": "npx cap init TekeTekeGo com.teketeke.app --web-dir=web",
     "cap:sync": "npm run prep:web && npx cap sync android",
     "android": "npm run cap:sync && npx cap open android",
-    "build:apk": "npm run cap:sync && cd android && ./gradlew assembleDebug",
+    "build:apk": "node scripts/build-apk.js",
     "role:matatu-staff": "cross-env TEKETEKE_APP_NAME=\"TekeTeke Go Matatu Staff\" TEKETEKE_APP_ID=com.teketeke.matatustaff TEKETEKE_ENTRY_FILE=public/matatu/staff.html npm run cap:sync",
     "role:matatu-owner": "cross-env TEKETEKE_APP_NAME=\"TekeTeke Go Matatu Owner\" TEKETEKE_APP_ID=com.teketeke.matatuowner TEKETEKE_ENTRY_FILE=public/matatu/owner.html npm run cap:sync",
     "role:sacco-staff": "cross-env TEKETEKE_APP_NAME=\"TekeTeke Go Sacco Staff\" TEKETEKE_APP_ID=com.teketeke.saccostaff TEKETEKE_ENTRY_FILE=public/sacco/staff.html npm run cap:sync",

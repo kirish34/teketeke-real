@@ -268,6 +268,78 @@
       </div>
     </div>
     <div class="card" style="margin-top:12px">
+      <h3>Manage SACCO Routes</h3>
+      <p class="muted" style="margin:4px 0 8px">
+        Create and name routes centrally. SACCO dashboards can record the live GPS path for routes you define here.
+      </p>
+      <div class="row">
+        <select id="rt_admin_sacco">
+          <option value="">Select SACCO</option>
+        </select>
+        <span id="rt_admin_msg" class="muted" style="align-self:center;"></span>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <input id="rt_admin_name" placeholder="Route name (e.g. CBD - Githurai)"/>
+        <input id="rt_admin_code" placeholder="Code (optional, for commuters app)"/>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <input id="rt_admin_start" placeholder="Start stage (local name)"/>
+        <input id="rt_admin_end" placeholder="End stage (local name)"/>
+        <button id="rt_admin_create" class="btn">Create Route</button>
+      </div>
+      <div class="table-wrap" style="margin-top:12px">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Code</th>
+              <th>Name</th>
+              <th>Start</th>
+              <th>End</th>
+              <th>Status</th>
+              <th width="200">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="rt_admin_list"><tr><td colspan="7" class="muted">Select a SACCO to see its routes.</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div id="rt_admin_editor" class="card" style="margin-top:12px; display:none;">
+      <h3>Edit Route</h3>
+      <p class="muted" style="margin:4px 0 8px">Review or tweak route details before publishing to commuters.</p>
+      <div class="row">
+        <input id="rt_edit_id" class="mono" placeholder="Route ID" readonly/>
+        <input id="rt_edit_sacco" class="mono" placeholder="SACCO ID" readonly/>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <input id="rt_edit_name" placeholder="Route name"/>
+        <input id="rt_edit_code" placeholder="Code (optional, for commuters app)"/>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <input id="rt_edit_start" placeholder="Start stage (local name)"/>
+        <input id="rt_edit_end" placeholder="End stage (local name)"/>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <span id="rt_edit_status" class="pill muted">Status</span>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button id="rt_edit_save" class="btn">Save changes</button>
+        <button id="rt_edit_cancel" class="btn ghost" type="button">Cancel</button>
+        <button id="rt_copy_summary" class="btn ghost" type="button">Copy summary</button>
+        <span id="rt_edit_msg" class="muted" style="align-self:center;"></span>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <p class="muted" style="margin:0">
+          Optional: click <strong>Draw path on map</strong>, then click from point A to B on the map to sketch the route. Save to attach that path to this route.
+        </p>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button id="rt_draw_start" class="btn ghost" type="button">Draw path on map</button>
+        <button id="rt_draw_clear" class="btn ghost" type="button">Clear drawn path</button>
+        <button id="rt_draw_save" class="btn" type="button">Save map path to route</button>
+      </div>
+    </div>
+    <div class="card" style="margin-top:12px">
       <h3>All Routes Map</h3>
       <p class="muted" style="margin:4px 0 8px">Polylines show recorded route paths; colour is per SACCO. Requires a Google Maps API key.</p>
       <div id="rt_admin_map" style="width:100%;height:360px;border-radius:8px;border:1px solid #e5e7eb;background:#f9fafb"></div>
@@ -325,6 +397,10 @@
       const badge = $('sess_badge');
       const state = { saccos: [], vehicles: [], vehiclesLoaded: false, overview: null, ussdAvailable: [], ussdAllocated: [], logins: [], loginBeingEdited: null };
       let sysRoutes = [];
+      let adminRoutesForSacco = [];
+      let routeEditPath = [];
+      let routeEditPolyline = null;
+      let routeEditClickListener = null;
       let sysRoutesMap = null;
       let sysRoutesTraffic = null;
       let sysRoutesPolylines = [];
@@ -412,6 +488,19 @@
         const token = await tkn();
         const r = await fetch(url, {
           method:'POST',
+          headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json', Accept:'application/json' },
+          body: JSON.stringify(body||{})
+        });
+        const tx = await r.text();
+        if (!r.ok) throw tx || r.statusText;
+        try { return JSON.parse(tx); } catch { return {}; }
+      }
+
+
+      async function jpatch(url, body){
+        const token = await tkn();
+        const r = await fetch(url, {
+          method:'PATCH',
           headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json', Accept:'application/json' },
           body: JSON.stringify(body||{})
         });
@@ -917,6 +1006,48 @@
         }
       }
 
+      async function loadRoutesForSacco(){
+        const saccoSelect = $('rt_admin_sacco');
+        const tbody = $('rt_admin_list');
+        const msgEl = $('rt_admin_msg');
+        if (!tbody || !saccoSelect) return;
+        const saccoId = saccoSelect.value;
+        if (!saccoId){
+          tbody.innerHTML = '<tr><td colspan="7" class="muted">Select a SACCO to see its routes.</td></tr>';
+          if (msgEl){ msgEl.textContent = ''; msgEl.className = 'muted'; }
+          return;
+        }
+        tbody.innerHTML = '<tr><td colspan="7" class="muted">Loading routes...</td></tr>';
+        if (msgEl){ msgEl.textContent = ''; msgEl.className = 'muted'; }
+        try{
+          const res = await jget('/api/admin/routes?sacco_id=' + encodeURIComponent(saccoId));
+          const items = res.items || [];
+          adminRoutesForSacco = items;
+          if (!items.length){
+            tbody.innerHTML = '<tr><td colspan="7" class="muted">No routes yet for this SACCO.</td></tr>';
+            return;
+          }
+          tbody.innerHTML = items.map(r=>{
+            const status = r.active ? 'Active' : 'Inactive';
+            const action = r.active ? 'Disable' : 'Enable';
+            return `<tr data-route-id="${r.id||''}">
+              <td class="mono">${r.id||''}</td>
+              <td>${r.code||''}</td>
+              <td>${r.name||''}</td>
+              <td>${r.start_stop||''}</td>
+              <td>${r.end_stop||''}</td>
+              <td>${status}</td>
+              <td>
+                <button class="btn ghost" data-act="rt-edit" data-id="${r.id||''}">View / Edit</button>
+                <button class="btn ghost" data-act="rt-toggle" data-id="${r.id||''}" data-active="${r.active ? '1' : '0'}">${action}</button>
+              </td>
+            </tr>`;
+          }).join('');
+        }catch(e){
+          tbody.innerHTML = `<tr><td colspan="7" class="err">${parseErr(e)}</td></tr>`;
+        }
+      }
+
       function ensureSystemGoogleMaps(){
         if (window.google && window.google.maps) return Promise.resolve(window.google.maps);
         if (sysGMapsLoading) return sysGMapsLoading;
@@ -1002,6 +1133,344 @@
         }
       }
 
+      function openRouteEditor(routeId){
+        const wrap = $('rt_admin_editor');
+        if (!wrap) return;
+        const row = (adminRoutesForSacco || []).find(r => String(r.id) === String(routeId))
+          || (sysRoutes || []).find(r => String(r.id) === String(routeId));
+        if (!row){
+          toast('Route not found', 'err');
+          return;
+        }
+        const idEl = $('rt_edit_id');
+        const saccoEl = $('rt_edit_sacco');
+        const nameEl = $('rt_edit_name');
+        const codeEl = $('rt_edit_code');
+        const startEl = $('rt_edit_start');
+        const endEl = $('rt_edit_end');
+        const statusEl = $('rt_edit_status');
+        const msgEl = $('rt_edit_msg');
+        if (idEl) idEl.value = row.id || '';
+        if (saccoEl) saccoEl.value = row.sacco_id || '';
+        if (nameEl) nameEl.value = row.name || '';
+        if (codeEl) codeEl.value = row.code || '';
+        if (startEl) startEl.value = row.start_stop || '';
+        if (endEl) endEl.value = row.end_stop || '';
+        if (statusEl){
+          statusEl.textContent = row.active ? 'Active' : 'Inactive';
+          statusEl.className = row.active ? 'pill ok' : 'pill muted';
+        }
+        if (msgEl){
+          msgEl.textContent = '';
+          msgEl.className = 'muted';
+        }
+        // Initialise editable path from existing path_points, if any
+        routeEditPath = Array.isArray(row.path_points)
+          ? row.path_points
+              .map(p => (p && typeof p.lat === 'number' && typeof p.lng === 'number') ? { lat:p.lat, lng:p.lng } : null)
+              .filter(Boolean)
+          : [];
+        try{
+          // Draw current path on the map in edit colour
+          ensureSystemGoogleMaps().then(maps => {
+            const mapDiv = $('rt_admin_map');
+            if (!mapDiv || !maps) return;
+            if (!routeEditPolyline){
+              routeEditPolyline = new maps.Polyline({
+                strokeColor: '#111827',
+                strokeOpacity: 0.9,
+                strokeWeight: 4,
+                map: sysRoutesMap || new maps.Map(mapDiv, {
+                  center: { lat:-1.286389, lng:36.817223 },
+                  zoom: 10,
+                  mapTypeControl: false,
+                  streetViewControl: false
+                })
+              });
+            }
+            const map = routeEditPolyline.getMap() || sysRoutesMap;
+            if (map && routeEditPath.length){
+              routeEditPolyline.setPath(routeEditPath);
+              const bounds = new maps.LatLngBounds();
+              routeEditPath.forEach(pt => bounds.extend(pt));
+              map.fitBounds(bounds);
+            }else if (map){
+              routeEditPolyline.setPath([]);
+            }
+          }).catch(()=>{});
+        }catch(_){}
+        wrap.style.display = '';
+      }
+
+      function closeRouteEditor(){
+        const wrap = $('rt_admin_editor');
+        if (wrap) wrap.style.display = 'none';
+        const msgEl = $('rt_edit_msg');
+        if (msgEl){
+          msgEl.textContent = '';
+          msgEl.className = 'muted';
+        }
+        // Stop drawing mode and clear temporary path overlay
+        try{
+          if (routeEditClickListener && window.google && window.google.maps && window.google.maps.event){
+            window.google.maps.event.removeListener(routeEditClickListener);
+          }
+        }catch(_){}
+        routeEditClickListener = null;
+        if (routeEditPolyline){
+          try{ routeEditPolyline.setMap(null); }catch(_){}
+        }
+        routeEditPolyline = null;
+        routeEditPath = [];
+      }
+
+      const rtEditCancel = $('rt_edit_cancel');
+      if (rtEditCancel){
+        rtEditCancel.addEventListener('click', ()=>{
+          closeRouteEditor();
+        });
+      }
+
+      const rtEditSave = $('rt_edit_save');
+      if (rtEditSave){
+        rtEditSave.addEventListener('click', async ()=>{
+          const idEl = $('rt_edit_id');
+          const nameEl = $('rt_edit_name');
+          const codeEl = $('rt_edit_code');
+          const startEl = $('rt_edit_start');
+          const endEl = $('rt_edit_end');
+          const msgEl = $('rt_edit_msg');
+          const routeId = idEl?.value || '';
+          if (!routeId){
+            if (msgEl){ msgEl.textContent = 'Missing route ID.'; msgEl.className = 'muted err'; }
+            return;
+          }
+          const name = (nameEl?.value || '').trim();
+          if (!name){
+            if (msgEl){ msgEl.textContent = 'Route name is required.'; msgEl.className = 'muted err'; }
+            return;
+          }
+          const payload = {
+            name,
+            code: (codeEl?.value || '').trim() || null,
+            start_stop: (startEl?.value || '').trim() || null,
+            end_stop: (endEl?.value || '').trim() || null
+          };
+          rtEditSave.disabled = true;
+          if (msgEl){ msgEl.textContent = 'Saving changes...'; msgEl.className = 'muted'; }
+          try{
+            await jpatch('/api/admin/routes/' + encodeURIComponent(routeId), payload);
+            if (msgEl){ msgEl.textContent = 'Changes saved.'; msgEl.className = 'ok'; }
+            await Promise.all([loadRoutesForSacco(), loadRouteUsage(), loadRoutesMap()]);
+            closeRouteEditor();
+          }catch(e){
+            if (msgEl){ msgEl.textContent = parseErr(e); msgEl.className = 'muted err'; }
+          }finally{
+            rtEditSave.disabled = false;
+          }
+        });
+      }
+
+      const rtCopySummary = $('rt_copy_summary');
+      if (rtCopySummary){
+        rtCopySummary.addEventListener('click', async ()=>{
+          const id = $('rt_edit_id')?.value || '';
+          const saccoId = $('rt_edit_sacco')?.value || '';
+          const name = $('rt_edit_name')?.value || '';
+          const code = $('rt_edit_code')?.value || '';
+          const start = $('rt_edit_start')?.value || '';
+          const end = $('rt_edit_end')?.value || '';
+          const statusText = $('rt_edit_status')?.textContent || '';
+          const parts = [];
+          if (name) parts.push(name);
+          if (code) parts.push(`[${code}]`);
+          if (start || end) parts.push(`from ${start || '?'} to ${end || '?'}`);
+          if (saccoId) parts.push(`SACCO ${saccoId}`);
+          if (id) parts.push(`route id ${id}`);
+          if (statusText) parts.push(`status: ${statusText}`);
+          const summary = parts.join(' | ');
+          try{
+            await navigator.clipboard.writeText(summary);
+            toast('Route summary copied', 'ok');
+          }catch(_){
+            toast('Copy failed – clipboard not available', 'err');
+          }
+        });
+      }
+
+      const rtDrawStart = $('rt_draw_start');
+      if (rtDrawStart){
+        rtDrawStart.addEventListener('click', async ()=>{
+          const idEl = $('rt_edit_id');
+          const routeId = idEl?.value || '';
+          if (!routeId){
+            toast('Open a route in the editor first', 'err');
+            return;
+          }
+          try{
+            const maps = await ensureSystemGoogleMaps();
+            const mapDiv = $('rt_admin_map');
+            if (!mapDiv) return;
+            if (!sysRoutesMap){
+              sysRoutesMap = new maps.Map(mapDiv, {
+                center: { lat:-1.286389, lng:36.817223 },
+                zoom: 12,
+                mapTypeControl: false,
+                streetViewControl: false
+              });
+              sysRoutesTraffic = new maps.TrafficLayer();
+              sysRoutesTraffic.setMap(sysRoutesMap);
+            }
+            const map = sysRoutesMap;
+            if (!routeEditPolyline){
+              routeEditPolyline = new maps.Polyline({
+                strokeColor: '#111827',
+                strokeOpacity: 0.9,
+                strokeWeight: 4,
+                map
+              });
+            }else{
+              routeEditPolyline.setMap(map);
+            }
+            routeEditPath = routeEditPath || [];
+            routeEditPolyline.setPath(routeEditPath);
+            // Clear previous click listener if any
+            if (routeEditClickListener && maps.event){
+              maps.event.removeListener(routeEditClickListener);
+            }
+            routeEditClickListener = maps.event.addListener(map, 'click', (e)=>{
+              const pt = { lat:e.latLng.lat(), lng:e.latLng.lng() };
+              routeEditPath.push(pt);
+              routeEditPolyline.setPath(routeEditPath.slice());
+            });
+            toast('Drawing mode: click on map from A to B', 'ok');
+          }catch(e){
+            console.warn('draw path init error', e);
+            toast('Could not start drawing mode', 'err');
+          }
+        });
+      }
+
+      const rtDrawClear = $('rt_draw_clear');
+      if (rtDrawClear){
+        rtDrawClear.addEventListener('click', ()=>{
+          routeEditPath = [];
+          if (routeEditPolyline){
+            try{ routeEditPolyline.setPath([]); }catch(_){}
+          }
+          if (routeEditClickListener && window.google && window.google.maps && window.google.maps.event){
+            try{ window.google.maps.event.removeListener(routeEditClickListener); }catch(_){}
+          }
+          routeEditClickListener = null;
+          toast('Cleared drawn path', 'ok');
+        });
+      }
+
+      const rtDrawSave = $('rt_draw_save');
+      if (rtDrawSave){
+        rtDrawSave.addEventListener('click', async ()=>{
+          const idEl = $('rt_edit_id');
+          const routeId = idEl?.value || '';
+          const msgEl = $('rt_edit_msg');
+          if (!routeId){
+            if (msgEl){ msgEl.textContent = 'Open a route in the editor first.'; msgEl.className = 'muted err'; }
+            return;
+          }
+          if (!routeEditPath || !routeEditPath.length){
+            if (msgEl){ msgEl.textContent = 'Draw a path on the map first.'; msgEl.className = 'muted err'; }
+            return;
+          }
+          rtDrawSave.disabled = true;
+          if (msgEl){ msgEl.textContent = 'Saving map path...'; msgEl.className = 'muted'; }
+          try{
+            await jpatch('/api/admin/routes/' + encodeURIComponent(routeId), { path_points: routeEditPath.slice() });
+            if (msgEl){ msgEl.textContent = 'Map path saved to route.'; msgEl.className = 'ok'; }
+            await Promise.all([loadRoutesForSacco(), loadRouteUsage(), loadRoutesMap()]);
+          }catch(e){
+            if (msgEl){ msgEl.textContent = parseErr(e); msgEl.className = 'muted err'; }
+          }finally{
+            rtDrawSave.disabled = false;
+          }
+        });
+      }
+
+      // Routes admin events
+      const rtAdminSacco = $('rt_admin_sacco');
+      if (rtAdminSacco){
+        rtAdminSacco.addEventListener('change', ()=>{
+          loadRoutesForSacco().catch(()=>{});
+        });
+      }
+
+      const rtAdminCreate = $('rt_admin_create');
+      if (rtAdminCreate){
+        rtAdminCreate.addEventListener('click', async ()=>{
+          const saccoId = $('rt_admin_sacco') ? $('rt_admin_sacco').value : '';
+          const nameEl = $('rt_admin_name');
+          const codeEl = $('rt_admin_code');
+          const startEl = $('rt_admin_start');
+          const endEl = $('rt_admin_end');
+          const msgEl = $('rt_admin_msg');
+          if (!saccoId){
+            if (msgEl){ msgEl.textContent = 'Select a SACCO first.'; msgEl.className = 'muted err'; }
+            return;
+          }
+          const name = (nameEl?.value || '').trim();
+          if (!name){
+            if (msgEl){ msgEl.textContent = 'Route name is required.'; msgEl.className = 'muted err'; }
+            return;
+          }
+          const payload = {
+            sacco_id: saccoId,
+            name,
+            code: (codeEl?.value || '').trim() || null,
+            start_stop: (startEl?.value || '').trim() || null,
+            end_stop: (endEl?.value || '').trim() || null
+          };
+          rtAdminCreate.disabled = true;
+          if (msgEl){ msgEl.textContent = 'Saving route...'; msgEl.className = 'muted'; }
+          try{
+            await jpost('/api/admin/routes', payload);
+            if (msgEl){ msgEl.textContent = 'Route created.'; msgEl.className = 'ok'; }
+            if (nameEl) nameEl.value = '';
+            if (codeEl) codeEl.value = '';
+            if (startEl) startEl.value = '';
+            if (endEl) endEl.value = '';
+            await Promise.all([loadRoutesForSacco(), loadRouteUsage(), loadRoutesMap()]);
+          }catch(e){
+            if (msgEl){ msgEl.textContent = parseErr(e); msgEl.className = 'muted err'; }
+          }finally{
+            rtAdminCreate.disabled = false;
+          }
+        });
+      }
+
+      const rtAdminList = $('rt_admin_list');
+      if (rtAdminList){
+        rtAdminList.addEventListener('click', async (event)=>{
+          const btn = event.target.closest('button');
+          if (!btn) return;
+          const act = btn.dataset.act;
+          const id = btn.dataset.id;
+          if (!id) return;
+          if (act === 'rt-edit'){
+            openRouteEditor(id);
+            return;
+          }
+          if (act !== 'rt-toggle') return;
+          const currentlyActive = btn.dataset.active === '1';
+          btn.disabled = true;
+          try{
+            await jpatch('/api/admin/routes/' + encodeURIComponent(id), { active: !currentlyActive });
+            await Promise.all([loadRoutesForSacco(), loadRouteUsage(), loadRoutesMap()]);
+          }catch(e){
+            toast(parseErr(e), 'err');
+          }finally{
+            btn.disabled = false;
+          }
+        });
+      }
+
       function populateLoginSelects(){
         const saccoOptions = ['<option value=\"\">Select SACCO</option>']
           .concat(state.saccos.map(row => `<option value=\"${row.id}\">${row.name || row.id}</option>`));
@@ -1012,6 +1481,12 @@
           el.innerHTML = saccoOptions.join('');
           if (current) el.value = current;
         });
+        const rtSacco = $('rt_admin_sacco');
+        if (rtSacco){
+          const currentRt = rtSacco.value;
+          rtSacco.innerHTML = saccoOptions.join('');
+          if (currentRt) rtSacco.value = currentRt;
+        }
 
         const matatuOptions = ['<option value=\"\">Select Matatu</option>']
           .concat(state.vehicles.map(row => {
