@@ -337,28 +337,24 @@
 
   <!-- Routes -->
   <section id="p_routes" class="panel">
-    <div class="row stretch">
-      <div class="card" style="flex:1 1 0;min-width:0">
-        <h3 style="margin-top:0">Routes for this SACCO</h3>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Code</th><th>Name</th><th>Start</th><th>End</th><th>Status</th><th>Actions</th></tr></thead>
-            <tbody id="rtTbody"><tr><td colspan="6" class="muted">No routes yet.</td></tr></tbody>
-          </table>
-        </div>
-      </div>
-      <div class="card" style="flex:1 1 0;min-width:0">
-        <h3 style="margin-top:0">Route Map & Live Matatus</h3>
-        <p class="muted" style="margin:4px 0 8px">Click a route in the table to focus it, or view the automatically selected route. Requires a Google Maps API key.</p>
-        <div id="routeMap" style="width:100%;height:360px;border-radius:8px;border:1px solid #e5e7eb;background:#f9fafb"></div>
-        <div id="liveStatus" class="muted" style="margin-top:6px;font-size:12px;">Live: no route selected.</div>
-      </div>
+    <div class="card">
+      <h3 style="margin-top:0">Route Map & Live Matatus</h3>
+      <p class="muted" style="margin:4px 0 8px">Default view shows all routes live; click a tile or table row to focus a single route. Requires a Google Maps API key.</p>
+      <div id="routeMap" style="width:100%;height:360px;border-radius:8px;border:1px solid #e5e7eb;background:#f9fafb"></div>
+      <div id="liveStatus" class="muted" style="margin-top:6px;font-size:12px;">Live: no SACCO selected.</div>
     </div>
     <div class="card" style="margin-top:12px">
       <h3 style="margin-top:0">Route Tiles</h3>
       <p class="muted" style="margin:4px 0 8px">Click a tile to move that route to the live map above.</p>
-      <div id="routeTilesRow" class="route-tiles-row">
-        <div class="muted">No routes yet.</div>
+      <div id="routeTilesRow" class="route-tiles-row"><div class="muted">No routes yet.</div></div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <h3 style="margin-top:0">Routes for this SACCO</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Code</th><th>Name</th><th>Start</th><th>End</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="rtTbody"><tr><td colspan="6" class="muted">No routes yet.</td></tr></tbody>
+        </table>
       </div>
     </div>
   </section>
