@@ -33,13 +33,7 @@ TT.getAuth = () => (sessionStorage.getItem('auth_token') || localStorage.getItem
       if (!url || !anon){
         console.warn('[TT] Missing SUPABASE_URL/ANON key in public/js/app-config.js');
       } else {
-        try{
-          supaClient = window.supabase.createClient(url, anon, {
-            auth:{ persistSession:true, storage: window.sessionStorage }
-          });
-        }catch(_){
-          supaClient = window.supabase.createClient(url, anon);
-        }
+        supaClient = window.supabase.createClient(url, anon);
       }
     }
     return supaClient;

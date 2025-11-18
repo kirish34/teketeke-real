@@ -9,13 +9,7 @@ function getClient(){
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
       throw new Error('Missing Supabase configuration. Check public/js/app-config.js');
     }
-    try{
-      _client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        auth:{ persistSession:true, storage: window.sessionStorage }
-      });
-    }catch(_){
-      _client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    }
+    _client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   }
   return _client;
 }
