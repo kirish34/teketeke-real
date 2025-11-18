@@ -35,7 +35,7 @@
     <div class="card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Plate</th><th class="mono">Matatu ID</th><th>Amount (KES)</th><th></th></tr></thead>
+          <thead><tr><th>Plate</th><th>Amount (KES)</th><th></th></tr></thead>
           <tbody id="df_due"></tbody>
         </table>
       </div>
@@ -112,7 +112,7 @@
       MATATUS.filter(m=>!paidSet.has(m.id)).forEach(m=>{
         const tr=document.createElement('tr');
         const amtId = `df_amt_${m.id}`;
-        tr.innerHTML = `<td>${m.number_plate||''}</td><td class="mono">${m.id}</td>`+
+        tr.innerHTML = `<td>${m.number_plate||''}</td>`+
           `<td><input id="${amtId}" type="number" placeholder="${def||''}" class="amount" style="width:120px"/></td>`+
           `<td><button data-id="${m.id}">Collect</button></td>`;
         D.appendChild(tr);

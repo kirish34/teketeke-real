@@ -35,6 +35,34 @@ window.GMAPS_API_KEY='AIzaSyAX9n7y1QOjrOZHJwiNBkdYUJ5JET6X4aw';
     if (window.location && window.location.pathname === '/public/auth/login.html'){
       document.addEventListener('DOMContentLoaded', function(){
         try{
+          // Apply dashboard-like theme to login card
+          try{
+            var style = document.createElement('style');
+            style.textContent = [
+              'body{',
+              '  background:radial-gradient(circle at top,#0ea5e9 0,#e0f2fe 40%,#f4f6fb 80%);',
+              '  min-height:100vh;',
+              '}',
+              '.wrap{',
+              '  min-height:100vh;',
+              '  display:grid;',
+              '  place-items:center;',
+              '  padding:16px;',
+              '}',
+              '.card{',
+              '  border-radius:18px;',
+              '  box-shadow:0 24px 60px rgba(15,23,42,.35);',
+              '}',
+              '.topline{',
+              '  margin-bottom:12px;',
+              '}',
+              'button, .btn{',
+              '  border-radius:10px;',
+              '}'
+            ].join('');
+            document.head.appendChild(style);
+          }catch(_){}
+
           var params = new URLSearchParams(window.location.search || '');
           var next = String(params.get('next') || '');
           var isTaxi = next.indexOf('/public/taxi/') === 0 || next.indexOf('/public/mobile/taxi/') === 0;
