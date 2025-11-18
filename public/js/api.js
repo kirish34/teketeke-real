@@ -112,20 +112,28 @@ TT.getAuth = () => (sessionStorage.getItem('auth_token') || localStorage.getItem
     }catch(_){ }
   });
 
-  // Best-effort cleanup when leaving any dashboard/console page
+  // Best-effort cleanup when leaving any dashboard/console page (desktop + mobile)
+  function ttCleanupAuth(){
+    try{
+      if (supaClient && supaClient.auth){
+        supaClient.auth.signOut().catch?.(()=>{});
+      }
+    }catch(_){}
+    try{
+      ['auth_token','tt_root_token','tt_admin_token'].forEach((k)=>{
+        try{ sessionStorage.removeItem(k); }catch(_){}
+        try{ localStorage.removeItem(k); }catch(_){}
+      });
+    }catch(_){}
+  }
+
   try{
-    window.addEventListener('beforeunload', () => {
-      try{
-        if (supaClient && supaClient.auth){
-          supaClient.auth.signOut().catch?.(()=>{});
-        }
-      }catch(_){}
-      try{
-        ['auth_token','tt_root_token','tt_admin_token'].forEach((k)=>{
-          try{ sessionStorage.removeItem(k); }catch(_){}
-          try{ localStorage.removeItem(k); }catch(_){}
-        });
-      }catch(_){}
-    });
+    const handler = (evt) => {
+      if (evt.type === 'visibilitychange' && !document.hidden) return;
+      ttCleanupAuth();
+    };
+    window.addEventListener('beforeunload', handler);
+    window.addEventListener('pagehide', handler);
+    document.addEventListener('visibilitychange', handler);
   }catch(_){}
 })();

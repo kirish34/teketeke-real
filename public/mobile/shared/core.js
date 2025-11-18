@@ -86,14 +86,22 @@ export async function authFetch(path, opts = {}){
   return data ?? {};
 }
 
+function ttMobileCleanupAuth(){
+  try{
+    if (_client && _client.auth){
+      _client.auth.signOut().catch?.(()=>{});
+    }
+  }catch(_){}
+}
+
 try{
-  window.addEventListener('beforeunload', () => {
-    try{
-      if (_client && _client.auth){
-        _client.auth.signOut().catch?.(()=>{});
-      }
-    }catch(_){}
-  });
+  const handler = (evt) => {
+    if (evt.type === 'visibilitychange' && !document.hidden) return;
+    ttMobileCleanupAuth();
+  };
+  window.addEventListener('beforeunload', handler);
+  window.addEventListener('pagehide', handler);
+  document.addEventListener('visibilitychange', handler);
 }catch(_){}
 
 export function mountServiceWorker(swPath = '/public/mobile/shared/sw.js'){
