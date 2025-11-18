@@ -510,7 +510,7 @@
         CURRENT_MATATU = m;
         const plate = (m.number_plate||'').toUpperCase() || 'Matatu';
         const badge = $('currentMatatuBadge');
-        if (badge) badge.textContent = `${plate} (${m.id}) selected`;
+        if (badge) badge.textContent = plate ? (plate + ' selected') : 'Matatu selected';
         const welcome = $('welcomeLine');
         if (welcome){
           const ownerName = (m.owner_name || '').toString().trim();
