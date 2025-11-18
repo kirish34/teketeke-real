@@ -92,6 +92,11 @@ function ttMobileCleanupAuth(){
       _client.auth.signOut().catch?.(()=>{});
     }
   }catch(_){}
+  try{
+    if (typeof window.ttClearAuthStorage === 'function'){
+      window.ttClearAuthStorage();
+    }
+  }catch(_){}
 }
 
 try{

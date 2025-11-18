@@ -120,6 +120,12 @@ TT.getAuth = () => (sessionStorage.getItem('auth_token') || localStorage.getItem
       }
     }catch(_){}
     try{
+      if (typeof window.ttClearAuthStorage === 'function'){
+        window.ttClearAuthStorage();
+        return;
+      }
+    }catch(_){}
+    try{
       ['auth_token','tt_root_token','tt_admin_token'].forEach((k)=>{
         try{ sessionStorage.removeItem(k); }catch(_){}
         try{ localStorage.removeItem(k); }catch(_){}
@@ -135,5 +141,16 @@ TT.getAuth = () => (sessionStorage.getItem('auth_token') || localStorage.getItem
     window.addEventListener('beforeunload', handler);
     window.addEventListener('pagehide', handler);
     document.addEventListener('visibilitychange', handler);
+
+    // Also hook common logout buttons so clicking them always clears storage
+    document.addEventListener('click', (event) => {
+      try{
+        const target = event.target;
+        if (!target || !target.closest) return;
+        const logoutEl = target.closest('#logout,#logoutBtn,#logout_btn,#opsLogout');
+        if (!logoutEl) return;
+        ttCleanupAuth();
+      }catch(_){}
+    }, true);
   }catch(_){}
 })();
