@@ -336,18 +336,18 @@ th{background:#e0f2fe;color:#0f172a;font-weight:700}
 form{display:contents}
 @media (max-width:640px){
   .hero-card{
-    padding:14px;
-    margin-bottom:12px;
-    border-radius:20px;
+    padding:10px 12px;
+    margin-bottom:10px;
+    border-radius:18px;
     flex-direction:column;
     align-items:stretch;
   }
   .hero-card h1,
   .hero-card h2{
-    font-size:20px;
+    font-size:18px;
   }
   .hero-card .hello{
-    font-size:18px;
+    font-size:16px;
   }
   .hero-actions{
     width:100%;

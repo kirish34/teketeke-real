@@ -110,6 +110,27 @@
       background:var(--brand); color:#fff;
       box-shadow:0 6px 12px rgba(14,165,233,.35);
     }
+    @media (max-width:640px){
+      body{ padding:16px; }
+      .hero{
+        padding:10px 12px;
+        margin-bottom:10px;
+        border-radius:18px;
+        flex-direction:column;
+        align-items:stretch;
+        gap:12px;
+      }
+      .hero-main h1{
+        font-size:20px !important;
+      }
+      .hero-actions{
+        width:100%;
+        justify-content:flex-start;
+      }
+      .tabs{
+        margin:12px 0;
+      }
+    }
   </style>
 </head>
 <body>

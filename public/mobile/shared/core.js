@@ -99,16 +99,6 @@ function ttMobileCleanupAuth(){
   }catch(_){}
 }
 
-try{
-  const handler = (evt) => {
-    if (evt.type === 'visibilitychange' && !document.hidden) return;
-    ttMobileCleanupAuth();
-  };
-  window.addEventListener('beforeunload', handler);
-  window.addEventListener('pagehide', handler);
-  document.addEventListener('visibilitychange', handler);
-}catch(_){}
-
 export function mountServiceWorker(swPath = '/public/mobile/shared/sw.js'){
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register(swPath).catch(()=>{});

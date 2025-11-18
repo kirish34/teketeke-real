@@ -112,7 +112,7 @@ TT.getAuth = () => (sessionStorage.getItem('auth_token') || localStorage.getItem
     }catch(_){ }
   });
 
-  // Best-effort cleanup when leaving any dashboard/console page (desktop + mobile)
+  // Best-effort cleanup when explicitly logging out
   function ttCleanupAuth(){
     try{
       if (supaClient && supaClient.auth){
@@ -134,15 +134,8 @@ TT.getAuth = () => (sessionStorage.getItem('auth_token') || localStorage.getItem
   }
 
   try{
-    const handler = (evt) => {
-      if (evt.type === 'visibilitychange' && !document.hidden) return;
-      ttCleanupAuth();
-    };
-    window.addEventListener('beforeunload', handler);
-    window.addEventListener('pagehide', handler);
-    document.addEventListener('visibilitychange', handler);
-
-    // Also hook common logout buttons so clicking them always clears storage
+    // Hook common logout buttons so clicking them always clears storage,
+    // but do NOT auto-logout on simple refresh or navigation.
     document.addEventListener('click', (event) => {
       try{
         const target = event.target;
