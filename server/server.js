@@ -48,6 +48,7 @@ app.use('/api/staff', require('./routes/staff'));
 app.use('/api/pay', require('./routes/pay-daraja'));
 app.use('/api/taxi', require('./routes/taxi'));
 app.use('/api/boda', require('./routes/boda'));
+app.use('/api/signup', require('./routes/signup'));
 app.use('/api/db', require('./routes/db'));
 
 // health (works on Vercel via rewrite /healthz → /api/index.js)
