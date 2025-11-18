@@ -248,6 +248,9 @@
       if (error || !data?.session){
         throw new Error(error?.message || 'Could not sign in after signup');
       }
+      try{
+        await sb.auth.updateUser({ data:{ full_name: values.name } });
+      }catch(_){}
     }
 
     el('signupForm').addEventListener('submit', async (event)=>{
@@ -283,4 +286,3 @@
   </script>
 </body>
 </html>
-

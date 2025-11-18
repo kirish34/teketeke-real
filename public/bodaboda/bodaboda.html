@@ -678,7 +678,7 @@
             const supa = await window.TT.getSupabase();
             const {data:{session}} = await supa.auth.getSession();
             const el = document.getElementById('auth_state');
-            if(el) el.textContent = session?.user?.email ? (`Signed in as ${session.user.email}`) : 'Not signed in';
+            if(el) el.textContent = session?.user ? (`Signed in as ${friendlyName(session.user)}`) : 'Not signed in';
             const welcome = document.getElementById('welcomeLine');
             if (welcome) welcome.textContent = `Hello, ${friendlyName(session?.user)}`;
             const b = document.getElementById('logoutBtn');

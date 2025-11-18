@@ -749,9 +749,9 @@
           const supa = await window.TT.getSupabase();
           const { data:{ session } } = await supa.auth.getSession();
           const el = document.getElementById('auth_state');
-          if(el) el.textContent = session?.user?.email ? (`Signed in as ${session.user.email}`) : 'Not signed in';
+          if(el) el.textContent = session?.user ? (`Signed in as ${friendlyName(session.user)}`) : 'Not signed in';
           const who = document.getElementById('whoamiHint');
-          if (who) who.textContent = session?.user?.email || '-';
+          if (who) who.textContent = session?.user ? friendlyName(session.user) : '-';
           setWelcome(session?.user);
           const b=document.getElementById('logoutBtn');
           b?.addEventListener('click', (event)=>{
