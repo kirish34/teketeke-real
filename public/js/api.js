@@ -1,5 +1,5 @@
 window.TT = window.TT || {};
-TT.getAuth = () => localStorage.getItem('auth_token') || '';
+TT.getAuth = () => (sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token') || '');
 
 // Lightweight Supabase JWT helper + authFetch (with 401 redirect)
 (function(){
@@ -33,7 +33,13 @@ TT.getAuth = () => localStorage.getItem('auth_token') || '';
       if (!url || !anon){
         console.warn('[TT] Missing SUPABASE_URL/ANON key in public/js/app-config.js');
       } else {
-        supaClient = window.supabase.createClient(url, anon);
+        try{
+          supaClient = window.supabase.createClient(url, anon, {
+            auth:{ persistSession:true, storage: window.sessionStorage }
+          });
+        }catch(_){
+          supaClient = window.supabase.createClient(url, anon);
+        }
       }
     }
     return supaClient;
@@ -111,4 +117,21 @@ TT.getAuth = () => localStorage.getItem('auth_token') || '';
       });
     }catch(_){ }
   });
+
+  // Best-effort cleanup when leaving any dashboard/console page
+  try{
+    window.addEventListener('beforeunload', () => {
+      try{
+        if (supaClient && supaClient.auth){
+          supaClient.auth.signOut().catch?.(()=>{});
+        }
+      }catch(_){}
+      try{
+        ['auth_token','tt_root_token','tt_admin_token'].forEach((k)=>{
+          try{ sessionStorage.removeItem(k); }catch(_){}
+          try{ localStorage.removeItem(k); }catch(_){}
+        });
+      }catch(_){}
+    });
+  }catch(_){}
 })();

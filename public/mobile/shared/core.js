@@ -9,7 +9,13 @@ function getClient(){
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
       throw new Error('Missing Supabase configuration. Check public/js/app-config.js');
     }
-    _client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    try{
+      _client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth:{ persistSession:true, storage: window.sessionStorage }
+      });
+    }catch(_){
+      _client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
   }
   return _client;
 }
@@ -85,6 +91,16 @@ export async function authFetch(path, opts = {}){
   }
   return data ?? {};
 }
+
+try{
+  window.addEventListener('beforeunload', () => {
+    try{
+      if (_client && _client.auth){
+        _client.auth.signOut().catch?.(()=>{});
+      }
+    }catch(_){}
+  });
+}catch(_){}
 
 export function mountServiceWorker(swPath = '/public/mobile/shared/sw.js'){
   if (!('serviceWorker' in navigator)) return;
