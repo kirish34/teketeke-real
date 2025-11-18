@@ -421,6 +421,7 @@
       }
 
       let CURRENT_MATATU = null;
+      let OWNER_SACCO_CACHE = null;
 
       function start(){
         startClock();
@@ -840,6 +841,60 @@
       }
 
     })();
+  </script>
+
+  <script>
+    // Tidy up owner UI: hide raw IDs and show SACCO name
+    document.addEventListener('DOMContentLoaded', () => {
+      function hideMatatuIdRow(){
+        try{
+          const idEl = document.getElementById('ov_id');
+          if (idEl && idEl.parentElement){
+            idEl.parentElement.style.display = 'none';
+          }
+        }catch(_){}
+      }
+
+      async function updateSaccoName(){
+        try{
+          const saccoEl = document.getElementById('ov_sacco');
+          if (!saccoEl) return;
+          const raw = (saccoEl.textContent || '').trim();
+          if (!raw) return;
+          const res = await (window.authFetch ? window.authFetch('/u/my-saccos') : fetch('/u/my-saccos'));
+          const data = res && res.json ? await res.json() : res;
+          const items = data?.items || data || [];
+          const match = items.find(row => String(row.sacco_id) === raw);
+          if (match && match.name){
+            saccoEl.textContent = match.name;
+          }
+        }catch(_){}
+      }
+
+      function updateBadge(){
+        try{
+          const plate = (document.getElementById('ov_plate')?.textContent || '').trim();
+          const badge = document.getElementById('currentMatatuBadge');
+          if (badge && plate){
+            badge.textContent = plate + ' selected';
+          }
+        }catch(_){}
+      }
+
+      async function tweak(){
+        hideMatatuIdRow();
+        await updateSaccoName();
+        updateBadge();
+      }
+
+      // Initial tweak after main script runs
+      setTimeout(tweak, 400);
+
+      const sel = document.getElementById('matatuSelect');
+      if (sel){
+        sel.addEventListener('change', () => setTimeout(tweak, 300));
+      }
+    });
   </script>
 
   <footer style="max-width:1100px;margin:24px auto 0;">
