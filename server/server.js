@@ -30,6 +30,14 @@ app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100 });
 app.use(['/api', '/u'], apiLimiter);
 
+// robots for sensitive public pages
+app.use((req, res, next) => {
+  if (req.path === '/public/auth/login.html' || req.path === '/public/system/dashboard.html') {
+    res.set('X-Robots-Tag', 'noindex, nofollow');
+  }
+  next();
+});
+
 // static
 app.use('/public', express.static(path.join(__dirname, '..', 'public')));
 
