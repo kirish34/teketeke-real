@@ -1,9 +1,9 @@
-﻿{
-    "appId":  "com.teketeke.saccostaff",
-    "webDir":  "web",
-    "appName":  "TekeTeke Sacco Staff",
-    "server":  {
-                   "androidScheme":  "https"
-               },
-    "bundledWebRuntime":  false
+{
+    "appId": "com.teketeke.taxi",
+    "appName": "TekeTeke Go Taxi",
+    "webDir": "web",
+    "bundledWebRuntime": false,
+    "server": {
+        "androidScheme": "https"
+    }
 }

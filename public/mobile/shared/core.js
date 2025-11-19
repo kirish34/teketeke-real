@@ -2,6 +2,10 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
 const SUPABASE_URL = window.SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || '';
+// When running inside the Capacitor shell, API calls like /u/*
+// should hit the deployed backend instead of the local file origin.
+// Configure this to your Vercel / production base URL if present.
+const API_BASE = window.TT_API_BASE || window.TT_BASE_URL || window.TT_ORIGIN || '';
 let _client = null;
 
 function getClient(){
@@ -58,6 +62,17 @@ export async function signOut(){
   }
 }
 
+function resolveUrl(path){
+  if (!path) return path;
+  // Absolute HTTP(S) URLs are used as-is.
+  if (/^https?:\/\//i.test(path)) return path;
+  // Only rewrite API-style paths when a base is configured.
+  if (API_BASE && /^\/(u|api)\b/.test(path)){
+    return API_BASE.replace(/\/+$/,'') + path;
+  }
+  return path;
+}
+
 export async function authFetch(path, opts = {}){
   const token = await getToken();
   const headers = new Headers(opts.headers || {});
@@ -66,7 +81,8 @@ export async function authFetch(path, opts = {}){
   }
   if (token) headers.set('Authorization','Bearer '+token);
 
-  const res = await fetch(path, { ...opts, headers });
+  const url = resolveUrl(path);
+  const res = await fetch(url, { ...opts, headers });
   const text = await res.text();
   let data = null;
   try{

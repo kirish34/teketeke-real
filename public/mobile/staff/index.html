@@ -3,37 +3,61 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Staff — TekeTeke</title>
+  <title>Matatu Staff - TekeTeke Go</title>
   <link rel="manifest" href="./manifest.json"/>
+  <link rel="stylesheet" href="/public/mobile/theme.css"/>
   <script src="/public/js/app-config.js"></script>
   <script type="module" src="/public/mobile/shared/core.js"></script>
-  <style>
-    body{font-family:system-ui,Arial;background:#f6f7fb;margin:0;padding:14px;color:#0b0f19}
-    .card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:12px;box-shadow:0 6px 18px rgba(0,0,0,.06)}
-    button{padding:8px 10px;border-radius:8px;border:1px solid #1976d2;background:#1976d2;color:#fff;font-weight:700;cursor:pointer}
-    a.btn{display:inline-block;padding:8px 10px;border:1px solid #1976d2;color:#1976d2;border-radius:8px;text-decoration:none;font-weight:700}
-  </style>
 </head>
 <body>
-  <div class="card">
-    <h3>USSD Code</h3>
-    <a class="btn" href="/public/mobile/landing.html">All apps</a>
-    <div id="info" style="margin-top:8px">Loading…</div>
-    <div style="margin-top:10px"><button id="copy">Copy code</button></div>
+  <div class="app">
+    <header class="app-header">
+      <div>
+        <p class="app-subtitle">TekeTeke</p>
+        <h1 class="app-title">My USSD code</h1>
+      </div>
+      <a class="pill-link" href="/public/mobile/landing.html"><span>All apps</span></a>
+    </header>
+
+    <div class="card">
+      <h2 class="card-title">Code for today</h2>
+      <p class="card-body">
+        Share this code with passengers for payments. It is tied to your assigned vehicle.
+      </p>
+
+      <div id="info" class="hint" style="margin-top:10px">Loading...</div>
+
+      <div class="btn-row">
+        <button id="copy" class="primary-btn" type="button">
+          <span>Copy code</span>
+        </button>
+      </div>
+    </div>
   </div>
+
   <script type="module">
     import { ensureAuth, authFetch, el, mountServiceWorker } from '/public/mobile/shared/core.js';
-    await ensureAuth(); mountServiceWorker();
+    await ensureAuth();
+    mountServiceWorker();
+
     let code = '-';
     const me = await authFetch('/u/me');
     if (me.matatu_id){
-      const d = await authFetch('/u/ussd?matatu_id='+encodeURIComponent(me.matatu_id));
+      const d = await authFetch('/u/ussd?matatu_id=' + encodeURIComponent(me.matatu_id));
       code = d.ussd_code || '-';
     }
-    el('info').innerHTML = 'Assigned code: <b><code>'+code+'</code></b>';
-    document.getElementById('copy').addEventListener('click', async ()=>{
-      try{ await navigator.clipboard.writeText(code); alert('Copied'); }catch(_){ alert('Copy failed'); }
+
+    el('info').innerHTML = 'Assigned code: <span class="code-chip"><strong>' + code + '</strong></span>';
+
+    document.getElementById('copy').addEventListener('click', async () => {
+      try{
+        await navigator.clipboard.writeText(code);
+        alert('Code copied');
+      }catch(_){
+        alert('Copy failed');
+      }
     });
   </script>
 </body>
 </html>
+
