@@ -9,6 +9,7 @@ const publicSource = resolve(repoRoot, 'public');
 const dest = resolve(__dirname, '..', 'web');
 const capConfigPath = resolve(__dirname, '..', 'capacitor.config.json');
 const androidStringsPath = resolve(__dirname, '..', 'android', 'app', 'src', 'main', 'res', 'values', 'strings.xml');
+const androidGradlePath = resolve(__dirname, '..', 'android', 'app', 'build.gradle');
 
 if (!existsSync(publicSource)) {
   console.error('[sync-mobile-assets] Expected public/ to exist');
@@ -90,6 +91,15 @@ if (appId || appName){
       }
       writeFileSync(androidStringsPath, xml);
       console.log('[sync-mobile-assets] Updated Android app strings for current role');
+    }
+
+    if (appId && existsSync(androidGradlePath)){
+      let gradle = readFileSync(androidGradlePath, 'utf8');
+      if (/applicationId\s+"[^"]+"/.test(gradle)){
+        gradle = gradle.replace(/applicationId\s+"[^"]+"/, `applicationId "${appId}"`);
+        writeFileSync(androidGradlePath, gradle);
+        console.log(`[sync-mobile-assets] Updated Android applicationId to ${appId}`);
+      }
     }
   } catch (err){
     console.warn('[sync-mobile-assets] Failed to update Capacitor / Android config', err);

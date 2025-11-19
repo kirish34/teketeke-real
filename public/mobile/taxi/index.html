@@ -7,7 +7,6 @@
   <link rel="manifest" href="./manifest.json"/>
   <link rel="stylesheet" href="/public/mobile/theme.css"/>
   <script src="/public/js/app-config.js"></script>
-  <script type="module" src="/public/mobile/shared/core.js"></script>
 </head>
 <body>
   <div class="app">
@@ -16,7 +15,6 @@
         <p class="app-subtitle">TekeTeke</p>
         <h1 class="app-title">Taxi code</h1>
       </div>
-      <a class="pill-link" href="/public/mobile/landing.html"><span>All apps</span></a>
     </header>
 
     <div class="card">
@@ -30,21 +28,30 @@
   </div>
 
   <script type="module">
-    import { ensureAuth, authFetch, el, mountServiceWorker } from '/public/mobile/shared/core.js';
-    try{
-      await ensureAuth();
-      mountServiceWorker();
+    const el = (id) => document.getElementById(id);
+    const demo = Boolean(window.TT_DEMO);
 
-      const me = await authFetch('/u/me');
-      let code = '-';
-      if (me.matatu_id){
-        const d = await authFetch('/u/ussd?matatu_id=' + encodeURIComponent(me.matatu_id));
-        code = d.ussd_code || '-';
+    if (demo){
+      const demoCode = '*123*456#';
+      el('info').innerHTML = 'USSD: <span class="code-chip"><strong>' + demoCode + '</strong></span>' +
+        '<div class="hint">Demo only – no live account linked yet.</div>';
+    }else{
+      try{
+        const { ensureAuth, authFetch, mountServiceWorker } = await import('/public/mobile/shared/core.js');
+        await ensureAuth();
+        mountServiceWorker();
+
+        const me = await authFetch('/u/me');
+        let code = '-';
+        if (me.matatu_id){
+          const d = await authFetch('/u/ussd?matatu_id=' + encodeURIComponent(me.matatu_id));
+          code = d.ussd_code || '-';
+        }
+        el('info').innerHTML = 'USSD: <span class="code-chip"><strong>' + code + '</strong></span>';
+      }catch(err){
+        console.warn('[taxi]', err);
+        el('info').textContent = err.message || 'Failed to load code';
       }
-      el('info').innerHTML = 'USSD: <span class="code-chip"><strong>' + code + '</strong></span>';
-    }catch(err){
-      console.warn('[taxi]', err);
-      el('info').textContent = err.message || 'Failed to load code';
     }
   </script>
 </body>

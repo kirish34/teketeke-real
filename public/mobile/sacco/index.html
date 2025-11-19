@@ -7,7 +7,6 @@
   <link rel="manifest" href="./manifest.json"/>
   <link rel="stylesheet" href="/public/mobile/theme.css"/>
   <script src="/public/js/app-config.js"></script>
-  <script type="module" src="/public/mobile/shared/core.js"></script>
 </head>
 <body>
   <div class="app">
@@ -16,7 +15,6 @@
         <p class="app-subtitle">TekeTeke</p>
         <h1 class="app-title">SACCO overview</h1>
       </div>
-      <a class="pill-link" href="/public/mobile/landing.html"><span>All apps</span></a>
     </header>
 
     <div class="card">
@@ -56,64 +54,124 @@
   </div>
 
   <script type="module">
-    import { ensureAuth, authFetch, el, mountServiceWorker } from '/public/mobile/shared/core.js';
-    await ensureAuth();
-    mountServiceWorker();
+    const el = (id) => document.getElementById(id);
+    const demo = Boolean(window.TT_DEMO);
 
-    async function loadOverview(){
-      const d = await authFetch('/u/sacco/overview');
+    if (demo){
+      const overview = {
+        active_matatus: 42,
+        fees_today: 'KES 120,000',
+        loans_today: 'KES 35,000'
+      };
       el('overview').innerHTML = `
         <div class="meta">
           <span>Matatus</span>
-          <strong>${d.active_matatus}</strong>
+          <strong>${overview.active_matatus}</strong>
         </div>
         <div class="meta">
           <span>Fees today</span>
-          <strong>${d.fees_today}</strong>
+          <strong>${overview.fees_today}</strong>
         </div>
         <div class="meta">
           <span>Loans today</span>
-          <strong>${d.loans_today}</strong>
+          <strong>${overview.loans_today}</strong>
         </div>
       `;
-    }
 
-    async function loadMatatus(){
-      const mats = await authFetch('/u/vehicles');
-      const q = (el('q').value || '').toUpperCase();
-      const rows = (mats.items || []).filter(x =>
-        !q || (x.number_plate || '').toUpperCase().includes(q)
-      );
-      el('list').innerHTML = rows.map(x => `
+      const mats = [
+        { number_plate:'KAA 123A', vehicle_type:'14-seater', till_number:'541234' },
+        { number_plate:'KBB 456B', vehicle_type:'33-seater', till_number:'541235' }
+      ];
+      el('list').innerHTML = mats.map(x => `
         <tr>
           <td>${x.number_plate}</td>
-          <td>${x.vehicle_type || ''}</td>
-          <td>${x.till_number || ''}</td>
+          <td>${x.vehicle_type}</td>
+          <td>${x.till_number}</td>
         </tr>
       `).join('');
-    }
 
-    async function loadFees(){
-      const tx = await authFetch('/u/transactions?kind=fees');
-      el('fees').innerHTML = (tx.data || []).map(x => `
+      const fees = [
+        { created_at:'2025-11-19T08:15:00Z', matatu_id:'KAA 123A', amount:'500' },
+        { created_at:'2025-11-19T09:05:00Z', matatu_id:'KBB 456B', amount:'700' }
+      ];
+      el('fees').innerHTML = fees.map(x => `
         <tr>
           <td>${(x.created_at || '').slice(11,19)}</td>
-          <td>${x.matatu_id || ''}</td>
+          <td>${x.matatu_id}</td>
           <td>${x.amount}</td>
         </tr>
       `).join('');
+
+      el('q').addEventListener('input', () => {
+        const q = (el('q').value || '').toUpperCase();
+        const filtered = mats.filter(m => !q || m.number_plate.toUpperCase().includes(q));
+        el('list').innerHTML = filtered.map(x => `
+          <tr>
+            <td>${x.number_plate}</td>
+            <td>${x.vehicle_type}</td>
+            <td>${x.till_number}</td>
+          </tr>
+        `).join('');
+      });
+    }else{
+      const { ensureAuth, authFetch, mountServiceWorker } = await import('/public/mobile/shared/core.js');
+      await ensureAuth();
+      mountServiceWorker();
+
+      async function loadOverview(){
+        const d = await authFetch('/u/sacco/overview');
+        el('overview').innerHTML = `
+          <div class="meta">
+            <span>Matatus</span>
+            <strong>${d.active_matatus}</strong>
+          </div>
+          <div class="meta">
+            <span>Fees today</span>
+            <strong>${d.fees_today}</strong>
+          </div>
+          <div class="meta">
+            <span>Loans today</span>
+            <strong>${d.loans_today}</strong>
+          </div>
+        `;
+      }
+
+      async function loadMatatus(){
+        const mats = await authFetch('/u/vehicles');
+        const q = (el('q').value || '').toUpperCase();
+        const rows = (mats.items || []).filter(x =>
+          !q || (x.number_plate || '').toUpperCase().includes(q)
+        );
+        el('list').innerHTML = rows.map(x => `
+          <tr>
+            <td>${x.number_plate}</td>
+            <td>${x.vehicle_type || ''}</td>
+            <td>${x.till_number || ''}</td>
+          </tr>
+        `).join('');
+      }
+
+      async function loadFees(){
+        const tx = await authFetch('/u/transactions?kind=fees');
+        el('fees').innerHTML = (tx.data || []).map(x => `
+          <tr>
+            <td>${(x.created_at || '').slice(11,19)}</td>
+            <td>${x.matatu_id || ''}</td>
+            <td>${x.amount}</td>
+          </tr>
+        `).join('');
+      }
+
+      el('q').addEventListener('input', () => {
+        clearTimeout(window._tt_q);
+        window._tt_q = setTimeout(loadMatatus, 200);
+      });
+
+      await loadOverview();
+      await loadMatatus();
+      await loadFees();
+      setInterval(loadFees, 10000);
     }
-
-    el('q').addEventListener('input', () => {
-      clearTimeout(window._tt_q);
-      window._tt_q = setTimeout(loadMatatus, 200);
-    });
-
-    await loadOverview();
-    await loadMatatus();
-    await loadFees();
-    setInterval(loadFees, 10000);
   </script>
 </body>
 </html>
-

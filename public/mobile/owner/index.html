@@ -7,7 +7,6 @@
   <link rel="manifest" href="./manifest.json"/>
   <link rel="stylesheet" href="/public/mobile/theme.css"/>
   <script src="/public/js/app-config.js"></script>
-  <script type="module" src="/public/mobile/shared/core.js"></script>
 </head>
 <body>
   <div class="app">
@@ -16,7 +15,6 @@
         <p class="app-subtitle">TekeTeke</p>
         <h1 class="app-title">My vehicles</h1>
       </div>
-      <a class="pill-link" href="/public/mobile/landing.html"><span>All apps</span></a>
     </header>
 
     <div class="card">
@@ -35,27 +33,41 @@
   </div>
 
   <script type="module">
-    import { ensureAuth, authFetch, el, mountServiceWorker } from '/public/mobile/shared/core.js';
-    await ensureAuth();
-    mountServiceWorker();
+    const el = (id) => document.getElementById(id);
+    const demo = Boolean(window.TT_DEMO);
 
-    async function load(){
-      const mats = await authFetch('/u/vehicles');
-      const rows = await Promise.all((mats.items || []).map(async m => {
-        const ussd = await authFetch('/u/ussd?matatu_id=' + encodeURIComponent(m.id));
-        return `
-          <tr>
-            <td>${m.number_plate}</td>
-            <td>${m.vehicle_type || ''}</td>
-            <td><code>${ussd.ussd_code || '-'}</code></td>
-          </tr>
-        `;
-      }));
-      el('list').innerHTML = rows.join('');
+    if (demo){
+      const rows = [
+        { number_plate:'KAA 123A', vehicle_type:'14-seater', ussd_code:'*123*111#' },
+        { number_plate:'KBB 456B', vehicle_type:'33-seater', ussd_code:'*123*222#' }
+      ];
+      el('list').innerHTML = rows.map(m => `
+        <tr>
+          <td>${m.number_plate}</td>
+          <td>${m.vehicle_type}</td>
+          <td><code>${m.ussd_code}</code></td>
+        </tr>
+      `).join('');
+    }else{
+      const { ensureAuth, authFetch, mountServiceWorker } = await import('/public/mobile/shared/core.js');
+      await ensureAuth();
+      mountServiceWorker();
+      async function load(){
+        const mats = await authFetch('/u/vehicles');
+        const rows = await Promise.all((mats.items || []).map(async m => {
+          const ussd = await authFetch('/u/ussd?matatu_id=' + encodeURIComponent(m.id));
+          return `
+            <tr>
+              <td>${m.number_plate}</td>
+              <td>${m.vehicle_type || ''}</td>
+              <td><code>${ussd.ussd_code || '-'}</code></td>
+            </tr>
+          `;
+        }));
+        el('list').innerHTML = rows.join('');
+      }
+      await load();
     }
-
-    await load();
   </script>
 </body>
 </html>
-

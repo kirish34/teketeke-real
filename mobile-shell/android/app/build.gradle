@@ -4,7 +4,7 @@ android {
     namespace "com.teketeke.driver"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.teketeke.taxi"
+        applicationId "com.teketeke.saccostaff"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

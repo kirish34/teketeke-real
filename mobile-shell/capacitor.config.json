@@ -1,6 +1,6 @@
 {
-    "appId": "com.teketeke.taxi",
-    "appName": "TekeTeke Go Taxi",
+    "appId": "com.teketeke.saccostaff",
+    "appName": "TekeTeke Go Sacco Staff",
     "webDir": "web",
     "bundledWebRuntime": false,
     "server": {
