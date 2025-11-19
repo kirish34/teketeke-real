@@ -3,7 +3,8 @@ window.SUPABASE_ANON_KEY='sb_publishable_iY_CGooJG4me_7X0nO0enA_OgqbIhEK';
 window.GMAPS_API_KEY='AIzaSyAX9n7y1QOjrOZHJwiNBkdYUJ5JET6X4aw';
 // When TT_DEMO is true, the mobile apps run in UI-only mode
 // (no Supabase login or API calls) and show sample data.
-window.TT_DEMO = true;
+// Set to false to use real Supabase auth + API.
+window.TT_DEMO = false;
 // Base URL for API calls when running inside the mobile shell in real mode.
 // Set this when TT_DEMO is false so /u/* and /api/* hit your live backend.
 window.TT_API_BASE='https://teketeke.dev';

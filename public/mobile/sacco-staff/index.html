@@ -17,7 +17,11 @@
     .sacco-staff-app{
       max-width:480px;
       margin:0 auto;
-      padding:16px 12px 24px;
+      padding:36px 12px 24px;
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+      gap:16px;
     }
     .hero-card{
       border-radius:32px;
@@ -41,36 +45,6 @@
       margin:4px 0 16px;
       font-size:13px;
       opacity:.9;
-    }
-    .hero-actions{
-      display:flex;
-      flex-wrap:wrap;
-      gap:8px;
-    }
-    .hero-pill,
-    .hero-logout{
-      border-radius:999px;
-      padding:10px 16px;
-      border:none;
-      font-weight:650;
-      font-size:14px;
-    }
-    .hero-pill{
-      background:#f9fafb;
-      color:#0369a1;
-      box-shadow:0 12px 30px rgba(15,23,42,.3);
-    }
-    .hero-pill.ghost{
-      background:transparent;
-      color:#e0f2fe;
-      border:1px solid rgba(241,245,249,.7);
-      box-shadow:none;
-    }
-    .hero-logout{
-      margin-top:4px;
-      background:#b91c1c;
-      color:#fff;
-      box-shadow:0 16px 40px rgba(148,27,37,.7);
     }
     .ss-today{
       border-radius:26px;
@@ -96,11 +70,99 @@
       background:linear-gradient(180deg,rgba(255,255,255,.9),rgba(241,245,249,.96));
       box-shadow:0 18px 40px rgba(148,163,184,.25) inset;
     }
-    .two-col-section h4{
-      margin:0 0 6px;
+    .ss-tabs{
+      display:flex;
+      gap:6px;
+      margin-bottom:10px;
+    }
+    .ss-tab{
+      flex:1;
+      text-align:center;
+      padding:8px 0;
+      border-radius:999px;
       font-size:13px;
       font-weight:650;
+      border:1px solid rgba(148,163,184,.6);
+      background:rgba(255,255,255,.9);
       color:#0f172a;
+      cursor:pointer;
+    }
+    .ss-tab.active{
+      background:linear-gradient(135deg,#0ea5e9,#0284c7);
+      color:#f9fafb;
+      border-color:transparent;
+      box-shadow:0 10px 28px rgba(37,99,235,.45);
+    }
+    .ss-panel{
+      display:none;
+    }
+    .ss-panel.active{
+      display:block;
+    }
+    .df-grid{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .df-card{
+      border-radius:18px;
+      padding:10px 10px 12px;
+      background:rgba(255,255,255,.96);
+      box-shadow:0 8px 18px rgba(15,23,42,.12);
+      cursor:pointer;
+    }
+    .df-card .table-wrap{
+      margin-top:6px;
+    }
+    .df-focus-back{
+      border-radius:999px;
+      border:none;
+      padding:6px 12px;
+      font-size:12px;
+      font-weight:600;
+      background:rgba(15,23,42,.08);
+      color:#0f172a;
+      margin-bottom:8px;
+    }
+    .df-grid.focused .df-card{
+      cursor:auto;
+    }
+    .df-grid.focused .df-card.active{
+      flex:1 1 auto;
+    }
+    .df-grid.focused .df-card:not(.active){
+      display:none;
+    }
+    .sv-grid{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .sv-card{
+      border-radius:18px;
+      padding:10px 10px 12px;
+      background:rgba(255,255,255,.96);
+      box-shadow:0 8px 18px rgba(15,23,42,.12);
+      cursor:pointer;
+    }
+    .sv-focus-back{
+      border-radius:999px;
+      border:none;
+      padding:6px 12px;
+      font-size:12px;
+      font-weight:600;
+      background:rgba(15,23,42,.08);
+      color:#0f172a;
+      margin-bottom:8px;
+    }
+    .sv-grid.focused .sv-card{
+      cursor:auto;
+    }
+    .sv-grid.focused .sv-card.active{
+      flex:1 1 auto;
+    }
+    .sv-grid.focused .sv-card:not(.active){
+      display:none;
     }
   </style>
 </head>
@@ -108,46 +170,112 @@
   <div class="app sacco-staff-app">
     <section class="hero-card">
       <p class="hero-eyebrow">SACCO Staff Console</p>
-      <h1 class="hero-title" id="ss_title">Hello, Demo staff</h1>
+      <h1 class="hero-title" id="ss_title">Hello, SACCO staff</h1>
       <p class="hero-subtitle" id="ss_time">Today</p>
-      <div class="hero-actions">
-        <button class="hero-pill" type="button">Role Select</button>
-        <div class="hero-pill ghost" id="ss_signed">Signed in (demo)</div>
-        <button class="hero-logout" type="button">Logout</button>
-      </div>
     </section>
 
     <section class="ss-today">
       <div class="ss-today-header">Today</div>
       <div class="ss-today-body">
-        <div class="two-col">
-          <section class="two-col-section">
-            <h4>Matatus</h4>
-            <div class="table-wrap">
-              <table>
-                <thead><tr><th>Plate</th><th>Type</th></tr></thead>
-                <tbody id="list"></tbody>
-              </table>
-            </div>
-          </section>
-
-          <section class="two-col-section">
-            <h4>Fees (today)</h4>
-            <div class="table-wrap">
-              <table>
-                <thead><tr><th>Time</th><th>Matatu</th><th>Amount</th></tr></thead>
-                <tbody id="fees"></tbody>
-              </table>
-            </div>
-          </section>
+        <div class="ss-tabs" role="tablist">
+          <button class="ss-tab active" data-panel="daily" type="button">Daily fee</button>
+          <button class="ss-tab" data-panel="loans" type="button">Loans</button>
+          <button class="ss-tab" data-panel="savings" type="button">Savings</button>
         </div>
+
+        <section id="panel-daily" class="ss-panel active">
+          <button id="df_focus_back" class="df-focus-back" type="button" hidden>Back to overview</button>
+          <div class="df-grid">
+            <section class="df-card">
+              <h4>Paid today</h4>
+              <div class="table-wrap">
+                <table>
+                  <tbody id="df_paid"></tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="df-card">
+              <h4>Not paid</h4>
+              <div class="table-wrap">
+                <table>
+                  <tbody id="df_due"></tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="df-card">
+              <h4>Cash collection</h4>
+              <div class="field">
+                <label class="label">Matatu</label>
+                <select id="df_matatu"></select>
+              </div>
+              <div class="field">
+                <label class="label">Amount (KES)</label>
+                <input id="df_amount" type="number" inputmode="decimal" placeholder="Amount (KES)"/>
+              </div>
+              <button id="df_collect" class="primary-btn" type="button">Collect</button>
+              <p class="hint" id="df_msg"></p>
+            </section>
+          </div>
+        </section>
+
+        <section id="panel-loans" class="ss-panel">
+          <h4>Loans due today</h4>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Matatu</th>
+                  <th>Loan amount</th>
+                  <th>Balance</th>
+                  <th>To pay today</th>
+                  <th>Suggest</th>
+                </tr>
+              </thead>
+              <tbody id="ln_table"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="panel-savings" class="ss-panel">
+          <h4>Savings</h4>
+          <button id="sv_focus_back" class="sv-focus-back" type="button" hidden>Back to overview</button>
+          <div class="sv-grid">
+            <section class="sv-card" data-view="paid">
+              <h4>Paid today</h4>
+              <div class="table-wrap">
+                <table>
+                  <tbody id="sv_paid"></tbody>
+                </table>
+              </div>
+            </section>
+            <section class="sv-card" data-view="manual">
+              <h4>Manual collection</h4>
+              <div class="field">
+                <label class="label">Matatu</label>
+                <select id="sv_matatu"></select>
+              </div>
+              <div class="field">
+                <label class="label">Amount (KES)</label>
+                <input id="sv_amount" type="number" inputmode="decimal" placeholder="Amount (KES)"/>
+              </div>
+              <button id="sv_collect" class="primary-btn" type="button">Collect</button>
+              <p class="hint" id="sv_msg"></p>
+            </section>
+          </div>
+        </section>
       </div>
     </section>
+
   </div>
 
   <script type="module">
+    import { ensureAuth, authFetch, mountServiceWorker, fmtMoney, toast } from '/public/mobile/shared/core.js';
+
     const el = (id) => document.getElementById(id);
-    const demo = Boolean(window.TT_DEMO);
+    const fmtKES = (v) => fmtMoney(v || 0);
+
     try{
       const now = new Date();
       const pretty = now.toLocaleString('en-KE', { dateStyle:'medium', timeStyle:'short' });
@@ -155,56 +283,291 @@
       if (t) t.textContent = pretty;
     }catch(_){}
 
-    if (demo){
-      const mats = [
-        { number_plate:'KAA 123A', vehicle_type:'14-seater' },
-        { number_plate:'KBB 456B', vehicle_type:'33-seater' }
-      ];
-      el('list').innerHTML = (mats || []).map(x => `
-        <tr>
-          <td>${x.number_plate}</td>
-          <td>${x.vehicle_type}</td>
-        </tr>
-      `).join('');
+    document.querySelectorAll('.ss-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const target = tab.dataset.panel;
+        document.querySelectorAll('.ss-tab').forEach(t => t.classList.toggle('active', t === tab));
+        document.querySelectorAll('.ss-panel').forEach(p => p.classList.toggle('active', p.id === `panel-${target}`));
+      });
+    });
 
-      const fees = [
-        { created_at:'2025-11-19T08:15:00Z', matatu_id:'KAA 123A', amount:'500' },
-        { created_at:'2025-11-19T09:05:00Z', matatu_id:'KBB 456B', amount:'700' }
-      ];
-      el('fees').innerHTML = fees.map(x => `
-        <tr>
-          <td>${(x.created_at || '').slice(11,19)}</td>
-          <td>${x.matatu_id}</td>
-          <td>${x.amount}</td>
-        </tr>
-      `).join('');
-    }else{
-      const { ensureAuth, authFetch, mountServiceWorker } = await import('/public/mobile/shared/core.js');
-      await ensureAuth();
-      mountServiceWorker();
+    (function setupDailyFeeFocus(){
+      const grid = document.querySelector('.df-grid');
+      const backBtn = document.getElementById('df_focus_back');
+      if (!grid || !backBtn) return;
+      const cards = Array.from(grid.querySelectorAll('.df-card'));
+      const focusable = cards.filter(card => {
+        const title = card.querySelector('h4');
+        const label = (title?.textContent || '').toLowerCase();
+        return label.includes('paid today') || label.includes('not paid');
+      });
+      focusable.forEach(card => {
+        card.addEventListener('click', (event) => {
+          if (event.target.closest('button,input,select')) return;
+          grid.classList.add('focused');
+          cards.forEach(c => c.classList.toggle('active', c === card));
+          backBtn.hidden = false;
+        });
+      });
+      backBtn.addEventListener('click', () => {
+        grid.classList.remove('focused');
+        cards.forEach(c => c.classList.remove('active'));
+        backBtn.hidden = true;
+      });
+    })();
 
-      const mats = await authFetch('/u/vehicles');
-      el('list').innerHTML = (mats.items || []).map(x => `
-        <tr>
-          <td>${x.number_plate}</td>
-          <td>${x.vehicle_type || ''}</td>
-        </tr>
-      `).join('');
+    (function setupSavingsFocus(){
+      const grid = document.querySelector('.sv-grid');
+      const backBtn = document.getElementById('sv_focus_back');
+      if (!grid || !backBtn) return;
+      const cards = Array.from(grid.querySelectorAll('.sv-card'));
+      const paidCard = cards.find(card => {
+        const title = card.querySelector('h4');
+        return (title?.textContent || '').toLowerCase().includes('paid today');
+      });
+      if (!paidCard) return;
+      paidCard.addEventListener('click', (event) => {
+        if (event.target.closest('button,input,select')) return;
+        grid.classList.add('focused');
+        cards.forEach(c => c.classList.toggle('active', c === paidCard));
+        backBtn.hidden = false;
+      });
+      backBtn.addEventListener('click', () => {
+        grid.classList.remove('focused');
+        cards.forEach(c => c.classList.remove('active'));
+        backBtn.hidden = true;
+      });
+    })();
 
-      async function loadFees(){
-        const tx = await authFetch('/u/transactions?kind=fees');
-        el('fees').innerHTML = (tx.data || []).map(x => `
-          <tr>
-            <td>${(x.created_at || '').slice(11,19)}</td>
-            <td>${x.matatu_id || ''}</td>
-            <td>${x.amount}</td>
-          </tr>
-        `).join('');
-      }
+    let SACCO_ID = null;
+    let MATATUS = [];
+    let MAT_BY_ID = new Map();
+    let DAILY_FEE_BY_TYPE = new Map();
+    const PG_LIMIT = 1000;
 
-      await loadFees();
-      setInterval(loadFees, 10000);
+    async function g(path){ return authFetch(path); }
+    async function post(path, body){
+      return authFetch(path, { method:'POST', body: JSON.stringify(body || {}) });
     }
+
+    function isToday(iso){
+      if (!iso) return false;
+      const d = new Date(iso);
+      const now = new Date();
+      return d.getFullYear() === now.getFullYear() &&
+        d.getMonth() === now.getMonth() &&
+        d.getDate() === now.getDate();
+    }
+
+    async function loadSacco(){
+      const res = await g('/u/my-saccos');
+      const first = (res.items || [])[0] || null;
+      if (!first) return;
+      SACCO_ID = first.sacco_id;
+      const title = el('ss_title');
+      if (title){
+        const name = first.name || 'SACCO Staff';
+        title.textContent = `Hello, ${name} staff`;
+      }
+    }
+
+    async function loadMatatus(){
+      const res = await g('/u/vehicles');
+      MATATUS = res.items || res || [];
+      if (!Array.isArray(MATATUS)) MATATUS = [];
+      MAT_BY_ID = new Map(MATATUS.map(m => [m.id, m]));
+      const dfMatatu = el('df_matatu');
+      const svMatatu = el('sv_matatu');
+      const options = MATATUS.map(m => `<option value="${m.id}">${m.number_plate || m.id}</option>`).join('');
+      if (dfMatatu) dfMatatu.innerHTML = options;
+      if (svMatatu) svMatatu.innerHTML = options;
+    }
+
+    async function loadDailyFeeConfig(){
+      DAILY_FEE_BY_TYPE = new Map();
+      if (!SACCO_ID) return;
+      try{
+        const res = await g(`/u/sacco/${SACCO_ID}/daily-fee-rates`);
+        const items = res.items || [];
+        DAILY_FEE_BY_TYPE = new Map(items.map(r => [
+          (r.vehicle_type || '').toString().toUpperCase(),
+          Number(r.daily_fee_kes || 0)
+        ]));
+      }catch(_){
+        DAILY_FEE_BY_TYPE = new Map();
+      }
+    }
+
+    async function quickCollect(kind, matatu_id, amount){
+      if (!SACCO_ID || !matatu_id || !amount){
+        toast('Missing SACCO, matatu or amount');
+        return;
+      }
+      const body = {
+        sacco_id: SACCO_ID,
+        matatu_id,
+        kind,
+        amount: Number(amount || 0),
+        payer_name: 'Cash desk',
+        payer_phone: ''
+      };
+      await post('/api/staff/cash', body);
+      toast('Recorded');
+      await renderAll();
+    }
+
+    function dailyFeeForMatatu(m){
+      if (!m) return 0;
+      const vt = (m.vehicle_type || '').toString().toUpperCase();
+      const v = DAILY_FEE_BY_TYPE.get(vt);
+      return Number.isFinite(v) && v > 0 ? v : 0;
+    }
+
+    function renderPaidList(tbodyId, list){
+      const T = el(tbodyId);
+      if (!T) return;
+      T.innerHTML = '';
+      (list || []).slice().sort((a,b)=> new Date(b.created_at) - new Date(a.created_at)).forEach(tx => {
+        const m = MAT_BY_ID.get(tx.matatu_id) || {};
+        const plate = m.number_plate || tx.matatu_id || '';
+        const tr = document.createElement('tr');
+        const time = tx.created_at ? new Date(tx.created_at).toLocaleTimeString() : '';
+        tr.innerHTML = `<td>${plate}</td><td>${fmtKES(tx.fare_amount_kes)}</td><td>${time}</td>`;
+        T.appendChild(tr);
+      });
+    }
+
+    function renderDueList(tbodyId, paidSet, kind){
+      const T = el(tbodyId);
+      if (!T) return;
+      T.innerHTML = '';
+      const due = (MATATUS || []).filter(m => !paidSet.has(m.id));
+      due.forEach(m => {
+        const tr = document.createElement('tr');
+        const amtId = `${tbodyId}_amt_${m.id}`;
+        const autoAmt = kind === 'DAILY_FEE' ? dailyFeeForMatatu(m) : 0;
+        tr.innerHTML =
+          `<td>${m.number_plate || ''}</td>` +
+          `<td>${m.id}</td>` +
+          `<td><input id="${amtId}" type="number" class="amount" placeholder="Amount"${autoAmt ? ` value="${autoAmt}"` : ''}/></td>`;
+        T.appendChild(tr);
+      });
+    }
+
+    async function renderAll(){
+      if (!SACCO_ID) return;
+      const res = await g(`/u/sacco/${SACCO_ID}/transactions?limit=${PG_LIMIT}`);
+      const items = res.items || [];
+
+      const dfPaid = items.filter(tx =>
+        ['SACCO_FEE', 'DAILY_FEE'].includes(tx.kind) &&
+        tx.status === 'SUCCESS' &&
+        isToday(tx.created_at)
+      );
+      const dfSet = new Set(dfPaid.map(x => x.matatu_id));
+      renderPaidList('df_paid', dfPaid);
+      renderDueList('df_due', dfSet, 'DAILY_FEE');
+
+      let loans = { items: [] };
+      try{
+        loans = await g(`/u/sacco/${SACCO_ID}/loans`);
+      }catch(_){
+        loans = { items: [] };
+      }
+      const allLoans = loans.items || [];
+      const LT = el('ln_table');
+      if (LT) LT.innerHTML = '';
+
+      const loanRepaysAll = items.filter(tx => tx.kind === 'LOAN_REPAY' && tx.status === 'SUCCESS');
+      const msDay = 24 * 3600 * 1000;
+      const today = new Date(); today.setHours(0,0,0,0);
+
+      allLoans.forEach(l => {
+        const m = MAT_BY_ID.get(l.matatu_id) || {};
+        const plate = m.number_plate || (l.matatu_id || '');
+        const id = l.matatu_id || '';
+        const principal = Number(l.principal_kes || 0);
+        const ratePct = Number(l.interest_rate_pct || 0);
+        const total = principal * (1 + ratePct / 100);
+        const model = String(l.collection_model || 'MONTHLY');
+        const term = Math.max(1, Number(l.term_months || 1));
+        const start = l.start_date ? new Date(l.start_date) : new Date();
+        const end = new Date(start); end.setMonth(end.getMonth() + term);
+
+        let installments = term;
+        if (model === 'DAILY'){
+          installments = Math.max(1, Math.ceil((end - start) / msDay));
+        }else if (model === 'WEEKLY'){
+          installments = Math.max(1, Math.ceil((end - start) / (7 * msDay)));
+        }
+        const installmentAmt = installments > 0 ? (total / installments) : total;
+
+        let isPayDay = false;
+        if (model === 'DAILY'){
+          isPayDay = true;
+        }else if (model === 'WEEKLY'){
+          const days = Math.floor((today.getTime() - start.getTime()) / msDay);
+          isPayDay = (days >= 0) && (days % 7 === 0) && (today <= end);
+        }
+        const dueToday = isPayDay ? installmentAmt : 0;
+
+        const repaidAll = loanRepaysAll
+          .filter(t => String(t.matatu_id) === String(id) && (!l.start_date || new Date(t.created_at) >= start))
+          .reduce((s,t) => s + Number(t.fare_amount_kes || 0), 0);
+        const loanBalance = Math.max(0, total - repaidAll);
+
+        const tr = document.createElement('tr');
+        tr.innerHTML =
+          `<td>${plate}</td>` +
+          `<td>${fmtKES(principal)}</td>` +
+          `<td>${fmtKES(loanBalance)}</td>` +
+          `<td>${fmtKES(dueToday)}</td>` +
+          `<td>${fmtKES(dueToday)}</td>`;
+        LT?.appendChild(tr);
+      });
+
+      const svPaid = items.filter(tx =>
+        tx.kind === 'SAVINGS' &&
+        tx.status === 'SUCCESS' &&
+        isToday(tx.created_at)
+      );
+      renderPaidList('sv_paid', svPaid);
+    }
+
+    const dfCollectBtn = el('df_collect');
+    if (dfCollectBtn){
+      dfCollectBtn.addEventListener('click', () => {
+        const id = (el('df_matatu')?.value) || '';
+        const amt = Number((el('df_amount')?.value) || 0);
+        if (!id || !amt) return toast('Pick matatu & amount');
+        dfCollectBtn.disabled = true;
+        quickCollect('DAILY_FEE', id, amt).finally(()=>{
+          dfCollectBtn.disabled = false;
+          el('df_amount').value = '';
+        });
+      });
+    }
+
+    const svCollectBtn = el('sv_collect');
+    if (svCollectBtn){
+      svCollectBtn.addEventListener('click', () => {
+        const id = (el('sv_matatu')?.value) || '';
+        const amt = Number((el('sv_amount')?.value) || 0);
+        if (!id || !amt) return toast('Pick matatu & amount');
+        svCollectBtn.disabled = true;
+        quickCollect('SAVINGS', id, amt).finally(()=>{
+          svCollectBtn.disabled = false;
+          el('sv_amount').value = '';
+        });
+      });
+    }
+
+    await ensureAuth();
+    mountServiceWorker();
+    await loadSacco();
+    await loadMatatus();
+    await loadDailyFeeConfig();
+    await renderAll();
   </script>
 </body>
 </html>
