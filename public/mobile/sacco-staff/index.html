@@ -271,7 +271,7 @@
   </div>
 
   <script type="module">
-    import { ensureAuth, authFetch, mountServiceWorker, fmtMoney, toast } from '/public/mobile/shared/core.js';
+    import { ensureAuth, authFetch, mountServiceWorker, fmtMoney, toast, supa as supaClient } from '/public/mobile/shared/core.js';
 
     const el = (id) => document.getElementById(id);
     const fmtKES = (v) => fmtMoney(v || 0);
@@ -562,8 +562,26 @@
       });
     }
 
-    await ensureAuth();
+    const session = await ensureAuth();
     mountServiceWorker();
+
+    // Update hero with staff name from Supabase session
+    try{
+      const sb = supaClient();
+      const { data:{ session: current } } = await sb.auth.getSession();
+      const user = current?.user;
+      const meta = user?.user_metadata || {};
+      const email = user?.email || '';
+      const friendly =
+        meta.full_name ||
+        meta.name ||
+        meta.display_name ||
+        meta.displayName ||
+        (email ? email.split('@')[0] : 'SACCO staff');
+      const titleEl = el('ss_title');
+      if (titleEl) titleEl.textContent = `Hello, ${friendly}`;
+    }catch(_){}
+
     await loadSacco();
     await loadMatatus();
     await loadDailyFeeConfig();
