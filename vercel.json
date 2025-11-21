@@ -4,11 +4,12 @@
    {"src":"public/**","use":"@vercel/static"}
  ],
  "routes":[
-   {"src":"^/api/(.*)$","dest":"/api/index.js"},
-   {"src":"^/u/(.*)$","dest":"/api/index.js"},
-   {"src":"^/healthz$","dest":"/api/index.js"},
-   {"src":"^/$","dest":"/public/auth/role-select.html"},
-   {"src":"^/login$","dest":"/public/auth/login.html"},
-   {"src":"^/public/(.*)$","dest":"/public/$1"}
+  {"src":"^/api/(.*)$","dest":"/api/index.js"},
+  {"src":"^/u/(.*)$","dest":"/api/index.js"},
+  {"src":"^/healthz$","dest":"/api/index.js"},
+  {"src":"^/$","dest":"/public/auth/role-select.html"},
+  {"src":"^/login$","dest":"/public/auth/login.html"},
+  {"src":"^/public/(.*)$","dest":"/public/$1"},
+  {"src":"^/downloads/(.*)$","dest":"/public/downloads/$1"}
  ]
 }
