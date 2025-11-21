@@ -1,6 +1,8 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { Route, Routes, Navigate, useNavigate } from "react-router-dom";
 import { TodayScreen } from "./screens/TodayScreen";
+import { registerSW } from "virtual:pwa-register";
+import { useToast } from "./components/ToastProvider";
 
 const PIN_KEY = "tt_staff_pin_unlocked";
 const CONFIG_PIN = import.meta.env.VITE_STAFF_PIN as string | undefined;
@@ -172,9 +174,65 @@ function AppRoutes() {
   );
 }
 
+function ServiceWorkerManager() {
+  const { showToast } = useToast();
+  const [needsRefresh, setNeedsRefresh] = useState(false);
+  const updateRef = useRef<(() => void) | null>(null);
+  const offlineToastShown = useRef(false);
+
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+
+    const updateSW = registerSW({
+      immediate: true,
+      onOfflineReady() {
+        if (offlineToastShown.current) return;
+        offlineToastShown.current = true;
+        showToast({ type: "success", message: "Ready for offline use." });
+      },
+      onNeedRefresh() {
+        setNeedsRefresh(true);
+      },
+      onRegisterError(error) {
+        console.error("Service worker registration failed", error);
+      }
+    });
+
+    updateRef.current = () => updateSW(true);
+  }, [showToast]);
+
+  if (!needsRefresh) return null;
+
+  return (
+    <div className="tt-update-banner">
+      <span className="tt-update-text">A new version is available.</span>
+      <div className="tt-update-actions">
+        <button
+          type="button"
+          className="tt-button tt-button-outline"
+          onClick={() => setNeedsRefresh(false)}
+        >
+          Later
+        </button>
+        <button
+          type="button"
+          className="tt-button tt-button-primary"
+          onClick={() => {
+            setNeedsRefresh(false);
+            updateRef.current?.();
+          }}
+        >
+          Reload
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   return (
     <div className="app-root">
+      <ServiceWorkerManager />
       <AppRoutes />
     </div>
   );
