@@ -1,11 +1,11 @@
-<!doctype html>
+ï»¿<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
   <title>TekeTeke - SACCO Dashboard</title>
 
   <link rel="stylesheet" href="/public/css/dashboard-theme.css"/>
-  <link rel="icon" href="/public/mobile/shared/icons/icon-192.png"/>
+  <link rel="icon" href="/public/icons/icon-192.png"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <script src="/public/js/app-config.js"></script>
   <script src="/public/js/api.js"></script>
@@ -749,8 +749,8 @@
               TB.appendChild(tr);
             });
             const sum = (res.items||[]).reduce((s,t)=>s+Number(t.fare_amount_kes||0),0);
-            document.getElementById('loanHistSum').textContent = `Paid total: KES ${fmtKES(sum)} · Remaining: KES ${fmtKES(Math.max(0,(res.total||0)-sum))}`;
-            document.getElementById('loanHistTitle').textContent = `Loan History (${id.slice(0,8)}…)`;
+            document.getElementById('loanHistSum').textContent = `Paid total: KES ${fmtKES(sum)} Â· Remaining: KES ${fmtKES(Math.max(0,(res.total||0)-sum))}`;
+            document.getElementById('loanHistTitle').textContent = `Loan History (${id.slice(0,8)}â€¦)`;
           } else if (act==='ln-close'){
             if (!confirm('Mark this loan as CLOSED?')) return;
             btn.disabled=true; await parse(await fetch(`/u/sacco/${currentSacco}/loans/${id}`,{ method:'PATCH', headers:{'Content-Type':'application/json',Accept:'application/json'}, body: JSON.stringify({ status:'CLOSED' }) })); await loadLoans();
@@ -767,6 +767,7 @@
 
 </body>
 </html>
+
 
 
 

@@ -9,7 +9,6 @@
   {"src":"^/healthz$","dest":"/api/index.js"},
   {"src":"^/$","dest":"/public/auth/role-select.html"},
   {"src":"^/login$","dest":"/public/auth/login.html"},
-  {"src":"^/public/(.*)$","dest":"/public/$1"},
-  {"src":"^/downloads/(.*)$","dest":"/public/downloads/$1"}
+  {"src":"^/public/(.*)$","dest":"/public/$1"}
  ]
 }

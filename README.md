@@ -1,4 +1,4 @@
-# TekeTeke — REAL v8 (Supabase/Postgres)
+# TekeTeke - REAL v8 (Supabase/Postgres)
 
 This build wires all dashboards to **real Postgres** via Supabase.
 Admin endpoints use the Supabase **service role key** (server-side) and require a signed-in user with role `SYSTEM_ADMIN`.
@@ -14,7 +14,7 @@ open http://localhost:5001/public/auth/role-select.html
 Use the **Use Demo Token** button only to bypass UI auth during development.
 System Admin actions require an authenticated Supabase session for a user present in `public.staff_profiles` with role `SYSTEM_ADMIN`.
 
-To provision demo accounts for every mobile dashboard run:
+To provision demo accounts for each role dashboard run:
 ```bash
 node scripts/seed-role-users.js
 ```
@@ -22,12 +22,9 @@ This creates (or reuses) users such as `sacco.manager@example.com` with password
 
 ## Front-end entry points
 - **Role chooser:** `/public/auth/role-select.html` (links to System Admin, SACCO, Matatu, Taxi and Boda dashboards).
-- **System Admin dashboard:** `/public/system/dashboard.html` &rarr; overview metrics, SACCO & vehicle registries, USSD pool tools, plus centralized login management for SACCO admins, matatu owners, taxi and boda crews.
-- **Mobile PWA:** `/public/mobile/index.html` &rarr; offline queue, STK launch, transaction history and profile (installs from the browser). Works with `/api/pay/stk` and `/u/*` routes.
-- **Legacy dashboards:** `/public/system/dashboard.html`, `/public/sacco/*`, `/public/matatu/*`, etc. remain available for parity testing.
-- **Native shell:** `/mobile-shell` contains a Capacitor wrapper that emits Android (and optional iOS) binaries. Run `npm run role:<slug>` inside that folder (e.g., `role:taxi`, `role:bodaboda`, `role:matatu-staff`) to sync assets and build a role-specific APK such as “TekeTeke Go Taxi”.
-- **Dashboard download cards:** Each applicable dashboard (matatu crew/staff, owner, sacco staff, taxi, boda) surfaces a “Download APK” CTA that links to `/downloads/teketeke-go-<role>.apk`. Replace those files with your signed builds when you publish new versions.
-- **Download landing page:** `/public/downloads/index.html` lists the APKs currently available. When you copy signed builds into `public/downloads/` and redeploy on Vercel, that page (and all CTA buttons) immediately point to the fresh binaries.
+- **System Admin dashboard:** `/public/system/dashboard.html` -> overview metrics, SACCO & vehicle registries, USSD pool tools, plus centralized login management for SACCO admins, matatu owners, taxi and boda crews.
+- **Role dashboards (web):** `/public/sacco/*`, `/public/matatu/*`, `/public/taxi/*`, `/public/bodaboda/*` remain for staff/owners/taxi/boda workflows.
+- Mobile PWA, Capacitor shells, and APK download pages have been removed; the project now ships as web-only.
 
 ## Database
 Apply SQL in order:
@@ -64,6 +61,6 @@ supabase db push    # or psql -f supabase/migrations/000_core_schema.sql ...
 ## Notes
 - For production, put this server behind HTTPS and configure CORS & rate limiting.
 - To seed a **system admin**, insert a row into `staff_profiles` with your `auth.uid()` and role `SYSTEM_ADMIN`.
-- When generating APKs, copy the resulting files (e.g., `mobile-shell/android/app/build/outputs/apk/release/app-release.apk`) into `public/downloads/` using the naming convention above before pushing to Vercel so the download buttons stay current.
+- Mobile/PWA assets and APK downloads were removed; use the web dashboards only.
 
 

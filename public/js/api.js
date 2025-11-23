@@ -40,13 +40,20 @@ TT.getAuth = () => (sessionStorage.getItem('auth_token') || localStorage.getItem
   }
 
   async function getAccessToken(){
+    // Prefer the live Supabase session but fall back to the raw auth_token we stash
+    // in storage on login so first post-login requests are not missing the header.
+    let fallback = '';
+    try{
+      fallback = TT?.getAuth?.() || '';
+    }catch(_){}
+
     const supa = await getSupabase();
-    if (!supa) return null;
+    if (!supa) return fallback || null;
     try{
       const { data: { session } } = await supa.auth.getSession();
-      return session?.access_token || null;
+      return session?.access_token || fallback || null;
     }catch(e){
-      return null;
+      return fallback || null;
     }
   }
 

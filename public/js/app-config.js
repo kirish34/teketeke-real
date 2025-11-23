@@ -1,13 +1,6 @@
 window.SUPABASE_URL='https://ecjkxgegjzvixyuukysk.supabase.co';
 window.SUPABASE_ANON_KEY='sb_publishable_iY_CGooJG4me_7X0nO0enA_OgqbIhEK';
 window.GMAPS_API_KEY='AIzaSyAX9n7y1QOjrOZHJwiNBkdYUJ5JET6X4aw';
-// When TT_DEMO is true, the mobile apps run in UI-only mode
-// (no Supabase login or API calls) and show sample data.
-// Set to false to use real Supabase auth + API.
-window.TT_DEMO = false;
-// Base URL for API calls when running inside the mobile shell in real mode.
-// Set this when TT_DEMO is false so /u/* and /api/* hit your live backend.
-window.TT_API_BASE='https://teketeke.dev';
 
 (function(){
   try{
@@ -104,8 +97,8 @@ window.TT_API_BASE='https://teketeke.dev';
 
           var params = new URLSearchParams(window.location.search || '');
           var next = String(params.get('next') || '');
-          var isTaxi = next.indexOf('/public/taxi/') === 0 || next.indexOf('/public/mobile/taxi/') === 0;
-          var isBoda = next.indexOf('/public/bodaboda/') === 0 || next.indexOf('/public/mobile/boda/') === 0;
+          var isTaxi = next.indexOf('/public/taxi/') === 0;
+          var isBoda = next.indexOf('/public/bodaboda/') === 0;
           if (isTaxi || isBoda){
             var msgHost = document.getElementById('msg');
             var parent = msgHost && msgHost.parentNode ? msgHost.parentNode : null;

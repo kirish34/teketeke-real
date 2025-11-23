@@ -1,9 +1,0 @@
-{
-    "appId": "com.teketeke.saccostaff",
-    "appName": "TekeTeke Go Sacco Staff",
-    "webDir": "web",
-    "bundledWebRuntime": false,
-    "server": {
-        "androidScheme": "https"
-    }
-}
