@@ -652,7 +652,7 @@
       const syncBtn = $('btnMpesaSync');
       const plugin = getMpesaPlugin();
       if (!plugin){
-        if (statusEl) statusEl.textContent = 'Status: Available only in the Android app (install the Taxi APK).';
+        if (statusEl) statusEl.textContent = 'Status: Not available in the web dashboard.';
         if (enableBtn) enableBtn.disabled = true;
         if (syncBtn) syncBtn.disabled = true;
         return;
