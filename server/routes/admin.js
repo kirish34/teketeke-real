@@ -1,5 +1,6 @@
 const express = require('express');
 const { supabaseAdmin } = require('../supabase');
+const pool = require('../db/pool');
 const { requireUser } = require('../middleware/auth');
 const router = express.Router();
 
@@ -27,6 +28,47 @@ async function requireSystemAdmin(req, res, next){
 
 router.use(requireSystemAdmin);
 
+function parseDateRange(query = {}) {
+  const range = (query.range || '').toLowerCase();
+  const now = new Date();
+  let from;
+  let to;
+
+  const toParam = query.to ? new Date(query.to) : null;
+  const fromParam = query.from ? new Date(query.from) : null;
+
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date(now);
+  todayEnd.setHours(23, 59, 59, 999);
+
+  if (range === 'today') {
+    from = todayStart;
+    to = todayEnd;
+  } else if (range === 'week') {
+    const day = now.getDay(); // 0 = Sun, 1 = Mon
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + diffToMonday);
+    monday.setHours(0, 0, 0, 0);
+    from = monday;
+    to = todayEnd;
+  } else if (range === 'month') {
+    const first = new Date(now.getFullYear(), now.getMonth(), 1);
+    first.setHours(0, 0, 0, 0);
+    from = first;
+    to = todayEnd;
+  } else {
+    from = fromParam && !Number.isNaN(fromParam.getTime()) ? fromParam : todayStart;
+    to = toParam && !Number.isNaN(toParam.getTime()) ? toParam : todayEnd;
+  }
+
+  return {
+    from: from.toISOString(),
+    to: to.toISOString(),
+  };
+}
+
 // Simple ping for UI testing
 router.get('/ping', (_req,res)=> res.json({ ok:true }));
 
@@ -42,6 +84,159 @@ router.get('/system-overview', async (_req, res) => {
     const { data: poolAvail } = await supabaseAdmin.from('ussd_pool').select('id').eq('status','AVAILABLE');
     const { data: poolAll }   = await supabaseAdmin.from('ussd_pool').select('id', { count: 'exact' });
     res.json({ counts: { saccos: saccos||0, matatus: matatus||0, cashiers: staff||0, tx_today: (txTodayRows||0) }, ussd_pool: { available: (poolAvail||[]).length, total: (poolAll?.length||0) } });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Platform finance overview (all saccos)
+router.get('/platform-overview', async (req, res) => {
+  const range = parseDateRange(req.query);
+  try {
+    const { rows } = await pool.query(
+      `
+        SELECT
+          COALESCE((
+            SELECT SUM(amount) FROM wallet_transactions
+            WHERE tx_type = 'CREDIT' AND source = 'MPESA_C2B'
+              AND created_at BETWEEN $1 AND $2
+          ), 0) AS matatu_net,
+          COALESCE((
+            SELECT SUM(wt.amount) FROM wallet_transactions wt
+            JOIN wallets w ON w.id = wt.wallet_id
+            WHERE wt.tx_type = 'CREDIT' AND wt.source = 'FEE_MATATU_FARE'
+              AND w.entity_type = 'SACCO'
+              AND wt.created_at BETWEEN $1 AND $2
+          ), 0) AS sacco_fee_income,
+          COALESCE((
+            SELECT SUM(wt.amount) FROM wallet_transactions wt
+            JOIN wallets w ON w.id = wt.wallet_id
+            WHERE wt.tx_type = 'CREDIT' AND wt.source = 'FEE_MATATU_FARE'
+              AND w.entity_type = 'SYSTEM'
+              AND wt.created_at BETWEEN $1 AND $2
+          ), 0) AS platform_fee_income
+      `,
+      [range.from, range.to]
+    );
+
+    const row = rows[0] || {};
+    const matatu_net = Number(row.matatu_net || 0);
+    const sacco_fee_income = Number(row.sacco_fee_income || 0);
+    const platform_fee_income = Number(row.platform_fee_income || 0);
+    const gross_fares = matatu_net + sacco_fee_income + platform_fee_income;
+
+    res.json({
+      period: range,
+      totals: {
+        gross_fares,
+        matatu_net,
+        sacco_fee_income,
+        platform_fee_income,
+      },
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Platform sacco performance summary
+router.get('/platform-saccos-summary', async (req, res) => {
+  const range = parseDateRange(req.query);
+  try {
+    const { rows } = await pool.query(
+      `
+        WITH matatu_net AS (
+          SELECT
+            m.sacco_id,
+            COUNT(DISTINCT m.id) AS matatus,
+            COALESCE(SUM(wt.amount), 0) AS matatu_net
+          FROM matatus m
+          LEFT JOIN wallets w ON w.entity_type = 'MATATU' AND w.entity_id = m.id
+          LEFT JOIN wallet_transactions wt
+            ON wt.wallet_id = w.id
+           AND wt.tx_type = 'CREDIT'
+           AND wt.source = 'MPESA_C2B'
+           AND wt.created_at BETWEEN $1 AND $2
+          GROUP BY m.sacco_id
+        ),
+        sacco_fees AS (
+          SELECT
+            w.entity_id AS sacco_id,
+            COALESCE(SUM(wt.amount), 0) AS sacco_fee_income
+          FROM wallets w
+          LEFT JOIN wallet_transactions wt
+            ON wt.wallet_id = w.id
+           AND wt.tx_type = 'CREDIT'
+           AND wt.source = 'FEE_MATATU_FARE'
+           AND wt.created_at BETWEEN $1 AND $2
+          WHERE w.entity_type = 'SACCO'
+          GROUP BY w.entity_id
+        )
+        SELECT
+          s.id AS sacco_id,
+          s.name AS sacco_name,
+          COALESCE(mn.matatus, 0)::int AS matatus,
+          COALESCE(mn.matatu_net, 0) AS matatu_net,
+          COALESCE(sf.sacco_fee_income, 0) AS sacco_fee_income,
+          (COALESCE(mn.matatu_net, 0) + COALESCE(sf.sacco_fee_income, 0)) AS gross_fares,
+          'ACTIVE' AS status
+        FROM saccos s
+        LEFT JOIN matatu_net mn ON mn.sacco_id = s.id
+        LEFT JOIN sacco_fees sf ON sf.sacco_id = s.id
+        ORDER BY gross_fares DESC, sacco_name ASC
+      `,
+      [range.from, range.to]
+    );
+
+    res.json({
+      period: range,
+      items: rows || [],
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Withdrawals monitor
+router.get('/withdrawals', async (req, res) => {
+  const range = parseDateRange(req.query);
+  const status = req.query.status || null;
+  try {
+    const params = [range.from, range.to];
+    let statusClause = '';
+    if (status) {
+      statusClause = 'AND w.status = $3';
+      params.push(status);
+    }
+
+    const { rows } = await pool.query(
+      `
+        SELECT
+          w.id,
+          w.created_at,
+          w.amount,
+          w.phone_number,
+          w.status,
+          w.failure_reason,
+          w.mpesa_transaction_id,
+          w.mpesa_conversation_id,
+          wal.virtual_account_code,
+          wal.entity_type,
+          wal.entity_id
+        FROM withdrawals w
+        JOIN wallets wal ON wal.id = w.wallet_id
+        WHERE w.created_at BETWEEN $1 AND $2
+        ${statusClause}
+        ORDER BY w.created_at DESC
+        LIMIT 200
+      `,
+      params
+    );
+
+    res.json({
+      period: range,
+      items: rows || [],
+    });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

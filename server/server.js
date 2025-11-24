@@ -50,6 +50,10 @@ app.use('/api/taxi', require('./routes/taxi'));
 app.use('/api/boda', require('./routes/boda'));
 app.use('/api/signup', require('./routes/signup'));
 app.use('/api/db', require('./routes/db'));
+app.use('/test', require('./routes/wallet'));
+app.use('/', require('./routes/wallet-withdraw'));
+app.use('/mpesa', require('./routes/mpesa'));
+app.use('/', require('./routes/sacco'));
 
 // health (works on Vercel via rewrite /healthz → /api/index.js)
 app.get(['/healthz','/api/healthz'], (_req,res)=>res.json({ ok:true, mode:'real' }));

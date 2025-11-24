@@ -27,6 +27,7 @@
 
   <div class="tabs" role="tablist" aria-label="Sections">
     <div class="tab active" data-id="overview" role="tab" aria-selected="true">Overview</div>
+    <div class="tab" data-id="finance" role="tab" aria-selected="false">Finance</div>
     <div class="tab" data-id="saccos" role="tab" aria-selected="false">SACCOs</div>
     <div class="tab" data-id="matatus" role="tab" aria-selected="false">Matatu</div>
     <div class="tab" data-id="taxis" role="tab" aria-selected="false">Taxis</div>
@@ -40,11 +41,147 @@
     <div class="card">
       <h3>Platform snapshot</h3>
       <div class="grid metrics">
-        <div class="metric"><div class="k">SACCOs</div><div class="v" id="ov_saccos">—</div></div>
+        <div class="metric"><div class="k">SACCOs</div><div class="v" id="ov_saccos">-</div></div>
         <div class="metric"><div class="k">Matatus</div><div class="v" id="ov_matatus">—</div></div>
         <div class="metric"><div class="k">Transactions today</div><div class="v" id="ov_tx">—</div></div>
         <div class="metric"><div class="k">USSD available</div><div class="v" id="ov_pool_avail">—</div></div>
         <div class="metric"><div class="k">USSD total</div><div class="v" id="ov_pool_total">—</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="finance" class="panel" aria-labelledby="tab_finance">
+    <div class="card">
+      <h3>Platform money overview</h3>
+      <p class="muted" style="margin:4px 0 12px">
+        Wallet-based totals across all SACCOS. (Dummy values until API is wired.)
+      </p>
+      <div class="grid metrics">
+
+        <div class="metric">
+          <div class="k">Today</div>
+          <div class="v" id="fin_today_gross">KES 0</div>
+          <div class="muted small" style="margin-top:4px">
+            <div>Matatu net: <span id="fin_today_matatu">KES 0</span></div>
+            <div>SACCO income: <span id="fin_today_sacco">KES 0</span></div>
+            <div>TekeTeke income: <span id="fin_today_tt">KES 0</span></div>
+          </div>
+        </div>
+
+        <div class="metric">
+          <div class="k">This week</div>
+          <div class="v" id="fin_week_gross">KES 0</div>
+          <div class="muted small" style="margin-top:4px">
+            <div>Matatu net: <span id="fin_week_matatu">KES 0</span></div>
+            <div>SACCO income: <span id="fin_week_sacco">KES 0</span></div>
+            <div>TekeTeke income: <span id="fin_week_tt">KES 0</span></div>
+          </div>
+        </div>
+
+        <div class="metric">
+          <div class="k">This month</div>
+          <div class="v" id="fin_month_gross">KES 0</div>
+          <div class="muted small" style="margin-top:4px">
+            <div>Matatu net: <span id="fin_month_matatu">KES 0</span></div>
+            <div>SACCO income: <span id="fin_month_sacco">KES 0</span></div>
+            <div>TekeTeke income: <span id="fin_month_tt">KES 0</span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <h3>SACCO performance (beta)</h3>
+      <p class="muted small" style="margin:4px 0 8px">
+        Per-SACCO totals for the selected period. Currently placeholder.
+      </p>
+      <div class="toolbar" style="margin-bottom:8px">
+        <label class="muted small">
+          Period:
+          <select id="fin_sacco_range">
+            <option value="today">Today</option>
+            <option value="week">This week</option>
+            <option value="month" selected>This month</option>
+          </select>
+        </label>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>SACCO</th>
+              <th>Matatus</th>
+              <th>Gross fares</th>
+              <th>Matatu net</th>
+              <th>SACCO income</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="fin_sacco_rows">
+            <tr><td colspan="6" class="muted">Finance APIs not wired yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="grid g2" style="margin-top:12px">
+      <div class="card">
+        <h3>Wallet inspector</h3>
+        <p class="muted small" style="margin:4px 0 8px">
+          Search by virtual account code (e.g. MAT0021). Uses wallet APIs.
+        </p>
+        <form id="fin_wallet_form" class="grid g2">
+          <label>
+            <span class="muted small">Virtual account code</span>
+            <input id="fin_wallet_code" type="text" placeholder="MAT0021"/>
+          </label>
+          <div class="align-end">
+            <button type="submit" class="btn small">Inspect</button>
+          </div>
+        </form>
+        <div id="fin_wallet_summary" class="muted small" style="margin-top:8px">
+          No wallet selected yet.
+        </div>
+        <div class="table-wrap" style="margin-top:8px; max-height:220px; overflow:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>When</th>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Balance after</th>
+                <th>Source</th>
+              </tr>
+            </thead>
+            <tbody id="fin_wallet_tx">
+              <tr><td colspan="5" class="muted">No transactions.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Withdrawals monitor</h3>
+        <p class="muted small" style="margin:4px 0 8px">
+          Overview of wallet cash-outs. Placeholder until wired to /admin/withdrawals.
+        </p>
+        <div class="table-wrap" style="max-height:260px; overflow:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>When</th>
+                <th>Matatu/SACCO</th>
+                <th>Phone</th>
+                <th>Amount</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="fin_withdrawals_rows">
+              <tr><td colspan="5" class="muted">Live data coming soon.</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </section>
@@ -412,7 +549,17 @@
 
       const $ = (id)=>document.getElementById(id);
       const badge = $('sess_badge');
-      const state = { saccos: [], vehicles: [], vehiclesLoaded: false, overview: null, ussdAvailable: [], ussdAllocated: [], logins: [], loginBeingEdited: null };
+      const state = {
+        saccos: [],
+        vehicles: [],
+        vehiclesLoaded: false,
+        overview: null,
+        ussdAvailable: [],
+        ussdAllocated: [],
+        logins: [],
+        loginBeingEdited: null,
+        finance: { today: null, week: null, month: null }
+      };
       let sysRoutes = [];
       let adminRoutesForSacco = [];
       let routeEditPath = [];
@@ -429,6 +576,7 @@
         BODA: { sacco: false, matatu: true, label: 'BodaBoda' }
       };
       const numberFmt = new Intl.NumberFormat('en-KE');
+      const kesFmt = (v) => 'KES ' + numberFmt.format(v || 0);
 
       const parseErr = (err) => {
         if (!err) return 'Unknown error';
@@ -625,6 +773,34 @@
         setMetric('ov_pool_total', pool.total);
       }
 
+      function renderAdminFinanceOverview(){
+        const fin = state.finance || {};
+        const today = fin.today || {};
+        const week = fin.week || {};
+        const month = fin.month || {};
+
+        if ($('fin_today_gross')){
+          $('fin_today_gross').textContent = kesFmt(today.gross_fares || 0);
+          $('fin_today_matatu').textContent = kesFmt(today.matatu_net || 0);
+          $('fin_today_sacco').textContent = kesFmt(today.sacco_fee_income || 0);
+          $('fin_today_tt').textContent = kesFmt(today.platform_fee_income || 0);
+        }
+
+        if ($('fin_week_gross')){
+          $('fin_week_gross').textContent = kesFmt(week.gross_fares || 0);
+          $('fin_week_matatu').textContent = kesFmt(week.matatu_net || 0);
+          $('fin_week_sacco').textContent = kesFmt(week.sacco_fee_income || 0);
+          $('fin_week_tt').textContent = kesFmt(week.platform_fee_income || 0);
+        }
+
+        if ($('fin_month_gross')){
+          $('fin_month_gross').textContent = kesFmt(month.gross_fares || 0);
+          $('fin_month_matatu').textContent = kesFmt(month.matatu_net || 0);
+          $('fin_month_sacco').textContent = kesFmt(month.sacco_fee_income || 0);
+          $('fin_month_tt').textContent = kesFmt(month.platform_fee_income || 0);
+        }
+      }
+
       async function loadOverview(){
         try{
           state.overview = await jget('/api/admin/system-overview');
@@ -633,6 +809,153 @@
           state.overview = null;
         }
         renderOverview();
+      }
+
+      async function loadAdminFinance(){
+        const ranges = getFinanceRanges();
+        try{
+          const [today, week, month] = await Promise.all([
+            jget(`/api/admin/platform-overview?from=${ranges.today.from}&to=${ranges.today.to}`),
+            jget(`/api/admin/platform-overview?from=${ranges.week.from}&to=${ranges.week.to}`),
+            jget(`/api/admin/platform-overview?from=${ranges.month.from}&to=${ranges.month.to}`),
+          ]);
+          state.finance.today = today?.totals || {};
+          state.finance.week = week?.totals || {};
+          state.finance.month = month?.totals || {};
+        }catch(e){
+          console.error('[system] finance overview', e);
+          state.finance.today = state.finance.today || {};
+          state.finance.week = state.finance.week || {};
+          state.finance.month = state.finance.month || {};
+        }
+        renderAdminFinanceOverview();
+      }
+
+      function getFinanceRanges(){
+        const today = new Date();
+        const todayStr = today.toISOString().slice(0,10);
+        const day = today.getDay();
+        const diffToMonday = day === 0 ? -6 : 1 - day;
+        const monday = new Date(today);
+        monday.setDate(today.getDate() + diffToMonday);
+        const mondayStr = monday.toISOString().slice(0,10);
+        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        const monthStartStr = monthStart.toISOString().slice(0,10);
+        return {
+          today: { from: todayStr, to: todayStr },
+          week: { from: mondayStr, to: todayStr },
+          month: { from: monthStartStr, to: todayStr }
+        };
+      }
+
+      function renderFinanceSaccoTable(items){
+        const body = $('fin_sacco_rows');
+        if (!body) return;
+        if (!items || !items.length){
+          body.innerHTML = '<tr><td colspan="6" class="muted">No data for this period.</td></tr>';
+          return;
+        }
+        body.innerHTML = items.map(row=>`
+          <tr>
+            <td>${row.sacco_name || row.sacco_id || '-'}</td>
+            <td>${row.matatus ?? 0}</td>
+            <td>${kesFmt(row.gross_fares || 0)}</td>
+            <td>${kesFmt(row.matatu_net || 0)}</td>
+            <td>${kesFmt(row.sacco_fee_income || 0)}</td>
+            <td>${row.status || 'ACTIVE'}</td>
+          </tr>
+        `).join('');
+      }
+
+      async function loadFinanceSaccoTable(rangeKey){
+        const ranges = getFinanceRanges();
+        const chosen = ranges[rangeKey] || ranges.month;
+        try{
+          const res = await jget(`/api/admin/platform-saccos-summary?from=${chosen.from}&to=${chosen.to}`);
+          renderFinanceSaccoTable(res?.items || []);
+        }catch(e){
+          console.error('[system] sacco summary', e);
+          const body = $('fin_sacco_rows');
+          if (body) body.innerHTML = `<tr><td colspan="6" class="err">${parseErr(e)}</td></tr>`;
+        }
+      }
+
+      function renderWalletInspector(summary, txs){
+        const summaryEl = $('fin_wallet_summary');
+        const txBody = $('fin_wallet_tx');
+        if (summaryEl){
+          if (!summary){
+            summaryEl.textContent = 'No wallet selected yet.';
+          }else{
+            summaryEl.innerHTML = `
+              <strong>${summary.virtual_account_code || 'Wallet'}</strong><br>
+              Balance: ${kesFmt(summary.balance || 0)} | Currency: ${summary.currency || 'KES'}
+            `;
+          }
+        }
+        if (txBody){
+          if (!txs || !txs.length){
+            txBody.innerHTML = '<tr><td colspan="5" class="muted">No transactions.</td></tr>';
+          }else{
+            txBody.innerHTML = txs.map(row=>`
+              <tr>
+                <td class="mono">${row.created_at ? new Date(row.created_at).toLocaleString() : ''}</td>
+                <td>${row.tx_type || ''}</td>
+                <td>${kesFmt(row.amount || 0)}</td>
+                <td>${kesFmt(row.balance_after || 0)}</td>
+                <td>${row.source || ''}</td>
+              </tr>
+            `).join('');
+          }
+        }
+      }
+
+      async function loadFinanceWallet(code){
+        const clean = (code || '').trim();
+        if (!clean) return;
+        try{
+          const summary = await jget(`/wallets/${encodeURIComponent(clean)}`);
+          const tx = await jget(`/wallets/${encodeURIComponent(clean)}/transactions?limit=20&offset=0`);
+          renderWalletInspector(summary?.wallet || summary, tx?.transactions || tx?.data || []);
+        }catch(e){
+          console.error('[system] wallet inspect', e);
+          renderWalletInspector(null, []);
+          const summaryEl = $('fin_wallet_summary');
+          if (summaryEl){
+            summaryEl.textContent = `Error: ${parseErr(e)}`;
+          }
+        }
+      }
+
+      function renderWithdrawals(rows){
+        const body = $('fin_withdrawals_rows');
+        if (!body) return;
+        if (!rows || !rows.length){
+          body.innerHTML = '<tr><td colspan="5" class="muted">No withdrawals found.</td></tr>';
+          return;
+        }
+        body.innerHTML = rows.map(row=>`
+          <tr>
+            <td class="mono">${row.created_at ? new Date(row.created_at).toLocaleString() : ''}</td>
+            <td>${row.virtual_account_code || row.entity_type || ''}</td>
+            <td>${row.phone_number || ''}</td>
+            <td>${kesFmt(row.amount || 0)}</td>
+            <td>${row.status || ''}</td>
+          </tr>
+        `).join('');
+      }
+
+      async function loadFinanceWithdrawals(rangeKey='month'){
+        const ranges = getFinanceRanges();
+        const chosen = ranges[rangeKey] || ranges.month;
+        try{
+          const res = await jget(`/api/admin/withdrawals?from=${chosen.from}&to=${chosen.to}`);
+          renderWithdrawals(res?.items || []);
+        }catch(e){
+          console.error('[system] withdrawals', e);
+          const body = $('fin_withdrawals_rows');
+          if (body) body.innerHTML = `<tr><td colspan="5" class="err">${parseErr(e)}</td></tr>`;
+        }
       }
 
       $('logout_btn').addEventListener('click', ()=>{
@@ -1776,9 +2099,34 @@
         });
       }
 
+      const saccoRangeSel = $('fin_sacco_range');
+      if (saccoRangeSel){
+        saccoRangeSel.addEventListener('change', ()=> loadFinanceSaccoTable(saccoRangeSel.value || 'month'));
+      }
+
+      const walletForm = $('fin_wallet_form');
+      if (walletForm){
+        walletForm.addEventListener('submit', async (event)=>{
+          event.preventDefault();
+          const code = $('fin_wallet_code')?.value || '';
+          await loadFinanceWallet(code);
+        });
+      }
+
       try{
         await ensureSession();
-        await Promise.all([loadOverview(), loadSaccos(), loadVehicles(), loadLogins(), loadUssd(), loadRouteUsage(), loadRoutesMap()]);
+        await Promise.all([
+          loadOverview(),
+          loadAdminFinance(),
+          loadFinanceSaccoTable((saccoRangeSel && saccoRangeSel.value) || 'month'),
+          loadFinanceWithdrawals('month'),
+          loadSaccos(),
+          loadVehicles(),
+          loadLogins(),
+          loadUssd(),
+          loadRouteUsage(),
+          loadRoutesMap()
+        ]);
       }catch(_){}
     }
     safeInit();
