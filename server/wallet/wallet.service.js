@@ -1,6 +1,7 @@
 // server/wallet/wallet.service.js
 // Handles wallet balance updates and transaction history.
 const pool = require('../db/pool');
+const { generateVirtualAccountCode } = require('./wallet.utils');
 
 /**
  * Credit a wallet by virtualAccountCode.
@@ -464,4 +465,85 @@ module.exports = {
   getWalletByVirtualAccountCode,
   getWalletTransactions,
   creditFareWithFees,
+};
+
+/**
+ * Create a wallet for a given entity and attach wallet_id on the entity table.
+ */
+async function registerWalletForEntity({ entityType, entityId, numericRef }) {
+  if (!entityType) throw new Error('entityType is required');
+  if (!entityId) throw new Error('entityId is required');
+
+  const type = String(entityType).toUpperCase();
+  let tableName;
+  switch (type) {
+    case 'MATATU':
+      tableName = 'matatus';
+      break;
+    case 'SACCO':
+      tableName = 'saccos';
+      break;
+    case 'TAXI':
+      tableName = 'taxis';
+      break;
+    case 'BODA':
+      tableName = 'bodabodas';
+      break;
+    default:
+      throw new Error(`Unknown entityType ${entityType}`);
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const baseRef = Number(numericRef) || Date.now() % 100000;
+    let walletRow = null;
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const code = generateVirtualAccountCode(type, baseRef + attempt);
+      try {
+        const walletRes = await client.query(
+          `
+            INSERT INTO wallets (entity_type, entity_id, virtual_account_code, balance)
+            VALUES ($1, $2, $3, 0)
+            RETURNING id, virtual_account_code, balance
+          `,
+          [type, entityId, code]
+        );
+        walletRow = walletRes.rows[0];
+        break;
+      } catch (e) {
+        const msg = String(e.message || '').toLowerCase();
+        if (msg.includes('duplicate') || msg.includes('unique')) continue;
+        throw e;
+      }
+    }
+
+    if (!walletRow) {
+      throw new Error('Could not generate a unique virtual account code');
+    }
+
+    await client.query(
+      `UPDATE ${tableName} SET wallet_id = $1 WHERE id = $2`,
+      [walletRow.id, entityId]
+    );
+
+    await client.query('COMMIT');
+    return walletRow;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Error in registerWalletForEntity:', err.message);
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+module.exports = {
+  creditWallet,
+  debitWalletAndCreateWithdrawal,
+  getWalletByVirtualAccountCode,
+  getWalletTransactions,
+  creditFareWithFees,
+  registerWalletForEntity,
 };

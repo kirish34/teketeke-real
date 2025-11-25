@@ -1,6 +1,7 @@
 const express = require('express');
 const { supabaseAdmin } = require('../supabase');
 const pool = require('../db/pool');
+const { registerWalletForEntity } = require('../wallet/wallet.service');
 const { requireUser } = require('../middleware/auth');
 const router = express.Router();
 
@@ -67,6 +68,18 @@ function parseDateRange(query = {}) {
     from: from.toISOString(),
     to: to.toISOString(),
   };
+}
+
+function deriveNumericRef(...values) {
+  for (const v of values) {
+    if (!v) continue;
+    const digits = String(v).match(/\d+/g);
+    if (digits && digits.length) {
+      const num = Number(digits.join('').slice(-6));
+      if (num > 0) return num;
+    }
+  }
+  return Date.now() % 100000;
 }
 
 // Simple ping for UI testing
@@ -307,6 +320,17 @@ router.post('/register-sacco', async (req,res)=>{
       result.login_error = e.message || 'Failed to create sacco login';
     }
   }
+  try{
+    const wallet = await registerWalletForEntity({
+      entityType: 'SACCO',
+      entityId: result.id,
+      numericRef: deriveNumericRef(result.default_till, result.id)
+    });
+    result.wallet_id = wallet.id;
+    result.virtual_account_code = wallet.virtual_account_code;
+  }catch(e){
+    return res.status(500).json({ error: 'SACCO created but wallet failed: ' + e.message });
+  }
   res.json(result);
 });
 router.post('/update-sacco', async (req,res)=>{
@@ -348,7 +372,20 @@ router.post('/register-matatu', async (req,res)=>{
   if (needsSacco && !row.sacco_id) return res.status(400).json({error:`sacco_id required for ${vehicleType}`});
   const { data, error } = await supabaseAdmin.from('matatus').insert(row).select().single();
   if (error) return res.status(500).json({ error: error.message });
-  res.json(data);
+  try{
+    const wallet = await registerWalletForEntity({
+      entityType: vehicleType === 'MATATU' ? 'MATATU' : vehicleType,
+      entityId: data.id,
+      numericRef: deriveNumericRef(data.number_plate, data.tlb_number, data.id)
+    });
+    res.json({
+      ...data,
+      wallet_id: wallet.id,
+      virtual_account_code: wallet.virtual_account_code,
+    });
+  }catch(e){
+    res.status(500).json({ error: 'Matatu created but wallet failed: ' + e.message });
+  }
 });
 router.post('/update-matatu', async (req,res)=>{
   const { id, ...rest } = req.body||{};
