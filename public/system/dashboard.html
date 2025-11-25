@@ -166,6 +166,19 @@
         <p class="muted small" style="margin:4px 0 8px">
           Overview of wallet cash-outs. Placeholder until wired to /admin/withdrawals.
         </p>
+        <div class="toolbar" style="margin-bottom:8px; display:flex; gap:8px; align-items:center;">
+          <label class="muted small">
+            Status:
+            <select id="fin_withdraw_status">
+              <option value="">Any</option>
+              <option value="PENDING">Pending</option>
+              <option value="PROCESSING">Processing</option>
+              <option value="SUCCESS">Success</option>
+              <option value="FAILED">Failed</option>
+            </select>
+          </label>
+          <button id="fin_withdraw_refresh" class="btn small" type="button">Refresh</button>
+        </div>
         <div class="table-wrap" style="max-height:260px; overflow:auto;">
           <table>
             <thead>
@@ -915,7 +928,7 @@
         if (!clean) return;
         try{
           const summary = await jget(`/wallets/${encodeURIComponent(clean)}`);
-          const tx = await jget(`/wallets/${encodeURIComponent(clean)}/transactions?limit=20&offset=0`);
+          const tx = await jget(`/wallets/${encodeURIComponent(clean)}/transactions?limit=50&offset=0`);
           renderWalletInspector(summary?.wallet || summary, tx?.transactions || tx?.data || []);
         }catch(e){
           console.error('[system] wallet inspect', e);
@@ -945,11 +958,12 @@
         `).join('');
       }
 
-      async function loadFinanceWithdrawals(rangeKey='month'){
+      async function loadFinanceWithdrawals(rangeKey='month', status=''){
         const ranges = getFinanceRanges();
         const chosen = ranges[rangeKey] || ranges.month;
         try{
-          const res = await jget(`/api/admin/withdrawals?from=${chosen.from}&to=${chosen.to}`);
+          const statusParam = status ? `&status=${encodeURIComponent(status)}` : '';
+          const res = await jget(`/api/admin/withdrawals?from=${chosen.from}&to=${chosen.to}${statusParam}`);
           renderWithdrawals(res?.items || []);
         }catch(e){
           console.error('[system] withdrawals', e);
@@ -2104,6 +2118,13 @@
         saccoRangeSel.addEventListener('change', ()=> loadFinanceSaccoTable(saccoRangeSel.value || 'month'));
       }
 
+      const withdrawStatusSel = $('fin_withdraw_status');
+      const withdrawRefreshBtn = $('fin_withdraw_refresh');
+      if (withdrawStatusSel && withdrawRefreshBtn){
+        withdrawRefreshBtn.addEventListener('click', ()=> loadFinanceWithdrawals('month', withdrawStatusSel.value || ''));
+        withdrawStatusSel.addEventListener('change', ()=> loadFinanceWithdrawals('month', withdrawStatusSel.value || ''));
+      }
+
       const walletForm = $('fin_wallet_form');
       if (walletForm){
         walletForm.addEventListener('submit', async (event)=>{
@@ -2119,7 +2140,7 @@
           loadOverview(),
           loadAdminFinance(),
           loadFinanceSaccoTable((saccoRangeSel && saccoRangeSel.value) || 'month'),
-          loadFinanceWithdrawals('month'),
+          loadFinanceWithdrawals('month', (withdrawStatusSel && withdrawStatusSel.value) || ''),
           loadSaccos(),
           loadVehicles(),
           loadLogins(),

@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
+const { requireAdminAccess } = require('../middleware/admin-access');
 const { creditWallet } = require('../wallet/wallet.service');
+
+router.use(requireAdminAccess);
 
 // TEMP test endpoint to manually credit a wallet (remove or protect in production)
 router.post('/credit-wallet', async (req, res) => {

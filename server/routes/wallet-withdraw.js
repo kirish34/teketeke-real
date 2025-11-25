@@ -1,12 +1,15 @@
 const express = require('express');
 const router = express.Router();
 
+const { requireAdminAccess } = require('../middleware/admin-access');
 const {
   debitWalletAndCreateWithdrawal,
   getWalletByVirtualAccountCode,
   getWalletTransactions,
 } = require('../wallet/wallet.service');
 const { sendB2CPayment } = require('../mpesa/mpesaB2C.service');
+
+router.use(requireAdminAccess);
 
 /**
  * GET /wallets/:virtualAccountCode

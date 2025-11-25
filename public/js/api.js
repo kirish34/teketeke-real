@@ -59,7 +59,9 @@ TT.getAuth = () => (sessionStorage.getItem('auth_token') || localStorage.getItem
 
   async function authFetch(input, init){
     const url = typeof input === 'string' ? input : (input?.url || '');
-    const needsAuth = /^\/(u|api)\b/.test(url); // cover /u and all /api routes
+    const isRelative = typeof url === 'string' && url.startsWith('/');
+    const isPublicAsset = /^\/public\//.test(url);
+    const needsAuth = isRelative && !isPublicAsset; // attach token for app APIs
     if (!needsAuth) return origFetch(input, init);
     const headers = new Headers(init?.headers || {});
     try{

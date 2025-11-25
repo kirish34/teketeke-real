@@ -88,6 +88,15 @@ router.post('/callback', async (req, res) => {
 
   console.log('Received M-Pesa callback:', JSON.stringify(body));
 
+  const webhookSecret = process.env.DARAJA_WEBHOOK_SECRET || null;
+  if (webhookSecret) {
+    const got = req.headers['x-webhook-secret'] || '';
+    if (got !== webhookSecret) {
+      console.warn('M-Pesa callback rejected: bad webhook secret');
+      return res.status(401).json({ ResultCode: 1, ResultDesc: 'Unauthorized' });
+    }
+  }
+
   let parsed;
   let rawId = null;
 
@@ -111,6 +120,29 @@ router.post('/callback', async (req, res) => {
   } = parsed;
 
   try {
+    // Idempotency: if we already processed this receipt, short-circuit
+    if (mpesa_receipt) {
+      const existing = await pool.query(
+        `
+          SELECT id, processed
+          FROM paybill_payments_raw
+          WHERE mpesa_receipt = $1
+          LIMIT 1
+        `,
+        [mpesa_receipt]
+      );
+      if (existing.rows.length) {
+        console.log('Duplicate callback ignored for receipt', mpesa_receipt);
+        if (!existing.rows[0].processed && webhookSecret) {
+          await pool.query(
+            `UPDATE paybill_payments_raw SET processed = true, processed_at = now() WHERE id = $1`,
+            [existing.rows[0].id]
+          );
+        }
+        return res.status(200).json({ ResultCode: 0, ResultDesc: 'Accepted (duplicate)' });
+      }
+    }
+
     // 1) Persist raw payload
     const insertRes = await pool.query(
       `
@@ -180,6 +212,15 @@ router.post('/callback', async (req, res) => {
 router.post('/b2c-result', async (req, res) => {
   const body = req.body || {};
   console.log('Received M-Pesa B2C Result:', JSON.stringify(body));
+
+  const webhookSecret = process.env.DARAJA_WEBHOOK_SECRET || null;
+  if (webhookSecret) {
+    const got = req.headers['x-webhook-secret'] || '';
+    if (got !== webhookSecret) {
+      console.warn('B2C Result rejected: bad webhook secret');
+      return res.status(401).json({ ResultCode: 1, ResultDesc: 'Unauthorized' });
+    }
+  }
 
   try {
     const result = body.Result || {};
