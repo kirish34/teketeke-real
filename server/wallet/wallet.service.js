@@ -539,11 +539,118 @@ async function registerWalletForEntity({ entityType, entityId, numericRef }) {
   }
 }
 
+/**
+ * Create a BANK withdrawal: debit wallet and create pending withdrawal record.
+ */
+async function createBankWithdrawal({
+  virtualAccountCode,
+  amount,
+  bankName,
+  bankBranch,
+  bankAccountNumber,
+  bankAccountName,
+  feePercent = 0.01,
+}) {
+  if (!virtualAccountCode) throw new Error('virtualAccountCode is required');
+  if (!amount || Number(amount) <= 0) throw new Error('amount must be > 0');
+  if (!bankName || !bankAccountNumber || !bankAccountName) {
+    throw new Error('Bank name, account number, and account name are required');
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const wRes = await client.query(
+      `
+        SELECT id, balance
+        FROM wallets
+        WHERE virtual_account_code = $1
+        FOR UPDATE
+      `,
+      [virtualAccountCode]
+    );
+    if (!wRes.rows.length) throw new Error(`Wallet not found for ${virtualAccountCode}`);
+
+    const wallet = wRes.rows[0];
+    const balanceBefore = Number(wallet.balance);
+    const grossAmount = Number(amount);
+    if (balanceBefore < grossAmount) throw new Error('Insufficient wallet balance');
+
+    const feeAmount = feePercent > 0 ? grossAmount * feePercent : 0;
+    const netPayout = grossAmount - feeAmount;
+    if (netPayout <= 0) throw new Error('Net payout must be > 0');
+
+    const balanceAfter = balanceBefore - grossAmount;
+
+    await client.query(
+      `UPDATE wallets SET balance = $1 WHERE id = $2`,
+      [balanceAfter, wallet.id]
+    );
+
+    await client.query(
+      `
+        INSERT INTO wallet_transactions
+          (wallet_id, tx_type, amount, balance_before, balance_after, source, source_ref, description)
+        VALUES
+          ($1, 'DEBIT', $2, $3, $4, $5, $6, $7)
+      `,
+      [
+        wallet.id,
+        grossAmount,
+        balanceBefore,
+        balanceAfter,
+        'WITHDRAWAL_BANK',
+        null,
+        `Bank withdrawal request to ${bankName} (${bankAccountNumber})`,
+      ]
+    );
+
+    const wdRes = await client.query(
+      `
+        INSERT INTO withdrawals
+          (wallet_id, amount, phone_number, status, method,
+           bank_name, bank_branch, bank_account_number, bank_account_name,
+           failure_reason, mpesa_transaction_id, mpesa_conversation_id,
+           mpesa_response, internal_note)
+        VALUES
+          ($1, $2, null, 'PENDING', 'BANK',
+           $3, $4, $5, $6,
+           null, null, null,
+           null, null)
+        RETURNING id, created_at
+      `,
+      [wallet.id, netPayout, bankName, bankBranch || null, bankAccountNumber, bankAccountName]
+    );
+
+    const withdrawal = wdRes.rows[0];
+
+    await client.query('COMMIT');
+
+    return {
+      withdrawalId: withdrawal.id,
+      walletId: wallet.id,
+      grossAmount,
+      feeAmount,
+      netPayout,
+      balanceBefore,
+      balanceAfter,
+    };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Error in createBankWithdrawal:', err.message);
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 module.exports = {
   creditWallet,
   debitWalletAndCreateWithdrawal,
   getWalletByVirtualAccountCode,
   getWalletTransactions,
   creditFareWithFees,
+  createBankWithdrawal,
   registerWalletForEntity,
 };

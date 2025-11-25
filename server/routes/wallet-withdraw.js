@@ -4,6 +4,7 @@ const router = express.Router();
 const { requireAdminAccess } = require('../middleware/admin-access');
 const {
   debitWalletAndCreateWithdrawal,
+  createBankWithdrawal,
   getWalletByVirtualAccountCode,
   getWalletTransactions,
 } = require('../wallet/wallet.service');
@@ -93,6 +94,42 @@ router.post('/wallets/:virtualAccountCode/withdraw', async (req, res) => {
       ok: false,
       error: err.message,
     });
+  }
+});
+
+/**
+ * POST /wallets/:virtualAccountCode/withdraw/bank
+ * Body: { amount, bankName, bankBranch, bankAccountNumber, bankAccountName, feePercent? }
+ */
+router.post('/wallets/:virtualAccountCode/withdraw/bank', async (req, res) => {
+  const { virtualAccountCode } = req.params;
+  const {
+    amount,
+    bankName,
+    bankBranch,
+    bankAccountNumber,
+    bankAccountName,
+    feePercent,
+  } = req.body || {};
+
+  try {
+    const result = await createBankWithdrawal({
+      virtualAccountCode,
+      amount,
+      bankName,
+      bankBranch,
+      bankAccountNumber,
+      bankAccountName,
+      feePercent,
+    });
+    return res.json({
+      ok: true,
+      message: 'Bank withdrawal request created',
+      data: result,
+    });
+  } catch (err) {
+    console.error('Error in bank withdraw route:', err.message);
+    return res.status(400).json({ ok: false, error: err.message });
   }
 });
 
