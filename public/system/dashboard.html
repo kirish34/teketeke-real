@@ -32,6 +32,7 @@
     <div class="tab" data-id="matatus" role="tab" aria-selected="false">Matatu</div>
     <div class="tab" data-id="taxis" role="tab" aria-selected="false">Taxis</div>
     <div class="tab" data-id="bodas" role="tab" aria-selected="false">BodaBodas</div>
+    <div class="tab" data-id="finance-sms" role="tab" aria-selected="false">SMS Log</div>
     <div class="tab" data-id="pool" role="tab" aria-selected="false">USSD Pool</div>
     <div class="tab" data-id="logins" role="tab" aria-selected="false">Logins</div>
     <div class="tab" data-id="routes" role="tab" aria-selected="false">Routes Overview</div>
@@ -197,6 +198,90 @@
         </div>
       </div>
     </div>
+
+    <div class="card" style="margin-top:12px">
+      <h3>Bank Withdrawals</h3>
+      <p class="muted" style="margin:4px 0 10px">
+        Review and process wallet withdrawals to bank accounts (EFT/RTGS).
+      </p>
+
+      <div class="row" style="margin-bottom:8px; gap:8px; align-items:center">
+        <label class="muted" style="font-size:13px">
+          Status filter
+          <select id="bw_filter" style="margin-left:4px">
+            <option value="">All</option>
+            <option value="PENDING">Pending</option>
+            <option value="PROCESSING">Processing</option>
+            <option value="SENT">Sent</option>
+            <option value="SUCCESS">Success</option>
+            <option value="FAILED">Failed</option>
+          </select>
+        </label>
+        <button id="bw_refresh" class="btn ghost" type="button">Refresh</button>
+        <span id="bw_msg" class="muted" style="margin-left:auto;font-size:12px"></span>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Requested</th>
+              <th>Wallet</th>
+              <th>Entity</th>
+              <th>Bank details</th>
+              <th>Net amount</th>
+              <th>Status</th>
+              <th width="210">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="bw_list">
+            <tr><td colspan="7" class="muted">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="finance-sms" class="panel" aria-labelledby="tab_finance_sms">
+    <div class="card">
+      <h3>SMS Log</h3>
+      <p class="muted small" style="margin:4px 0 10px">
+        Outbound SMS queue and delivery status. Uses generic templates (no branding yet).
+      </p>
+      <div class="row" style="margin-bottom:8px; gap:8px; align-items:center">
+        <label class="muted small">
+          Status:
+          <select id="sms_filter" style="margin-left:4px">
+            <option value="">All</option>
+            <option value="PENDING">Pending</option>
+            <option value="SENDING">Sending</option>
+            <option value="SENT">Sent</option>
+            <option value="FAILED">Failed</option>
+          </select>
+        </label>
+        <button id="sms_refresh" class="btn ghost" type="button">Refresh</button>
+        <span id="sms_msg" class="muted" style="margin-left:auto;font-size:12px"></span>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Created</th>
+              <th>To</th>
+              <th>Status</th>
+              <th>Template</th>
+              <th>Body</th>
+              <th>Meta</th>
+              <th width="130">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="sms_list">
+            <tr><td colspan="7" class="muted">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </section>
 
   <section id="saccos" class="panel" aria-labelledby="tab_saccos">
@@ -209,14 +294,33 @@
       <input id="sc_till" placeholder="Default till (optional)" />
     </div>
 
+    <div class="grid g2" style="margin-top:8px">
+      <label>
+        <span class="muted small">Settlement bank name</span>
+        <input id="sc_bank_name" type="text" placeholder="e.g. NCBA Bank"/>
+      </label>
+      <label>
+        <span class="muted small">Settlement bank branch</span>
+        <input id="sc_bank_branch" type="text" placeholder="e.g. Upper Hill"/>
+      </label>
+      <label>
+        <span class="muted small">Settlement account number</span>
+        <input id="sc_bank_acc" type="text" placeholder="e.g. 1234567890"/>
+      </label>
+      <label>
+        <span class="muted small">Settlement account name</span>
+        <input id="sc_bank_acc_name" type="text" placeholder="e.g. SKY YALLA SACCO"/>
+      </label>
+    </div>
+
     <div class="section row">
       <button id="sc_add" class="btn">Register SACCO</button>
       <span id="sc_msg" class="muted" style="align-self:center"></span>
     </div>
 
     <table>
-      <thead><tr><th>Name</th><th>Contact</th><th>Phone</th><th>Email</th><th>ID</th><th width="80">Actions</th></tr></thead>
-      <tbody id="sc_list"><tr><td colspan="6" class="muted">Loading…</td></tr></tbody>
+      <thead><tr><th>Name</th><th>Contact</th><th>Phone</th><th>Email</th><th>Wallet code</th><th>ID</th><th width="80">Actions</th></tr></thead>
+      <tbody id="sc_list"><tr><td colspan="7" class="muted">Loading…</td></tr></tbody>
     </table>
   </section>
 
@@ -236,6 +340,40 @@
       </select>
     </div>
 
+    <div class="grid g2" style="margin-top:8px">
+      <label>
+        <span class="muted small">Owner M-PESA phone (payout)</span>
+        <input id="mt_payout_phone" type="tel" placeholder="07xx xxx xxx"/>
+      </label>
+      <label>
+        <span class="muted small">Preferred payout method</span>
+        <select id="mt_payout_method">
+          <option value="M_PESA_END_OF_DAY">M-PESA (end of day, free)</option>
+          <option value="M_PESA_INSTANT">M-PESA (instant, fee)</option>
+          <option value="BANK">Bank account</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="grid g2" style="margin-top:8px">
+      <label>
+        <span class="muted small">Bank name (optional)</span>
+        <input id="mt_bank_name" type="text" placeholder="e.g. KCB Bank"/>
+      </label>
+      <label>
+        <span class="muted small">Bank branch</span>
+        <input id="mt_bank_branch" type="text" placeholder="e.g. Thika Road"/>
+      </label>
+      <label>
+        <span class="muted small">Bank account number</span>
+        <input id="mt_bank_acc" type="text" placeholder="1234567890"/>
+      </label>
+      <label>
+        <span class="muted small">Bank account name</span>
+        <input id="mt_bank_acc_name" type="text" placeholder="e.g. JOHN DOE"/>
+      </label>
+    </div>
+
 
     <div class="hint" id="mt_sacco_hint">Select a SACCO to link this matatu.</div>
 
@@ -250,8 +388,8 @@
     </div>
 
     <table>
-      <thead><tr><th>Plate</th><th>Owner</th><th>Type</th><th>SACCO</th><th>ID</th><th width="80">Actions</th></tr></thead>
-      <tbody id="mt_list"><tr><td colspan="6" class="muted">Loading…</td></tr></tbody>
+      <thead><tr><th>Plate</th><th>Owner</th><th>Type</th><th>SACCO</th><th>Wallet code</th><th>Payout</th><th>ID</th><th width="140">Actions</th></tr></thead>
+      <tbody id="mt_list"><tr><td colspan="8" class="muted">Loading…</td></tr></tbody>
     </table>
   </section>
 
@@ -266,14 +404,48 @@
     </div>
     <div class="hint">Leave SACCO empty if this taxi is not registered under one.</div>
 
+    <div class="grid g2" style="margin-top:8px">
+      <label>
+        <span class="muted small">Owner M-PESA phone (payout)</span>
+        <input id="taxi_payout_phone" type="tel" placeholder="07xx xxx xxx"/>
+      </label>
+      <label>
+        <span class="muted small">Preferred payout method</span>
+        <select id="taxi_payout_method">
+          <option value="M_PESA_END_OF_DAY">M-PESA (end of day, free)</option>
+          <option value="M_PESA_INSTANT">M-PESA (instant, fee)</option>
+          <option value="BANK">Bank account</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="grid g2" style="margin-top:8px">
+      <label>
+        <span class="muted small">Bank name (optional)</span>
+        <input id="taxi_bank_name" type="text" placeholder="e.g. KCB Bank"/>
+      </label>
+      <label>
+        <span class="muted small">Bank branch</span>
+        <input id="taxi_bank_branch" type="text" placeholder="e.g. Thika Road"/>
+      </label>
+      <label>
+        <span class="muted small">Bank account number</span>
+        <input id="taxi_bank_acc" type="text" placeholder="1234567890"/>
+      </label>
+      <label>
+        <span class="muted small">Bank account name</span>
+        <input id="taxi_bank_acc_name" type="text" placeholder="e.g. JOHN DOE"/>
+      </label>
+    </div>
+
     <div class="section row">
       <button id="taxi_add" class="btn">Register Taxi</button>
       <span id="taxi_msg" class="muted" style="align-self:center"></span>
     </div>
 
     <table>
-      <thead><tr><th>Plate</th><th>SACCO</th><th>ID</th><th width="80">Actions</th></tr></thead>
-      <tbody id="taxi_list"><tr><td colspan="4" class="muted">Loading…</td></tr></tbody>
+      <thead><tr><th>Plate</th><th>SACCO</th><th>Wallet code</th><th>Payout</th><th>ID</th><th width="140">Actions</th></tr></thead>
+      <tbody id="taxi_list"><tr><td colspan="6" class="muted">Loading…</td></tr></tbody>
     </table>
   </section>
 
@@ -288,14 +460,48 @@
     </div>
     <div class="hint">SACCO linkage is optional for boda bodas.</div>
 
+    <div class="grid g2" style="margin-top:8px">
+      <label>
+        <span class="muted small">Owner M-PESA phone (payout)</span>
+        <input id="boda_payout_phone" type="tel" placeholder="07xx xxx xxx"/>
+      </label>
+      <label>
+        <span class="muted small">Preferred payout method</span>
+        <select id="boda_payout_method">
+          <option value="M_PESA_END_OF_DAY">M-PESA (end of day, free)</option>
+          <option value="M_PESA_INSTANT">M-PESA (instant, fee)</option>
+          <option value="BANK">Bank account</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="grid g2" style="margin-top:8px">
+      <label>
+        <span class="muted small">Bank name (optional)</span>
+        <input id="boda_bank_name" type="text" placeholder="e.g. KCB Bank"/>
+      </label>
+      <label>
+        <span class="muted small">Bank branch</span>
+        <input id="boda_bank_branch" type="text" placeholder="e.g. Thika Road"/>
+      </label>
+      <label>
+        <span class="muted small">Bank account number</span>
+        <input id="boda_bank_acc" type="text" placeholder="1234567890"/>
+      </label>
+      <label>
+        <span class="muted small">Bank account name</span>
+        <input id="boda_bank_acc_name" type="text" placeholder="e.g. JOHN DOE"/>
+      </label>
+    </div>
+
     <div class="section row">
       <button id="boda_add" class="btn">Register BodaBoda</button>
       <span id="boda_msg" class="muted" style="align-self:center"></span>
     </div>
 
     <table>
-      <thead><tr><th>Plate</th><th>SACCO</th><th>ID</th><th width="80">Actions</th></tr></thead>
-      <tbody id="boda_list"><tr><td colspan="4" class="muted">Loading…</td></tr></tbody>
+      <thead><tr><th>Plate</th><th>SACCO</th><th>Wallet code</th><th>Payout</th><th>ID</th><th width="140">Actions</th></tr></thead>
+      <tbody id="boda_list"><tr><td colspan="6" class="muted">Loading…</td></tr></tbody>
     </table>
   </section>
 
@@ -513,6 +719,73 @@
       <div id="rt_admin_status" class="muted" style="margin-top:6px;font-size:12px;">Map: loading routes...</div>
     </div>
   </section>
+
+  <!-- Matatu Payout Edit Modal -->
+  <div id="mt_payout_modal_backdrop" class="modal-backdrop hidden"></div>
+  <div id="mt_payout_modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="mt_payout_title">
+    <div class="modal-card card">
+      <div class="row" style="justify-content:space-between;align-items:center;">
+        <h3 id="mt_payout_title">Matatu payout settings</h3>
+        <button type="button" class="btn ghost tiny" id="mt_payout_close">&times;</button>
+      </div>
+
+      <p class="muted small" id="mt_payout_subtitle" style="margin-top:4px;">
+        Edit where this matatu’s wallet funds are sent (M-PESA / bank).
+      </p>
+
+      <form id="mt_payout_form" class="grid g2" style="margin-top:12px; gap:10px;">
+        <input type="hidden" id="mt_payout_id"/>
+
+        <label>
+          <span class="muted small">Matatu wallet code</span>
+          <input id="mt_payout_wallet_code" type="text" disabled class="mono"/>
+        </label>
+
+        <label>
+          <span class="muted small">Preferred payout method</span>
+          <select id="mt_payout_method">
+            <option value="M_PESA_END_OF_DAY">M-PESA (end of day, free)</option>
+            <option value="M_PESA_INSTANT">M-PESA (instant, charged)</option>
+            <option value="BANK">Bank account (0.5% fee)</option>
+          </select>
+        </label>
+
+        <label>
+          <span class="muted small">Owner M-PESA phone</span>
+          <input id="mt_payout_phone" type="tel" placeholder="07xx xxx xxx"/>
+        </label>
+
+        <div></div>
+
+        <label>
+          <span class="muted small">Bank name (optional)</span>
+          <input id="mt_payout_bank_name" type="text" placeholder="e.g. NCBA Bank"/>
+        </label>
+
+        <label>
+          <span class="muted small">Bank branch</span>
+          <input id="mt_payout_bank_branch" type="text" placeholder="e.g. Upper Hill"/>
+        </label>
+
+        <label>
+          <span class="muted small">Bank account number</span>
+          <input id="mt_payout_bank_acc" type="text" placeholder="1234567890"/>
+        </label>
+
+        <label>
+          <span class="muted small">Bank account name</span>
+          <input id="mt_payout_bank_acc_name" type="text" placeholder="e.g. JOHN DOE"/>
+        </label>
+      </form>
+
+      <div class="row" style="margin-top:12px; justify-content:flex-end; gap:8px;">
+        <button type="button" class="btn ghost" id="mt_payout_cancel">Cancel</button>
+        <button type="button" class="btn" id="mt_payout_save">Save payout settings</button>
+      </div>
+
+      <p id="mt_payout_msg" class="muted small" style="margin-top:6px;"></p>
+    </div>
+  </div>
 
 
   <script>
@@ -972,6 +1245,156 @@
         }
       }
 
+      async function loadBankWithdrawals(status = '') {
+        const tbody = $('bw_list');
+        const msgEl = $('bw_msg');
+        const filterEl = $('bw_filter');
+
+        if (!tbody) return;
+
+        const qs = [];
+        qs.push('method=BANK');
+        if (status) qs.push('status=' + encodeURIComponent(status));
+        const url = '/api/admin/withdrawals' + (qs.length ? ('?' + qs.join('&')) : '');
+
+        tbody.innerHTML = '<tr><td colspan="7" class="muted">Loading bank withdrawals…</td></tr>';
+        if (msgEl){ msgEl.textContent = ''; msgEl.className = 'muted'; }
+
+        try{
+          const res = await jget(url);
+          const items = Array.isArray(res.items) ? res.items : [];
+
+          if (!items.length){
+            tbody.innerHTML = '<tr><td colspan="7" class="muted">No bank withdrawals found for this filter.</td></tr>';
+            if (msgEl){ msgEl.textContent = '0 records'; msgEl.className = 'muted'; }
+            return;
+          }
+
+          tbody.innerHTML = items.map(row => {
+            const created = row.created_at ? new Date(row.created_at).toLocaleString() : '—';
+            const walletCode = row.virtual_account_code || '—';
+            const entityType = (row.entity_type || 'WALLET').toString();
+            const entityId = row.entity_id ? `#${row.entity_id}` : '';
+            const entityLabel = `${entityType}${entityId}`;
+
+            const bankName = row.bank_name || '—';
+            const bankBranch = row.bank_branch || '';
+            const bankAcc = row.bank_account_number || '—';
+            const bankAccName = row.bank_account_name || '';
+            const bankLine1 = `${bankName}${bankBranch ? ' - ' + bankBranch : ''}`;
+            const bankLine2 = `${bankAcc}${bankAccName ? ' · ' + bankAccName : ''}`;
+
+            const netAmount = numberFmt.format(row.amount || 0);
+            const statusTxt = (row.status || 'PENDING').toUpperCase();
+
+            let statusClass = 'pill';
+            if (statusTxt === 'SUCCESS') statusClass = 'pill ok';
+            else if (statusTxt === 'FAILED') statusClass = 'pill err';
+            else if (statusTxt === 'PENDING') statusClass = 'pill';
+            else statusClass = 'pill muted';
+
+            const btns = [];
+            if (statusTxt === 'PENDING') {
+              btns.push(`<button class="btn ghost tiny" data-bw-id="${row.id}" data-bw-status="PROCESSING">Mark processing</button>`);
+              btns.push(`<button class="btn ghost tiny" data-bw-id="${row.id}" data-bw-status="SENT">Mark sent</button>`);
+              btns.push(`<button class="btn ghost tiny" data-bw-id="${row.id}" data-bw-status="FAILED">Mark failed</button>`);
+            } else if (statusTxt === 'PROCESSING' || statusTxt === 'SENT') {
+              btns.push(`<button class="btn tiny" data-bw-id="${row.id}" data-bw-status="SUCCESS">Mark success</button>`);
+              btns.push(`<button class="btn ghost tiny" data-bw-id="${row.id}" data-bw-status="FAILED">Mark failed</button>`);
+            } else if (statusTxt === 'FAILED') {
+              btns.push(`<button class="btn ghost tiny" data-bw-id="${row.id}" data-bw-status="PENDING">Re-open</button>`);
+            }
+
+            return `
+              <tr>
+                <td>${created}</td>
+                <td class="mono">${walletCode}</td>
+                <td>${entityLabel}</td>
+                <td>
+                  <div>${bankLine1}</div>
+                  <div class="muted" style="font-size:11px">${bankLine2}</div>
+                </td>
+                <td class="mono">KES ${netAmount}</td>
+                <td><span class="${statusClass}">${statusTxt}</span></td>
+                <td>${btns.join(' ')}</td>
+              </tr>
+            `;
+          }).join('');
+
+          if (msgEl){
+            msgEl.textContent = `${items.length} record(s)`;
+            msgEl.className = 'muted';
+          }
+          if (filterEl && !status){
+            filterEl.value = '';
+          }
+        }catch(e){
+          tbody.innerHTML = `<tr><td colspan="7" class="err">${parseErr(e)}</td></tr>`;
+          if (msgEl){
+            msgEl.textContent = 'Failed to load withdrawals';
+            msgEl.className = 'err';
+          }
+        }
+      }
+
+      async function loadSmsLog(status = '') {
+        const tbody = $('sms_list');
+        const msgEl = $('sms_msg');
+        const filterEl = $('sms_filter');
+        if (!tbody) return;
+
+        const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+        tbody.innerHTML = '<tr><td colspan="7" class="muted">Loading SMS…</td></tr>';
+        if (msgEl){ msgEl.textContent = ''; msgEl.className = 'muted'; }
+        try{
+          const res = await jget('/api/admin/sms' + qs);
+          const items = Array.isArray(res.items) ? res.items : [];
+          if (!items.length){
+            tbody.innerHTML = '<tr><td colspan="7" class="muted">No SMS records for this filter.</td></tr>';
+            if (msgEl){ msgEl.textContent = '0 records'; msgEl.className = 'muted'; }
+            return;
+          }
+          tbody.innerHTML = items.map(row => {
+            const created = row.created_at ? new Date(row.created_at).toLocaleString() : '—';
+            const status = (row.status || 'PENDING').toUpperCase();
+            let statusClass = 'pill';
+            if (status === 'SENT') statusClass = 'pill ok';
+            else if (status === 'FAILED') statusClass = 'pill err';
+            else if (status === 'SENDING') statusClass = 'pill';
+            else statusClass = 'pill muted';
+            const metaType = row.meta?.type || '';
+            const metaSnippet = metaType ? `type=${metaType}` : '';
+            const retryBtn = status === 'FAILED'
+              ? `<button class="btn ghost tiny" data-sms-retry="${row.id}">Retry</button>`
+              : '';
+            return `
+              <tr>
+                <td>${created}</td>
+                <td class="mono">${row.to_phone || ''}</td>
+                <td><span class="${statusClass}">${status}</span></td>
+                <td class="mono">${row.template_code || ''}</td>
+                <td>${(row.body || '').slice(0,140)}</td>
+                <td class="muted small">${metaSnippet}</td>
+                <td>${retryBtn}</td>
+              </tr>
+            `;
+          }).join('');
+          if (msgEl){
+            msgEl.textContent = `${items.length} record(s)`;
+            msgEl.className = 'muted';
+          }
+          if (filterEl && !status){
+            filterEl.value = '';
+          }
+        }catch(e){
+          tbody.innerHTML = `<tr><td colspan="7" class="err">${parseErr(e)}</td></tr>`;
+          if (msgEl){
+            msgEl.textContent = 'Failed to load SMS';
+            msgEl.className = 'err';
+          }
+        }
+      }
+
       $('logout_btn').addEventListener('click', ()=>{
         logoutAndRedirect({ keepNext:false });
       });
@@ -988,9 +1411,10 @@
               <td>${row.contact_name||''}</td>
               <td>${row.contact_phone||''}</td>
               <td>${row.contact_email||''}</td>
+              <td class="mono">${row.virtual_account_code || ''}</td>
               <td class="mono">${row.id||''}</td>
               <td><button class="btn ghost" data-del-sacco="${row.id}">Delete</button></td>
-            </tr>`).join('') : '<tr><td colspan="6" class="muted">No SACCOs yet</td></tr>';
+            </tr>`).join('') : '<tr><td colspan="7" class="muted">No SACCOs yet</td></tr>';
           populateMatatuSaccoSelect();
           if (state.vehiclesLoaded) renderVehicleTables();
         }catch(e){
@@ -998,7 +1422,7 @@
           populateLoginSelects();
           populateMatatuSaccoSelect();
           if (state.vehiclesLoaded) renderVehicleTables();
-          $('sc_list').innerHTML = `<tr><td colspan="6" class="err">${parseErr(e)}</td></tr>`;
+          $('sc_list').innerHTML = `<tr><td colspan="7" class="err">${parseErr(e)}</td></tr>`;
         }
       }
 
@@ -1009,16 +1433,20 @@
           contact_name: $('sc_contact_name').value.trim(),
           contact_phone: $('sc_phone').value.trim(),
           contact_email: $('sc_email').value.trim(),
-          default_till: $('sc_till').value.trim() || null
+          default_till: $('sc_till').value.trim() || null,
+          settlement_bank_name: $('sc_bank_name').value.trim() || null,
+          settlement_bank_branch: $('sc_bank_branch').value.trim() || null,
+          settlement_account_number: $('sc_bank_acc').value.trim() || null,
+          settlement_account_name: $('sc_bank_acc_name').value.trim() || null
         };
         if (!payload.name){
           msg.className='err'; msg.textContent='SACCO name required'; return;
         }
         try{
-          const sacco = await jpost('/api/admin/register-sacco', payload);
-          msg.className='ok'; msg.textContent='SACCO created';
-          clearInputs(['sc_name','sc_contact_name','sc_phone','sc_email','sc_till']);
-          await loadSaccos();
+            const sacco = await jpost('/api/admin/register-sacco', payload);
+            msg.className='ok'; msg.textContent='SACCO created';
+            clearInputs(['sc_name','sc_contact_name','sc_phone','sc_email','sc_till','sc_bank_name','sc_bank_branch','sc_bank_acc','sc_bank_acc_name']);
+            await loadSaccos();
         }catch(e){
           msg.className='err'; msg.textContent=parseErr(e);
         }
@@ -1076,25 +1504,67 @@
             <td>${row.owner_name||''}</td>
             <td>${row.vehicle_type||''}</td>
             <td>${saccoLabel(row.sacco_id) || 'N/A'}</td>
+            <td class="mono">${row.virtual_account_code || ''}</td>
+            <td>
+              <div class="muted small">M-PESA: ${row.payout_phone || ''}</div>
+              <div class="muted tiny">Pref: ${row.payout_method || 'M_PESA_END_OF_DAY'}</div>
+            </td>
             <td class="mono">${row.id||''}</td>
-            <td><button class="btn ghost" data-del-matatu="${row.id}">Delete</button></td>
-          </tr>`).join('') : '<tr><td colspan="6" class="muted">No matatus yet</td></tr>';
+            <td>
+              <button class="btn ghost tiny" data-edit-payout="${row.id}">Edit payout</button>
+              <button class="btn ghost tiny" data-del-matatu="${row.id}">Delete</button>
+            </td>
+          </tr>`).join('') : '<tr><td colspan="8" class="muted">No matatus yet</td></tr>';
 
         $('taxi_list').innerHTML = taxis.length ? taxis.map(row=>`
           <tr>
             <td>${row.number_plate||''}</td>
             <td>${saccoLabel(row.sacco_id) || 'N/A'}</td>
+            <td class="mono">${row.virtual_account_code || ''}</td>
+            <td>
+              <div class="muted small">M-PESA: ${row.payout_phone || ''}</div>
+              <div class="muted tiny">Pref: ${row.payout_method || 'M_PESA_END_OF_DAY'}</div>
+            </td>
             <td class="mono">${row.id||''}</td>
             <td><button class="btn ghost" data-del-matatu="${row.id}">Delete</button></td>
-          </tr>`).join('') : '<tr><td colspan="4" class="muted">No taxis yet</td></tr>';
+          </tr>`).join('') : '<tr><td colspan="6" class="muted">No taxis yet</td></tr>';
 
         $('boda_list').innerHTML = bodas.length ? bodas.map(row=>`
           <tr>
             <td>${row.number_plate||''}</td>
             <td>${saccoLabel(row.sacco_id) || 'N/A'}</td>
+            <td class="mono">${row.virtual_account_code || ''}</td>
+            <td>
+              <div class="muted small">M-PESA: ${row.payout_phone || ''}</div>
+              <div class="muted tiny">Pref: ${row.payout_method || 'M_PESA_END_OF_DAY'}</div>
+            </td>
             <td class="mono">${row.id||''}</td>
             <td><button class="btn ghost" data-del-matatu="${row.id}">Delete</button></td>
-          </tr>`).join('') : '<tr><td colspan="4" class="muted">No boda bodas yet</td></tr>';
+          </tr>`).join('') : '<tr><td colspan="6" class="muted">No boda bodas yet</td></tr>';
+      }
+
+      function openMatatuPayoutModal(matatuRow){
+        if (!matatuRow) return;
+        $('mt_payout_id').value = matatuRow.id || '';
+        $('mt_payout_wallet_code').value = matatuRow.virtual_account_code || '';
+        $('mt_payout_phone').value = matatuRow.payout_phone || '';
+        $('mt_payout_method').value = matatuRow.payout_method || 'M_PESA_END_OF_DAY';
+        $('mt_payout_bank_name').value = matatuRow.payout_bank_name || '';
+        $('mt_payout_bank_branch').value = matatuRow.payout_bank_branch || '';
+        $('mt_payout_bank_acc').value = matatuRow.payout_bank_account_number || '';
+        $('mt_payout_bank_acc_name').value = matatuRow.payout_bank_account_name || '';
+        $('mt_payout_msg').textContent = '';
+        const plate = matatuRow.number_plate || '';
+        $('mt_payout_subtitle').textContent = plate
+          ? `Edit payout settings for ${plate} (${matatuRow.virtual_account_code || 'no wallet code'})`
+          : `Edit payout settings for wallet ${matatuRow.virtual_account_code || ''}`;
+        $('mt_payout_modal_backdrop')?.classList.remove('hidden');
+        $('mt_payout_modal')?.classList.remove('hidden');
+      }
+
+      function closeMatatuPayoutModal(){
+        $('mt_payout_modal_backdrop')?.classList.add('hidden');
+        $('mt_payout_modal')?.classList.add('hidden');
       }
 
             // Delete handlers (event delegation)
@@ -1113,8 +1583,59 @@
           if (id && confirm('Delete this vehicle? This cannot be undone.')){
             try{ await jdel(`/api/admin/delete-matatu/${id}`); await loadVehicles(); toast('Vehicle deleted'); }catch(e){ alert(parseErr(e)); }
           }
+           return;
+         }
+         const payoutBtn = event.target.closest('button[data-edit-payout]');
+         if (payoutBtn){
+           const id = payoutBtn.getAttribute('data-edit-payout');
+           const row = (state.vehicles||[]).find(v => String(v.id) === String(id));
+           if (!row){
+             toast('Matatu not found', 'err');
+             return;
+           }
+           openMatatuPayoutModal(row);
+           return;
+         }
+          const bwBtn = event.target.closest('button[data-bw-id]');
+          if (bwBtn){
+            const id = bwBtn.getAttribute('data-bw-id');
+            const nextStatus = bwBtn.getAttribute('data-bw-status');
+            if (!id || !nextStatus) return;
+           if (!confirm(`Change withdrawal ${id} status to ${nextStatus}?`)) return;
+           bwBtn.disabled = true;
+           try{
+             await jpost(`/api/admin/withdrawals/${encodeURIComponent(id)}/status`, {
+               status: nextStatus,
+               internalNote: 'Status updated from System Admin dashboard',
+             });
+             toast('Withdrawal updated', 'ok');
+             const filter = document.getElementById('bw_filter');
+             const current = filter ? (filter.value || '') : '';
+             await loadBankWithdrawals(current);
+           }catch(e){
+            toast(parseErr(e), 'err');
+          }finally{
+            bwBtn.disabled = false;
+          }
         }
-      });async function loadVehicles(){
+        const smsRetry = event.target.closest('button[data-sms-retry]');
+        if (smsRetry){
+          const id = smsRetry.getAttribute('data-sms-retry');
+          if (!id) return;
+          smsRetry.disabled = true;
+          try{
+            await jpost(`/api/admin/sms/${encodeURIComponent(id)}/retry`, {});
+            toast('SMS queued for retry', 'ok');
+            const current = (smsFilter && smsFilter.value) || '';
+            await loadSmsLog(current);
+          }catch(e){
+            toast(parseErr(e), 'err');
+          }finally{
+            smsRetry.disabled = false;
+          }
+        }
+      });
+      async function loadVehicles(){
         try{
           const data = await jget('/api/admin/matatus');
           state.vehicles = Array.isArray(data.items) ? data.items : [];
@@ -1126,8 +1647,8 @@
           state.vehicles = [];
           state.vehiclesLoaded = false;
           populateLoginSelects();
-          const errMatatu = `<tr><td colspan="6" class="err">${parseErr(e)}</td></tr>`;
-          const errVehicle = `<tr><td colspan="4" class="err">${parseErr(e)}</td></tr>`;
+          const errMatatu = `<tr><td colspan="8" class="err">${parseErr(e)}</td></tr>`;
+          const errVehicle = `<tr><td colspan="6" class="err">${parseErr(e)}</td></tr>`;
           $('mt_list').innerHTML = errMatatu;
           $('taxi_list').innerHTML = errVehicle;
           $('boda_list').innerHTML = errVehicle;
@@ -1209,6 +1730,12 @@
         const phoneEl = cfg.phoneId ? $(cfg.phoneId) : null;
         const tillEl = cfg.tillId ? $(cfg.tillId) : null;
         const bodyEl = cfg.bodyId ? $(cfg.bodyId) : null;
+        const payoutPhoneEl = cfg.payoutPhoneId ? $(cfg.payoutPhoneId) : null;
+        const payoutMethodEl = cfg.payoutMethodId ? $(cfg.payoutMethodId) : null;
+        const bankNameEl = cfg.bankNameId ? $(cfg.bankNameId) : null;
+        const bankBranchEl = cfg.bankBranchId ? $(cfg.bankBranchId) : null;
+        const bankAccEl = cfg.bankAccId ? $(cfg.bankAccId) : null;
+        const bankAccNameEl = cfg.bankAccNameId ? $(cfg.bankAccNameId) : null;
 
         const number_plate = (plateEl?.value || '').trim().toUpperCase();
         const saccoValue = (saccoEl?.value || '').trim();
@@ -1217,6 +1744,12 @@
         const owner_name = ownerEl ? ownerEl.value.trim() : '';
         const owner_phone = phoneEl ? phoneEl.value.trim() : '';
         const till_number = tillEl ? tillEl.value.trim() : '';
+        const payout_phone = payoutPhoneEl ? payoutPhoneEl.value.trim() : '';
+        const payout_method = payoutMethodEl ? payoutMethodEl.value : '';
+        const payout_bank_name = bankNameEl ? bankNameEl.value.trim() : '';
+        const payout_bank_branch = bankBranchEl ? bankBranchEl.value.trim() : '';
+        const payout_bank_account_number = bankAccEl ? bankAccEl.value.trim() : '';
+        const payout_bank_account_name = bankAccNameEl ? bankAccNameEl.value.trim() : '';
 
         if (!number_plate){
           msgEl.className = 'err';
@@ -1235,6 +1768,12 @@
           owner_name: owner_name || null,
           owner_phone: owner_phone || null,
           till_number: till_number || null,
+          payout_phone: payout_phone || null,
+          payout_method: payout_method || null,
+          payout_bank_name: payout_bank_name || null,
+          payout_bank_branch: payout_bank_branch || null,
+          payout_bank_account_number: payout_bank_account_number || null,
+          payout_bank_account_name: payout_bank_account_name || null,
           // For matatus, use body type (VAN / MINI_BUS / BUS) when provided.
           // For TAXI / BODABODA, keep their explicit type.
           vehicle_type: bodyType || cfg.type,
@@ -1271,7 +1810,14 @@
           saccoId:'mt_sacco',
           msgId:'mt_msg',
           successLabel:'Matatu',
-          clearIds:['mt_plate','mt_owner','mt_phone','mt_till','mt_sacco','mt_body_type'], bodyId:'mt_body_type'
+          clearIds:['mt_plate','mt_owner','mt_phone','mt_till','mt_sacco','mt_body_type','mt_payout_phone','mt_payout_method','mt_bank_name','mt_bank_branch','mt_bank_acc','mt_bank_acc_name'],
+          bodyId:'mt_body_type',
+          payoutPhoneId:'mt_payout_phone',
+          payoutMethodId:'mt_payout_method',
+          bankNameId:'mt_bank_name',
+          bankBranchId:'mt_bank_branch',
+          bankAccId:'mt_bank_acc',
+          bankAccNameId:'mt_bank_acc_name'
         });
       });
 
@@ -1286,7 +1832,13 @@
           msgId:'taxi_msg',
           successLabel:'Taxi',
           requireSacco:false,
-          clearIds:['taxi_plate','taxi_owner','taxi_phone','taxi_till','taxi_sacco']
+          clearIds:['taxi_plate','taxi_owner','taxi_phone','taxi_till','taxi_sacco','taxi_payout_phone','taxi_payout_method','taxi_bank_name','taxi_bank_branch','taxi_bank_acc','taxi_bank_acc_name'],
+          payoutPhoneId:'taxi_payout_phone',
+          payoutMethodId:'taxi_payout_method',
+          bankNameId:'taxi_bank_name',
+          bankBranchId:'taxi_bank_branch',
+          bankAccId:'taxi_bank_acc',
+          bankAccNameId:'taxi_bank_acc_name'
         });
       });
 
@@ -1301,7 +1853,13 @@
           msgId:'boda_msg',
           successLabel:'Boda boda',
           requireSacco:false,
-          clearIds:['boda_plate','boda_owner','boda_phone','boda_till','boda_sacco']
+          clearIds:['boda_plate','boda_owner','boda_phone','boda_till','boda_sacco','boda_payout_phone','boda_payout_method','boda_bank_name','boda_bank_branch','boda_bank_acc','boda_bank_acc_name'],
+          payoutPhoneId:'boda_payout_phone',
+          payoutMethodId:'boda_payout_method',
+          bankNameId:'boda_bank_name',
+          bankBranchId:'boda_bank_branch',
+          bankAccId:'boda_bank_acc',
+          bankAccNameId:'boda_bank_acc_name'
         });
       });
       function renderLoginTable(){
@@ -2134,6 +2692,101 @@
         });
       }
 
+      document.addEventListener('click', async (event) => {
+        const btn = event.target.closest('button[data-bw-id]');
+        if (!btn) return;
+        const id = btn.getAttribute('data-bw-id');
+        const nextStatus = btn.getAttribute('data-bw-status');
+        if (!id || !nextStatus) return;
+        if (!confirm(`Change withdrawal ${id} status to ${nextStatus}?`)) return;
+        btn.disabled = true;
+        try{
+          await jpost(`/api/admin/withdrawals/${encodeURIComponent(id)}/status`, {
+            status: nextStatus,
+            internalNote: 'Status updated from System Admin dashboard',
+          });
+          toast('Withdrawal updated', 'ok');
+          const filter = document.getElementById('bw_filter');
+          const current = filter ? (filter.value || '') : '';
+          await loadBankWithdrawals(current);
+        }catch(e){
+          toast(parseErr(e), 'err');
+        }finally{
+          btn.disabled = false;
+        }
+      });
+
+      const bwFilter = $('bw_filter');
+      if (bwFilter){
+        bwFilter.addEventListener('change', ()=>{
+          const val = bwFilter.value || '';
+          loadBankWithdrawals(val);
+        });
+      }
+      const bwRefresh = $('bw_refresh');
+      if (bwRefresh){
+        bwRefresh.addEventListener('click', ()=>{
+          const val = (bwFilter && bwFilter.value) || '';
+          loadBankWithdrawals(val);
+        });
+      }
+
+      const mtPayoutClose = $('mt_payout_close');
+      const mtPayoutCancel = $('mt_payout_cancel');
+      if (mtPayoutClose) mtPayoutClose.addEventListener('click', closeMatatuPayoutModal);
+      if (mtPayoutCancel) mtPayoutCancel.addEventListener('click', closeMatatuPayoutModal);
+      const mtBackdrop = $('mt_payout_modal_backdrop');
+      if (mtBackdrop){
+        mtBackdrop.addEventListener('click', closeMatatuPayoutModal);
+      }
+      const mtPayoutSave = $('mt_payout_save');
+      if (mtPayoutSave){
+        mtPayoutSave.addEventListener('click', async ()=>{
+          const id = $('mt_payout_id').value;
+          if (!id){
+            $('mt_payout_msg').textContent = 'Missing matatu id.';
+            $('mt_payout_msg').className = 'err small';
+            return;
+          }
+          const payload = {
+            payout_phone: $('mt_payout_phone').value.trim(),
+            payout_method: $('mt_payout_method').value,
+            payout_bank_name: $('mt_payout_bank_name').value.trim(),
+            payout_bank_branch: $('mt_payout_bank_branch').value.trim(),
+            payout_bank_account_number: $('mt_payout_bank_acc').value.trim(),
+            payout_bank_account_name: $('mt_payout_bank_acc_name').value.trim(),
+          };
+          try{
+            mtPayoutSave.disabled = true;
+            $('mt_payout_msg').textContent = 'Saving…';
+            $('mt_payout_msg').className = 'muted small';
+            await jpost(`/api/admin/matatus/${encodeURIComponent(id)}/payout`, payload);
+            $('mt_payout_msg').textContent = 'Saved. Refreshing matatus…';
+            $('mt_payout_msg').className = 'ok small';
+            if (typeof loadVehicles === 'function'){
+              await loadVehicles();
+            }
+            closeMatatuPayoutModal();
+            toast('Payout settings updated', 'ok');
+          }catch(e){
+            const msg = parseErr(e);
+            $('mt_payout_msg').textContent = msg;
+            $('mt_payout_msg').className = 'err small';
+          }finally{
+            mtPayoutSave.disabled = false;
+          }
+        });
+      }
+
+      const smsFilter = $('sms_filter');
+      const smsRefresh = $('sms_refresh');
+      if (smsFilter){
+        smsFilter.addEventListener('change', ()=> loadSmsLog(smsFilter.value || ''));
+      }
+      if (smsRefresh){
+        smsRefresh.addEventListener('click', ()=> loadSmsLog((smsFilter && smsFilter.value) || ''));
+      }
+
       try{
         await ensureSession();
         await Promise.all([
@@ -2148,6 +2801,8 @@
           loadRouteUsage(),
           loadRoutesMap()
         ]);
+        await loadBankWithdrawals();
+        await loadSmsLog();
       }catch(_){}
     }
     safeInit();

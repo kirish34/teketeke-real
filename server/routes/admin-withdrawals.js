@@ -6,7 +6,7 @@ const { requireAdminAccess } = require('../middleware/admin-access');
 router.use(requireAdminAccess);
 
 // List withdrawals (default BANK; filter by status)
-router.get('/admin/withdrawals', async (req, res) => {
+router.get('/withdrawals', async (req, res) => {
   const { method = 'BANK', status } = req.query;
   const params = [method];
   let where = 'wdr.method = $1';
@@ -38,7 +38,7 @@ router.get('/admin/withdrawals', async (req, res) => {
 });
 
 // Update withdrawal status (for finance/manual processing)
-router.post('/admin/withdrawals/:id/status', async (req, res) => {
+router.post('/withdrawals/:id/status', async (req, res) => {
   const { id } = req.params;
   const { status, internalNote } = req.body || {};
   const allowed = ['PENDING', 'PROCESSING', 'SENT', 'SUCCESS', 'FAILED'];

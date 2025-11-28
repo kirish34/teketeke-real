@@ -220,6 +220,42 @@ label{font-size:12px;font-weight:600;color:var(--muted);display:flex;flex-direct
   box-shadow:0 0 0 1px var(--brand);
   background:#eff6ff;
 }
+.modal-backdrop{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.3);
+  z-index:90;
+}
+.modal{
+  position:fixed;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:100;
+}
+.modal-card{
+  max-width:640px;
+  width:100%;
+}
+.modal-backdrop{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.3);
+  z-index:90;
+}
+.modal{
+  position:fixed;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:100;
+}
+.modal-card{
+  max-width:640px;
+  width:100%;
+}
 .route-tile .title{
   font-weight:600;
   margin-bottom:4px;

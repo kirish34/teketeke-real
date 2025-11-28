@@ -302,6 +302,10 @@ async function upsertUserRole({ user_id, role, sacco_id = null, matatu_id = null
 
 router.post('/register-sacco', async (req,res)=>{
   const row = { name: req.body?.name, contact_name: req.body?.contact_name, contact_phone: req.body?.contact_phone, contact_email: req.body?.contact_email, default_till: req.body?.default_till };
+  row.settlement_bank_name = req.body?.settlement_bank_name || null;
+  row.settlement_bank_branch = req.body?.settlement_bank_branch || null;
+  row.settlement_account_number = req.body?.settlement_account_number || null;
+  row.settlement_account_name = req.body?.settlement_account_name || null;
   if(!row.name) return res.status(400).json({error:'name required'});
   const loginEmail = (req.body?.login_email || '').trim();
   const loginPassword = req.body?.login_password || '';
@@ -365,7 +369,13 @@ router.post('/register-matatu', async (req,res)=>{
     owner_phone: req.body?.owner_phone,
     vehicle_type: vehicleType,
     tlb_number: req.body?.tlb_number,
-    till_number: req.body?.till_number
+    till_number: req.body?.till_number,
+    payout_phone: req.body?.payout_phone || null,
+    payout_method: req.body?.payout_method || null,
+    payout_bank_name: req.body?.payout_bank_name || null,
+    payout_bank_branch: req.body?.payout_bank_branch || null,
+    payout_bank_account_number: req.body?.payout_bank_account_number || null,
+    payout_bank_account_name: req.body?.payout_bank_account_name || null
   };
   if(!row.number_plate) return res.status(400).json({error:'number_plate required'});
   const needsSacco = vehicleType !== 'TAXI' && vehicleType !== 'BODABODA';
@@ -391,6 +401,13 @@ router.post('/update-matatu', async (req,res)=>{
   const { id, ...rest } = req.body||{};
   if(!id) return res.status(400).json({error:'id required'});
   if (rest.number_plate) rest.number_plate = String(rest.number_plate).toUpperCase();
+  // allow payout fields
+  rest.payout_phone = rest.payout_phone || null;
+  rest.payout_method = rest.payout_method || null;
+  rest.payout_bank_name = rest.payout_bank_name || null;
+  rest.payout_bank_branch = rest.payout_bank_branch || null;
+  rest.payout_bank_account_number = rest.payout_bank_account_number || null;
+  rest.payout_bank_account_name = rest.payout_bank_account_name || null;
   const { data, error } = await supabaseAdmin.from('matatus').update(rest).eq('id',id).select().single();
   if (error) return res.status(500).json({ error: error.message });
   res.json(data);

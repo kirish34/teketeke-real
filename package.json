@@ -8,7 +8,8 @@
     "start": "node server/server.js",
     "test": "node -e \"console.log('no tests yet')\"",
     "migrate": "node scripts/migrate.js",
-    "backfill:wallets": "node scripts/backfillWallets.js"
+    "backfill:wallets": "node scripts/backfillWallets.js",
+    "sms:run": "node sms-runner.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",

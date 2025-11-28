@@ -2,6 +2,10 @@
 // Handles wallet balance updates and transaction history.
 const pool = require('../db/pool');
 const { generateVirtualAccountCode } = require('./wallet.utils');
+const {
+  calculateBankWithdrawalFee,
+  calculateMobileWithdrawalFee,
+} = require('./fees.service');
 
 /**
  * Credit a wallet by virtualAccountCode.
@@ -540,6 +544,126 @@ async function registerWalletForEntity({ entityType, entityId, numericRef }) {
 }
 
 /**
+ * Create a MOBILE (M-PESA) withdrawal with tiered fees and optional free end-of-day mode.
+ */
+async function createMobileWithdrawal({
+  virtualAccountCode,
+  amount,
+  phoneNumber,
+  payoutMode = 'INSTANT',
+}) {
+  if (!virtualAccountCode) throw new Error('virtualAccountCode is required');
+  if (!amount || Number(amount) <= 0) throw new Error('amount must be > 0');
+  if (!phoneNumber) throw new Error('phoneNumber is required');
+
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const wRes = await client.query(
+      `
+        SELECT id, balance
+        FROM wallets
+        WHERE virtual_account_code = $1
+        FOR UPDATE
+      `,
+      [virtualAccountCode]
+    );
+
+    if (wRes.rows.length === 0) {
+      throw new Error(`Wallet not found for virtualAccountCode=${virtualAccountCode}`);
+    }
+
+    const wallet = wRes.rows[0];
+    const balanceBefore = Number(wallet.balance);
+    const grossAmount = Number(amount);
+
+    if (balanceBefore < grossAmount) {
+      throw new Error('Insufficient wallet balance');
+    }
+
+    const feeAmount = calculateMobileWithdrawalFee(grossAmount, payoutMode);
+    const netPayout = grossAmount - feeAmount;
+    if (netPayout <= 0) throw new Error('Net payout must be > 0');
+
+    const balanceAfter = balanceBefore - grossAmount;
+
+    await client.query(
+      `
+        UPDATE wallets
+        SET balance = $1
+        WHERE id = $2
+      `,
+      [balanceAfter, wallet.id]
+    );
+
+    await client.query(
+      `
+        INSERT INTO wallet_transactions
+          (wallet_id, tx_type, amount, balance_before, balance_after, source, source_ref, description)
+        VALUES
+          ($1, 'DEBIT', $2, $3, $4, $5, $6, $7)
+      `,
+      [
+        wallet.id,
+        grossAmount,
+        balanceBefore,
+        balanceAfter,
+        'WITHDRAWAL_MOBILE',
+        null,
+        payoutMode === 'END_OF_DAY'
+          ? `Scheduled end-of-day M-PESA withdrawal to ${phoneNumber} (no fee)`
+          : `Instant M-PESA withdrawal to ${phoneNumber} (fee ${feeAmount} KES)`,
+      ]
+    );
+
+    const wdRes = await client.query(
+      `
+        INSERT INTO withdrawals
+          (wallet_id, amount, phone_number, status, method,
+           bank_name, bank_branch, bank_account_number, bank_account_name,
+           failure_reason, mpesa_transaction_id, mpesa_conversation_id,
+           mpesa_response, internal_note)
+        VALUES
+          ($1, $2, $3, 'PENDING', 'M_PESA',
+           null, null, null, null,
+           null, null, null,
+           null, $4)
+        RETURNING id, created_at
+      `,
+      [
+        wallet.id,
+        netPayout,
+        phoneNumber,
+        payoutMode === 'END_OF_DAY'
+          ? 'End-of-day payout: 0 KES fee'
+          : `Instant payout fee: ${feeAmount} KES (tiered)`,
+      ]
+    );
+
+    await client.query('COMMIT');
+
+    return {
+      withdrawalId: wdRes.rows[0].id,
+      walletId: wallet.id,
+      grossAmount,
+      feeAmount,
+      netPayout,
+      payoutMode,
+      balanceBefore,
+      balanceAfter,
+    };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Error in createMobileWithdrawal:', err.message);
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+/**
  * Create a BANK withdrawal: debit wallet and create pending withdrawal record.
  */
 async function createBankWithdrawal({
@@ -549,7 +673,6 @@ async function createBankWithdrawal({
   bankBranch,
   bankAccountNumber,
   bankAccountName,
-  feePercent = 0.01,
 }) {
   if (!virtualAccountCode) throw new Error('virtualAccountCode is required');
   if (!amount || Number(amount) <= 0) throw new Error('amount must be > 0');
@@ -577,7 +700,7 @@ async function createBankWithdrawal({
     const grossAmount = Number(amount);
     if (balanceBefore < grossAmount) throw new Error('Insufficient wallet balance');
 
-    const feeAmount = feePercent > 0 ? grossAmount * feePercent : 0;
+    const feeAmount = calculateBankWithdrawalFee(grossAmount);
     const netPayout = grossAmount - feeAmount;
     if (netPayout <= 0) throw new Error('Net payout must be > 0');
 
@@ -620,7 +743,15 @@ async function createBankWithdrawal({
            null, null)
         RETURNING id, created_at
       `,
-      [wallet.id, netPayout, bankName, bankBranch || null, bankAccountNumber, bankAccountName]
+      [
+        wallet.id,
+        netPayout,
+        bankName,
+        bankBranch || null,
+        bankAccountNumber,
+        bankAccountName,
+        `Fee charged: ${feeAmount.toFixed(2)} KES (0.5%)`,
+      ]
     );
 
     const withdrawal = wdRes.rows[0];
@@ -652,5 +783,6 @@ module.exports = {
   getWalletTransactions,
   creditFareWithFees,
   createBankWithdrawal,
+  createMobileWithdrawal,
   registerWalletForEntity,
 };

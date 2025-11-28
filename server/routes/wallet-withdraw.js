@@ -4,6 +4,7 @@ const router = express.Router();
 const { requireAdminAccess } = require('../middleware/admin-access');
 const {
   debitWalletAndCreateWithdrawal,
+  createMobileWithdrawal,
   createBankWithdrawal,
   getWalletByVirtualAccountCode,
   getWalletTransactions,
@@ -57,18 +58,19 @@ router.get('/wallets/:virtualAccountCode/transactions', async (req, res) => {
  */
 router.post('/wallets/:virtualAccountCode/withdraw', async (req, res) => {
   const { virtualAccountCode } = req.params;
-  const { amount, phoneNumber } = req.body || {};
+  const { amount, phoneNumber, payoutMode } = req.body || {};
 
   try {
-    const withdrawalData = await debitWalletAndCreateWithdrawal({
+    const withdrawalData = await createMobileWithdrawal({
       virtualAccountCode,
       amount,
       phoneNumber,
+      payoutMode: payoutMode || 'INSTANT',
     });
 
     const b2cResult = await sendB2CPayment({
       withdrawalId: withdrawalData.withdrawalId,
-      amount,
+      amount: withdrawalData.netPayout,
       phoneNumber,
     });
 
