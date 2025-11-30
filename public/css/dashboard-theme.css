@@ -176,6 +176,9 @@ label{font-size:12px;font-weight:600;color:var(--muted);display:flex;flex-direct
   color:#fff;
   border-color:rgba(255,255,255,.35);
 }
+.pill.warn{background:#fff7ed;color:var(--warn);border-color:var(--warn);}
+.pill.bad{background:#fef2f2;color:var(--bad);border-color:var(--bad);}
+.pill.ok{background:#f0fdf4;color:var(--ok);border-color:var(--ok);}
 .muted{color:var(--muted)}
 .hint{font-size:12px;color:var(--muted)}
 .note{
@@ -370,6 +373,20 @@ th{background:#e0f2fe;color:#0f172a;font-weight:700}
 .grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
 .grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
 .grid-4{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.hero-branding{display:flex;align-items:center;gap:12px}
+.hero-logo{width:56px;height:56px;border-radius:16px;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 36px rgba(0,0,0,.16);overflow:hidden}
+.hero-logo img{width:40px;height:40px;object-fit:contain}
+.settings-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.settings-card{border:1px solid var(--border);padding:14px;border-radius:12px;background:#f8fafc}
+.settings-card label{display:block;font-weight:600;margin-bottom:4px}
+.settings-card input{width:100%;padding:10px;border-radius:10px;border:1px solid var(--border);font-size:14px}
+.alert-list{display:flex;flex-direction:column;gap:10px}
+.alert-card{border:1px solid var(--border);border-radius:12px;padding:12px;background:#fff;display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.alert-info{color:var(--ink);margin:0}
+.alert-meta{font-size:12px;color:var(--muted)}
+.audit-table{width:100%;border-collapse:collapse}
+.audit-table th,.audit-table td{padding:10px;border-bottom:1px solid var(--border);text-align:left;font-size:14px}
+.audit-table th{background:#f8fafc;font-weight:700}
 form{display:contents}
 @media (max-width:640px){
   .hero-card{
