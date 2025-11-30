@@ -10,7 +10,6 @@ const rateLimit = require('express-rate-limit');
 const app = express();
 app.set('trust proxy', 1);
 app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ extended: false }));
 
 // CORS (whitelist via CORS_ORIGINS="https://app1,https://app2")
 const allow = (process.env.CORS_ORIGINS || '')
@@ -58,10 +57,9 @@ app.use('/api/admin', require('./routes/admin-withdrawals'));
 app.use('/api/admin', require('./routes/admin-matatu-payout'));
 app.use('/api/admin', require('./routes/admin-vehicle-payout'));
 app.use('/api/admin', require('./routes/admin-sms'));
-app.use('/ussd', require('./routes/ussd'));
 app.use('/', require('./routes/sacco'));
 
-// health (works on Vercel via rewrite /healthz -> /api/index.js)
+// health (works on Vercel via rewrite /healthz → /api/index.js)
 app.get(['/healthz','/api/healthz'], (_req,res)=>res.json({ ok:true, mode:'real' }));
 
 // local only (guard for Vercel)

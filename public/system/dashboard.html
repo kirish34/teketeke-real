@@ -15,14 +15,9 @@
 </head>
 <body>
     <div class="topbar hero-card">
-    <div class="hero-branding">
-      <div class="hero-logo">
-        <img src="/public/icons/icon-192.png" alt="Sky Yalla logo"/>
-      </div>
-      <div class="hero-stack">
-        <h2>System Admin</h2>
-        <p class="muted" style="margin:4px 0 0">Central oversight for every fleet.</p>
-      </div>
+    <div class="hero-stack">
+      <h2>System Admin</h2>
+      <p class="muted" style="margin:4px 0 0">Central oversight for every fleet.</p>
     </div>
     <div class="hero-actions">
       <span id="sess_badge" class="pill">Checking session???</span>
@@ -33,9 +28,6 @@
   <div class="tabs" role="tablist" aria-label="Sections">
     <div class="tab active" data-id="overview" role="tab" aria-selected="true">Overview</div>
     <div class="tab" data-id="finance" role="tab" aria-selected="false">Finance</div>
-    <div class="tab" data-id="settings" role="tab" aria-selected="false">Settings</div>
-    <div class="tab" data-id="alerts" role="tab" aria-selected="false">Alerts</div>
-    <div class="tab" data-id="audit" role="tab" aria-selected="false">Audit</div>
     <div class="tab" data-id="saccos" role="tab" aria-selected="false">SACCOs</div>
     <div class="tab" data-id="matatus" role="tab" aria-selected="false">Matatu</div>
     <div class="tab" data-id="taxis" role="tab" aria-selected="false">Taxis</div>
@@ -244,94 +236,6 @@
           </thead>
           <tbody id="bw_list">
             <tr><td colspan="7" class="muted">Loading…</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </section>
-
-  <section id="settings" class="panel" aria-labelledby="tab_settings">
-    <div class="card">
-      <h3>Platform settings</h3>
-      <p class="muted" style="margin:4px 0 12px">Fees, payout limits, and alert thresholds. Numbers are in KES unless noted.</p>
-      <div class="settings-grid">
-        <div class="settings-card">
-          <label for="settings_platform_fee">Platform fee (%)</label>
-          <input id="settings_platform_fee" type="number" step="0.01" min="0" />
-          <p class="muted small" style="margin-top:6px">Applied on fares platform-wide.</p>
-        </div>
-        <div class="settings-card">
-          <label for="settings_sacco_fee">SACCO fee (%)</label>
-          <input id="settings_sacco_fee" type="number" step="0.01" min="0" />
-          <p class="muted small" style="margin-top:6px">Default SACCO fee if not overridden.</p>
-        </div>
-        <div class="settings-card">
-          <label for="settings_min_payout">Min payout (KES)</label>
-          <input id="settings_min_payout" type="number" min="0" />
-          <p class="muted small" style="margin-top:6px">Smallest withdrawal we allow.</p>
-        </div>
-        <div class="settings-card">
-          <label for="settings_max_payout">Max payout (KES)</label>
-          <input id="settings_max_payout" type="number" min="0" />
-          <p class="muted small" style="margin-top:6px">Single transfer ceiling.</p>
-        </div>
-        <div class="settings-card">
-          <label for="settings_low_balance">Alert: low system balance (KES)</label>
-          <input id="settings_low_balance" type="number" min="0" />
-          <p class="muted small" style="margin-top:6px">Raise warning when the system wallet dips below this.</p>
-        </div>
-      </div>
-      <div class="row" style="margin-top:12px; justify-content:flex-end; gap:8px;">
-        <button id="settings_reset_btn" class="btn ghost" type="button">Reset</button>
-        <button id="settings_save_btn" class="btn" type="button">Save settings</button>
-      </div>
-      <p id="settings_msg" class="muted small" style="margin-top:6px"></p>
-    </div>
-  </section>
-
-  <section id="alerts" class="panel" aria-labelledby="tab_alerts">
-    <div class="card">
-      <div class="row section-title">
-        <div>
-          <h3>System alerts</h3>
-          <p class="muted small" style="margin:4px 0 0">Failed payouts, low balances, and other warnings.</p>
-        </div>
-        <div class="row" style="gap:8px; align-items:center">
-          <label class="muted small">
-            Status:
-            <select id="alerts_filter" style="margin-left:4px">
-              <option value="">All</option>
-              <option value="OPEN" selected>Open</option>
-              <option value="RESOLVED">Resolved</option>
-            </select>
-          </label>
-          <button id="alerts_refresh" class="btn ghost" type="button">Refresh</button>
-        </div>
-      </div>
-      <div id="alerts_list" class="alert-list"></div>
-      <p id="alerts_empty" class="muted">No alerts to show.</p>
-    </div>
-  </section>
-
-  <section id="audit" class="panel" aria-labelledby="tab_audit">
-    <div class="card">
-      <div class="row section-title">
-        <h3>Admin audit log</h3>
-        <button id="audit_refresh" class="btn ghost" type="button">Refresh</button>
-      </div>
-      <div class="table-wrap">
-        <table class="audit-table">
-          <thead>
-            <tr>
-              <th>When</th>
-              <th>User</th>
-              <th>Action</th>
-              <th>Path</th>
-              <th>Details</th>
-            </tr>
-          </thead>
-          <tbody id="audit_table_body">
-            <tr><td colspan="5" class="muted">Loading audit log...</td></tr>
           </tbody>
         </table>
       </div>
@@ -940,11 +844,7 @@
         ussdAllocated: [],
         logins: [],
         loginBeingEdited: null,
-        finance: { today: null, week: null, month: null },
-        settings: null,
-        alerts: [],
-        alertFilter: 'OPEN',
-        auditLogs: []
+        finance: { today: null, week: null, month: null }
       };
       let sysRoutes = [];
       let adminRoutesForSacco = [];
@@ -963,14 +863,12 @@
       };
       const numberFmt = new Intl.NumberFormat('en-KE');
       const kesFmt = (v) => 'KES ' + numberFmt.format(v || 0);
-      const dateTimeFmt = (iso) => iso ? new Date(iso).toLocaleString('en-KE', { hour12: false }) : '-';
 
       const parseErr = (err) => {
         if (!err) return 'Unknown error';
         if (typeof err === 'string') { try { const obj = JSON.parse(err); return obj.error || obj.message || err; } catch { return err; } }
         return err.error || err.message || String(err);
       };
-      const esc = (val) => String(val ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 
       const toast = (text, type='ok')=>{
         const t = document.getElementById('toast') || (()=>{
@@ -1187,160 +1085,6 @@
           $('fin_month_sacco').textContent = kesFmt(month.sacco_fee_income || 0);
           $('fin_month_tt').textContent = kesFmt(month.platform_fee_income || 0);
         }
-      }
-
-      function renderPlatformSettings(meta = {}) {
-        const s = state.settings || {};
-        const setVal = (id, val) => { const el = $(id); if (el) el.value = val ?? ''; };
-        setVal('settings_platform_fee', s.fees?.platform_fee_pct);
-        setVal('settings_sacco_fee', s.fees?.sacco_fee_pct);
-        setVal('settings_min_payout', s.payout?.min_payout_kes);
-        setVal('settings_max_payout', s.payout?.max_payout_kes);
-        setVal('settings_low_balance', s.alerts?.low_balance_threshold_kes);
-
-        const msg = $('settings_msg');
-        if (msg){
-          if (meta?.error){
-            msg.textContent = meta.error;
-            msg.className = 'err small';
-          }else if (meta?.updated_at){
-            msg.textContent = `Last updated ${dateTimeFmt(meta.updated_at)}`;
-            msg.className = 'muted small';
-          }else{
-            msg.textContent = '';
-            msg.className = 'muted small';
-          }
-        }
-      }
-
-      async function loadPlatformSettings(){
-        try{
-          const res = await jget('/api/admin/platform-settings');
-          state.settings = res?.settings || {};
-          renderPlatformSettings(res);
-        }catch(e){
-          renderPlatformSettings({ error: parseErr(e) });
-        }
-      }
-
-      async function savePlatformSettings(){
-        const msg = $('settings_msg');
-        const payload = {
-          platform_fee_pct: Number($('settings_platform_fee')?.value || 0),
-          sacco_fee_pct: Number($('settings_sacco_fee')?.value || 0),
-          min_payout_kes: Number($('settings_min_payout')?.value || 0),
-          max_payout_kes: Number($('settings_max_payout')?.value || 0),
-          low_balance_threshold_kes: Number($('settings_low_balance')?.value || 0),
-        };
-        try{
-          if (msg){ msg.textContent = 'Saving...'; msg.className = 'muted small'; }
-          const res = await jpost('/api/admin/platform-settings', payload);
-          state.settings = res.settings || {};
-          renderPlatformSettings(res);
-          toast('Settings saved', 'ok');
-        }catch(e){
-          if (msg){ msg.textContent = parseErr(e); msg.className = 'err small'; }
-        }
-      }
-
-      function renderSystemAlerts(){
-        const list = $('alerts_list');
-        const empty = $('alerts_empty');
-        if (!list) return;
-        const alerts = state.alerts || [];
-        if (!alerts.length){
-          list.innerHTML = '';
-          if (empty) empty.style.display = 'block';
-          return;
-        }
-        if (empty) empty.style.display = 'none';
-        list.innerHTML = alerts.map(alert => {
-          const metaBits = [];
-          if (alert.meta?.amount) metaBits.push(`Amount: ${kesFmt(alert.meta.amount)}`);
-          if (alert.meta?.phone) metaBits.push(`Phone: ${esc(alert.meta.phone)}`);
-          if (alert.meta?.wallet_id) metaBits.push(`Wallet: ${esc(alert.meta.wallet_id)}`);
-          const badge = `<span class="pill ${alert.severity === 'CRITICAL' ? 'bad' : alert.severity === 'WARN' ? 'warn' : ''}">${esc(alert.severity || '')}</span>`;
-          const resolveBtn = alert.status === 'RESOLVED' ? '' : `<button class="btn ghost small" data-resolve="${alert.id}">Resolve</button>`;
-          return `
-            <div class="alert-card">
-              <div>
-                <div class="row" style="gap:8px; align-items:center; margin-bottom:4px">
-                  ${badge}
-                  <strong>${esc(alert.alert_type || 'Alert')}</strong>
-                </div>
-                <p class="alert-info">${esc(alert.message || '')}</p>
-                <div class="alert-meta">
-                  ${metaBits.join(' | ')}
-                  ${alert.created_at ? ` | ${dateTimeFmt(alert.created_at)}` : ''}
-                </div>
-              </div>
-              <div class="row" style="gap:8px; align-items:center">
-                <span class="pill ${alert.status === 'RESOLVED' ? 'ok' : 'warn'}">${esc(alert.status)}</span>
-                ${resolveBtn}
-              </div>
-            </div>
-          `;
-        }).join('');
-      }
-
-      async function loadSystemAlerts(status){
-        const useStatus = status !== undefined ? status : state.alertFilter;
-        if (useStatus) state.alertFilter = useStatus;
-        try{
-          const q = useStatus ? `?status=${encodeURIComponent(useStatus)}` : '';
-          const res = await jget(`/api/admin/system-alerts${q}`);
-          state.alerts = res.items || [];
-        }catch(e){
-          state.alerts = [];
-          const empty = $('alerts_empty');
-          if (empty) { empty.textContent = parseErr(e); empty.className = 'err'; }
-        }
-        const sel = $('alerts_filter');
-        if (sel) sel.value = useStatus || '';
-        renderSystemAlerts();
-      }
-
-      async function resolveAlert(id){
-        if (!id) return;
-        try{
-          await jpost(`/api/admin/system-alerts/${encodeURIComponent(id)}/resolve`, {});
-          await loadSystemAlerts(state.alertFilter || 'OPEN');
-          toast('Alert resolved', 'ok');
-        }catch(e){
-          toast(parseErr(e), 'err');
-        }
-      }
-
-      function renderAuditLogs(){
-        const body = $('audit_table_body');
-        if (!body) return;
-        const items = state.auditLogs || [];
-        if (!items.length){
-          body.innerHTML = '<tr><td colspan="5" class="muted">No audit entries yet.</td></tr>';
-          return;
-        }
-        body.innerHTML = items.map(row => {
-          const meta = row.meta ? JSON.stringify(row.meta).slice(0, 160) : '';
-          return `
-            <tr>
-              <td>${dateTimeFmt(row.created_at)}</td>
-              <td>${esc(row.user_name || row.user_id || '-')}</td>
-              <td>${esc(row.action || '-')}</td>
-              <td class="mono">${esc(row.path || '-')}</td>
-              <td class="muted small">${esc(meta || '-')}</td>
-            </tr>
-          `;
-        }).join('');
-      }
-
-      async function loadAuditLogs(){
-        try{
-          const res = await jget('/api/admin/audit-logs?limit=80');
-          state.auditLogs = res.items || [];
-        }catch(_){
-          state.auditLogs = [];
-        }
-        renderAuditLogs();
       }
 
       async function loadOverview(){
@@ -1649,36 +1393,6 @@
             msgEl.className = 'err';
           }
         }
-      }
-
-      const alertsList = $('alerts_list');
-      if (alertsList){
-        alertsList.addEventListener('click', (event)=>{
-          const btn = event.target.closest('[data-resolve]');
-          if (btn){
-            resolveAlert(btn.dataset.resolve);
-          }
-        });
-      }
-      const alertsFilter = $('alerts_filter');
-      if (alertsFilter){
-        alertsFilter.addEventListener('change', ()=> loadSystemAlerts(alertsFilter.value || ''));
-      }
-      const alertsRefresh = $('alerts_refresh');
-      if (alertsRefresh){
-        alertsRefresh.addEventListener('click', ()=> loadSystemAlerts((alertsFilter && alertsFilter.value) || ''));
-      }
-      const settingsSaveBtn = $('settings_save_btn');
-      if (settingsSaveBtn){
-        settingsSaveBtn.addEventListener('click', savePlatformSettings);
-      }
-      const settingsResetBtn = $('settings_reset_btn');
-      if (settingsResetBtn){
-        settingsResetBtn.addEventListener('click', ()=> loadPlatformSettings());
-      }
-      const auditRefresh = $('audit_refresh');
-      if (auditRefresh){
-        auditRefresh.addEventListener('click', loadAuditLogs);
       }
 
       $('logout_btn').addEventListener('click', ()=>{
@@ -3078,9 +2792,6 @@
         await Promise.all([
           loadOverview(),
           loadAdminFinance(),
-          loadPlatformSettings(),
-          loadSystemAlerts(state.alertFilter || 'OPEN'),
-          loadAuditLogs(),
           loadFinanceSaccoTable((saccoRangeSel && saccoRangeSel.value) || 'month'),
           loadFinanceWithdrawals('month', (withdrawStatusSel && withdrawStatusSel.value) || ''),
           loadSaccos(),
