@@ -11,9 +11,10 @@
   }
 
   async function requireRole(expected, opts = {}){
-    const required = Array.isArray(expected) ? expected : [expected];
+    const requiredRaw = Array.isArray(expected) ? expected : [expected];
+    const required = requiredRaw.map(r => String(r || '').toUpperCase());
     const statusTarget = statusElFrom(opts.statusEl);
-    const roleLabel = opts.roleLabel || required.join(' / ');
+    const roleLabel = opts.roleLabel || requiredRaw.join(' / ');
     const next = opts.next || (location.pathname + location.search);
     const loginUrl = opts.loginUrl || `/public/auth/login.html?next=${encodeURIComponent(next)}`;
     const mismatchUrl = opts.onMismatch || '/public/auth/role-select.html';
@@ -34,8 +35,13 @@
         location.href = loginUrl;
         throw new Error('unauthorized');
       }
+      if (!res.ok){
+        throw new Error('auth_failed');
+      }
+
       const profile = await res.json().catch(()=> ({}));
-      if (!profile || !required.includes(profile.role)){
+      const role = String(profile?.role || '').toUpperCase();
+      if (!role || !required.includes(role)){
         setStatus(statusTarget, `Requires ${roleLabel} access`);
         location.href = mismatchUrl;
         throw new Error('role_mismatch');
