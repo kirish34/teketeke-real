@@ -34,6 +34,27 @@ async function getRoleRow(userId) {
   if (error && error.code !== PG_ROW_NOT_FOUND) {
     throw error;
   }
+
+  // Fallback: if user_roles has no row, try staff_profiles so staff roles still work
+  if (!data) {
+    const { data: staff, error: staffErr } = await supabaseAdmin
+      .from('staff_profiles')
+      .select('role, sacco_id, matatu_id')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (staffErr && staffErr.code !== PG_ROW_NOT_FOUND) {
+      throw staffErr;
+    }
+    if (staff) {
+      return {
+        user_id: userId,
+        role: staff.role || null,
+        sacco_id: staff.sacco_id || null,
+        matatu_id: staff.matatu_id || null,
+      };
+    }
+  }
+
   return data || null;
 }
 
